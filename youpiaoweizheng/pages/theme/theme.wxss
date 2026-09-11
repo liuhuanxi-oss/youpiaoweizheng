@@ -34,7 +34,7 @@
   width: 300rpx; height: 300rpx; border-radius: 50%;
   opacity: 0.55; filter: blur(30rpx);
 }
-.th-ip-svg { position: relative; width: 168rpx; height: 168rpx; z-index: 1; }
+.th-ip-img { position: relative; width: 168rpx; height: 168rpx; z-index: 1; }
 .th-ip-name {
   position: relative; z-index: 1;
   margin-top: 4rpx;
@@ -115,7 +115,7 @@
   font-family: "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* ⑤ 4 个装饰元素 SVG */
+/* ⑤ 4 个装饰元素图形（image 直出 SVG，尺寸须给 image 而非 svg） */
 .th-decos {
   display: flex;
   gap: 14rpx;
@@ -131,7 +131,7 @@
   align-items: center;
   gap: 8rpx;
 }
-.th-deco svg { width: 72rpx; height: 52rpx; }
+.th-deco-img { width: 72rpx; height: 52rpx; }
 .th-deco-label {
   font-size: 18rpx; color: var(--text2);
   white-space: nowrap;

@@ -1,26 +1,43 @@
 // pages/theme/theme.js —— 主题选择页（v6.5 六主题「皮肤」）
 // ============================================================
 // 六张统一版式卡片：顶部 IP 头像 → 主题名 → 6 色色板（含 hex）
-//                  → 字体层级样例 → 4 个装饰元素 SVG
+//                  → 字体层级样例 → 4 个装饰元素图形
 // 交互：点卡片 = 即时预览（当场换肤，不落库）
 //       「应用此主题」= setTheme 落库 + 提示 + 返回
-// 装饰 SVG 全部内联在 wxml，颜色直接读 CSS 变量，随主题换色。
+//
+// 7.0.0 修：头像与装饰元素原先是**内联 <svg> 标签**，小程序 wxml 不渲染，
+//   真机上这 20 处图形全空白。现改为 utils/deco.js 在 JS 侧拼 SVG 实色 →
+//   encodeURIComponent → <image src="data:image/svg+xml,...">。
+//   颜色不能再用 CSS 变量（<image> 载入的 SVG 是独立文档，继承不到页面变量），
+//   所以在 onLoad 时按每套主题的色板一次性编译好，随 cards 一起 setData。
 // ============================================================
 const themeUtil = require('../../utils/theme.js');
+const deco = require('../../utils/deco.js');
+
+/** 把主题元数据 + 编译好的图形 data-uri 合成卡片数组（wxml 只认这个） */
+function buildCards() {
+  return themeUtil.THEME_META.map((t) => Object.assign({}, t, {
+    avatarSrc: deco.avatarSrc(t),
+    decoItems: t.decos.map((d) => ({
+      name: d,
+      label: themeUtil.DECO_LABELS[d] || '',
+      src: deco.decoSrc(d, t)
+    }))
+  }));
+}
 
 Page({
   data: {
     theme: 'paper',           // 当前生效主题（已落库）
     preview: 'paper',         // 预览中主题（未落库时与 theme 不同）
-    themes: themeUtil.THEME_META,
-    typeScale: themeUtil.TYPE_SCALE,
-    // 装饰元素类型 → 供 wxml 内联 SVG 分支渲染（4 个/主题）
-    decoLabels: themeUtil.DECO_LABELS
+    cards: [],
+    typeScale: themeUtil.TYPE_SCALE
   },
 
   onLoad() {
     const cur = themeUtil.getTheme();
-    this.setData({ theme: cur, preview: cur });
+    // 编译 6 套 ×（1 头像 + 4 装饰）共 30 张 SVG，一次性 setData (~18KB)
+    this.setData({ theme: cur, preview: cur, cards: buildCards() });
   },
 
   onShow() {
