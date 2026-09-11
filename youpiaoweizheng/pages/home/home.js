@@ -10,13 +10,38 @@
 const store = require('../../utils/store.js');
 const themeUtil = require('../../utils/theme.js');
 const track = require('../../utils/track.js');
+const { iconSrc } = require('../../utils/icons.js');
 
+// v7.0 精修：分类 chips 的图标由 emoji 换成线性图标（对齐设计稿的单色描边风）。
+// 微信不支持内联 svg，故与 tabBar 同法走 <image> + data-uri（见 utils/icons.js）。
 const FILTERS = [
-  { key: 'show', name: '演出', icon: '🎭' },
-  { key: 'movie', name: '电影', icon: '🎬' },
-  { key: 'traffic', name: '交通', icon: '🚌' },
-  { key: 'travel', name: '旅行', icon: '✈️' }
+  { key: 'show', name: '演出', ico: 'mask' },
+  { key: 'movie', name: '电影', ico: 'film' },
+  { key: 'traffic', name: '交通', ico: 'train' },
+  { key: 'travel', name: '旅行', ico: 'plane' }
 ];
+
+// 选中态是主色实底 → 图标反白；未选态图标用正文色。SVG 不认 CSS 变量，只能按主题镜像一份。
+const CHIP_INK = {
+  paper:    { on: '#F5F0E6', off: '#2B2420' },
+  glass:    { on: '#FFFFFF', off: '#6B5B50' },
+  collage:  { on: '#FFFFFF', off: '#6B5B50' },
+  film:     { on: '#FFFFFF', off: '#EDE3D6' },
+  literary: { on: '#FFFFFF', off: '#6B5B50' },
+  minimal:  { on: '#FFFFFF', off: '#1A1A1A' }
+};
+
+/** 按主题产出 4 个分类 chip（选中/未选两套图标地址） */
+function buildChips(theme) {
+  const ink = CHIP_INK[theme] || CHIP_INK.glass;
+  return FILTERS.map((f) => ({
+    key: f.key,
+    name: f.name,
+    srcOn: iconSrc(f.ico, ink.on, 1, 1.8),
+    srcOff: iconSrc(f.ico, ink.off, 1, 1.8)
+  }));
+}
+
 const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const FAV_KEY = 'fav_ids';
 const TYPE_ICON = { show: '🎭', movie: '🎬', traffic: '🚌', travel: '✈️' };
@@ -36,7 +61,7 @@ Page({
   data: {
     theme: 'paper',
     loading: true,
-    filters: FILTERS,
+    filters: buildChips('paper'),
     active: 'show',      // 默认选中「演出」（视觉稿选中态）
     colA: [],
     colB: [],
@@ -45,11 +70,21 @@ Page({
 
   _tabIndex: 0,
   _all: [],
+  _chipTheme: '',      // 上次构建 chips 用的主题，避免每次 onShow 重复拼 data-uri
 
   onShow() {
     themeUtil.apply(this);
+    this.syncChips();
     this.getTabBar && this.getTabBar().setData({ selected: 0, theme: themeUtil.getTheme() });
     this.refresh();
+  },
+
+  /** 主题变了才重拼 chips 图标（data-uri 是位图 src，CSS 变量换不动它） */
+  syncChips() {
+    const t = this.data.theme;
+    if (t === this._chipTheme) return;
+    this._chipTheme = t;
+    this.setData({ filters: buildChips(t) });
   },
 
   onPullDownRefresh() {

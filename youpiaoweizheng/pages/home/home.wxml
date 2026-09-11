@@ -26,7 +26,7 @@
   <!-- ===== 问候语（手写风两行 + 星光） ===== -->
   <view class="fa-greet">
     <view class="fa-greet-txt hand">
-      <text>你好，愿这些票根</text>
+      <text>愿这些票根，</text>
       <text>都是你热爱生活的证据</text>
     </view>
     <text class="b-spark fa-greet-star">✦</text>
@@ -35,7 +35,7 @@
   <!-- ===== 搜索框（点击 → 票夹页搜索） ===== -->
   <view class="fa-search" bindtap="goSearch" hover-class="press-item-hover" aria-role="searchbox" aria-label="搜索票根">
     <view class="fa-search-ico"></view>
-    <text class="fa-search-ph">搜索你想找的票根...</text>
+    <text class="fa-search-ph">搜索演出、电影、城市...</text>
   </view>
 
   <!-- ===== 分类 chips（演出/电影/交通/旅行，选中灰玫粉实底） ===== -->
@@ -50,7 +50,7 @@
       aria-role="button"
       aria-label="{{item.name}}"
     >
-      <text class="fa-chip-ico">{{item.icon}}</text>
+      <image class="fa-chip-ico" src="{{active === item.key ? item.srcOn : item.srcOff}}" mode="aspectFit" />
       <text>{{item.name}}</text>
     </view>
   </view>

@@ -124,11 +124,11 @@
 }
 .item-hover { transform: scale(0.92); opacity: 0.8; }
 .item .ico {
-  width: 44rpx; height: 44rpx;
+  width: 48rpx; height: 48rpx;          /* 规范图：图标 24pt = 48rpx */
   display: flex; align-items: center; justify-content: center;
   transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.item .ico svg { width: 44rpx; height: 44rpx; }
+.item .ico-img { width: 48rpx; height: 48rpx; }
 .item .txt {
   font-size: 20rpx;
   letter-spacing: 2rpx;
@@ -155,7 +155,7 @@
 .fab {
   position: absolute;
   left: 50%;
-  top: -26rpx;
+  top: -24rpx;              /* 规范图：凸起 12pt = 24rpx */
   transform: translateX(-50%);
   width: 112rpx;
   height: 112rpx;

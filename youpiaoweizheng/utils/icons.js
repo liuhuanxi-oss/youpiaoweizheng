@@ -1,0 +1,75 @@
+// utils/icons.js —— 线性图标工具（v7.0 新增）
+// ============================================================
+// 为什么需要这个文件：
+//   微信小程序 **WXML 不支持内联 svg 标签**（小程序视图层没有 SVG 原生渲染树，
+//   <svg>/<path> 会被当作未知自定义组件容器，子元素全部丢弃 —— 视觉上就是
+//   「什么都不显示」）。本仓库 CHANGELOG 4.10.7 与 components/svg-icon 都记录过这个坑。
+//   唯一稳妥且官方支持的落地方式：把 SVG 拼成字符串 → encodeURIComponent →
+//   塞进 <image src>（image 组件原生支持 SVG）。
+//
+// 因此所有需要线性图标的页面，统一走：
+//   const { iconSrc } = require('../../utils/icons.js');
+//   this.setData({ list: items.map(i => Object.assign(i, { src: iconSrc('clock', '#D9A0A6') })) });
+//   然后在 WXML 里写 <image src="{{item.src}}" />
+//
+// ⚠️ 颜色必须是十六进制实色：SVG 属性不认 CSS 变量 var()，也不建议依赖 rgba()。
+//    需要半透明时用第 3 个参数 opacity，它会写成 stroke-opacity 属性。
+// ============================================================
+
+const P = (d) => '<path d="' + d + '"/>';
+const C = (cx, cy, r) => '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/>';
+const R = (x, y, w, h, rx) =>
+  '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"' +
+  (rx ? ' rx="' + rx + '"' : '') + '/>';
+
+// —— 24×24 网格、fill none、round 端点与连接（描边宽度由 iconSrc 统一给）——
+const ICON_PATH = {
+  // ===== 底部导航 =====
+  ticket:  // 票根墙：带齿孔的票根
+    P('M4.6 7.2h14.8a1 1 0 0 1 1 1v1.9a1.9 1.9 0 0 0 0 3.8v1.9a1 1 0 0 1-1 1H4.6a1 1 0 0 1-1-1v-1.9a1.9 1.9 0 0 0 0-3.8V8.2a1 1 0 0 1 1-1Z') +
+    P('M13.6 7.2v2.3M13.6 14.5v2.3'),
+  clock:   // 时光机：时钟
+    C(12, 12, 8.2) + P('M12 7.3V12l3.1 1.9'),
+  map:     // 回忆地图：折页地图
+    P('M4.4 6.7 9 4.6l6 2 4.6-1.7v12.4L15 19.4l-6-2-4.6 1.7Z') +
+    P('M9 4.6v12.8M15 6.6v12.8'),
+  user:    // 我的：人像
+    C(12, 8.2, 3.9) + P('M4.9 19.8c0-3.9 3.2-6.2 7.1-6.2s7.1 2.3 7.1 6.2'),
+
+  // ===== 首页分类 chips =====
+  mask:    // 演出：剧院面具
+    P('M4.3 9.4c0-2.5 3.4-4.4 7.7-4.4s7.7 1.9 7.7 4.4c0 3.7-3.4 7.6-7.7 7.6S4.3 13.1 4.3 9.4Z') +
+    P('M9 8.9h.02M15 8.9h.02') +
+    P('M9.2 11.9c1.9 1.7 4.6 1.7 6.5 0'),
+  film:    // 电影：胶片
+    R(3.4, 5.4, 17.2, 13.2, 1.4) +
+    P('M7.6 5.4v13.2M16.4 5.4v13.2') +
+    P('M7.6 9.8h1.5M7.6 12h1.5M7.6 14.2h1.5M14.9 9.8h1.5M14.9 12h1.5M14.9 14.2h1.5'),
+  train:   // 交通：列车
+    P('M6.4 15.6V9.8a3 3 0 0 1 3-3h5.2a3 3 0 0 1 3 3v5.8') +
+    P('M9.6 6.8V4.6h4.8v2.2M12 10.4v3') +
+    P('M8.6 16.4h.02M15.4 16.4h.02'),
+  plane:   // 旅行：纸飞机
+    P('M20.8 3.2 3.2 10.4l6.6 2.6 2.6 6.6Z') + P('M9.8 13 20.8 3.2')
+};
+
+/**
+ * 拼一张上色 SVG 的 data-uri，可直接塞进 <image src>
+ * @param {string} name     ICON_PATH 的键；未知键回落 ticket（不抛错，避免整页白屏）
+ * @param {string} color    十六进制实色，如 '#D9A0A6'；非法字符会被剥离
+ * @param {number} [opacity] 0-1，小于 1 时写成 stroke-opacity
+ * @param {number} [width]   描边宽度，默认 1.6
+ */
+function iconSrc(name, color, opacity, width) {
+  const body = ICON_PATH[name] || ICON_PATH.ticket;
+  // 只放行十六进制色值字符：防注入，也防有人误传 var(--x)（SVG 不认）
+  const safe = String(color || '#6B5B50').replace(/[^#0-9a-zA-Z]/g, '');
+  const op = typeof opacity === 'number' && opacity < 1 ? " stroke-opacity='" + opacity + "'" : '';
+  const sw = typeof width === 'number' && width > 0 ? width : 1.6;
+  const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='" +
+    safe + "'" + op + " stroke-width='" + sw + "' stroke-linecap='round' stroke-linejoin='round'>" +
+    body + '</svg>';
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+module.exports = { iconSrc, ICON_PATH };

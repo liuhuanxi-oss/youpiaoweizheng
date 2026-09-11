@@ -101,7 +101,8 @@
   font-size: 26rpx; color: var(--brown, #6B5B50);
   transition: background 0.15s;
 }
-.fa-chip-ico { font-size: 28rpx; line-height: 1; }
+/* v7.0 精修：分类图标由 emoji 换线性图标（<image> + data-uri，见 utils/icons.js） */
+.fa-chip-ico { width: 32rpx; height: 32rpx; flex: none; }
 .fa-chip.on {
   background: var(--rose, #D9A0A6);
   box-shadow: none;
@@ -116,14 +117,35 @@
 }
 .fa-col { flex: 1; display: flex; flex-direction: column; gap: 24rpx; min-width: 0; }
 
+/* v7.0 精修：票卡改成设计稿的「邮票」形态 ——
+   方角白卡 + 四边齿孔（半圆缺口，"咬"出邮票边）代替原来的大圆角卡。
+   齿孔色取页面底色 --bg，所以底与卡有色差时才咬得出来（六主题均满足）。 */
 .fa-card {
+  position: relative;
   background: var(--card-bg, var(--card));
-  border-radius: var(--card-r, 28rpx);
+  border-radius: 8rpx;
   border: var(--card-border, none);
   padding: 16rpx 16rpx 20rpx;
   box-shadow: var(--card-shadow, 0 6rpx 24rpx rgba(var(--text-rgb), 0.06));
   backdrop-filter: var(--card-blur, none);
   -webkit-backdrop-filter: var(--card-blur, none);
+}
+/* 四边齿孔：上下各一排（repeat-x）+ 左右各一排（repeat-y）。
+   半径 11rpx / 步距 24rpx（横）· 11rpx / 24rpx（纵），缺口深度小于卡内边距，
+   不会啃到内容。::before 画在卡背景之上、子元素之下，无需 z-index。 */
+.fa-card::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 12rpx 0, var(--bg, #FAF5EE) 11rpx, transparent 12rpx),
+    radial-gradient(circle at 12rpx 100%, var(--bg, #FAF5EE) 11rpx, transparent 12rpx),
+    radial-gradient(circle at 0 12rpx, var(--bg, #FAF5EE) 11rpx, transparent 12rpx),
+    radial-gradient(circle at 100% 12rpx, var(--bg, #FAF5EE) 11rpx, transparent 12rpx);
+  background-size: 24rpx 12rpx, 24rpx 12rpx, 12rpx 24rpx, 12rpx 24rpx;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
 }
 
 /* 封面：圆角图 + 出血邮戳 + 左上编号心 */
@@ -196,7 +218,7 @@
    数据替换时零高度跳动 */
 .fa-sk-card {
   background: var(--card-bg, var(--card));
-  border-radius: var(--card-r, 28rpx);
+  border-radius: 8rpx;          /* 与 .fa-card 同步（v7.0 邮票方角卡） */
   padding: 16rpx 16rpx 20rpx;
   box-shadow: var(--card-shadow, 0 6rpx 24rpx rgba(var(--text-rgb), 0.06));
 }
