@@ -247,11 +247,48 @@ async function setCaption(id, caption) {
 
 // —— 4.18.0 列表状态标志（wall 页横幅用；每次 listTickets 后刷新） ——
 let _listFallback = false;  // true = 云库读取失败，本帧兜底成了演示数据
-let _listTruncated = false; // true = 云库票数达到 200 查询上限，可能只显示了最近的 200 张
+let _listTruncated = false; // true = 云库票数超过单次可拉上限，本帧只显示了最近的 LIST_MAX 张
 
 /** 页面读取列表状态：渲染完列表后调用一次，决定是否亮横幅 */
 function listFlags() {
-  return { netFallback: _listFallback, truncated: _listTruncated };
+  return { netFallback: _listFallback, truncated: _listTruncated, cap: LIST_MAX };
+}
+
+// —— 5.0.0 修 P0：小程序端单次 get 的 limit 有硬上限 ——
+// 官方规定：小程序端 limit 最大 20 条（云函数端才是 100 条）。原先写 .limit(200)
+// 跑在小程序端，会被截断成 20 条 —— 用户从第 21 张票根起，旧票在 App 内彻底消失
+// 且永不提示；连带 rows.length >= 200 的触顶判断也永远为假，横幅从不出现。
+// 现改为 skip 分批拉取；上限触顶时才亮横幅说明「只显示了最近的 N 张」。
+const PAGE_SIZE = 20;   // 小程序端单次上限
+const LIST_MAX = 500;   // 单次列表最多拉取张数（25 批），防止无限翻页拖垮首屏
+
+/**
+ * 分批拉全量票根。
+ * skip 翻页必须配「稳定排序」，否则 date 相同的票在各页之间次序会漂移 → 漏票/重票，
+ * 故在 date 之外补 _id 兜底排序（最终展示顺序仍由 JS 侧 byOrder 决定）。
+ * @returns {Promise<{rows:Array, truncated:boolean}>}
+ */
+async function fetchCloudTickets(db) {
+  const col = db.collection('tickets');
+  let total = 0;
+  try {
+    const c = await col.count();
+    total = (c && c.total) || 0;
+  } catch (e) { /* count 失败不拦路：退化成「翻到不满一页为止」 */ }
+  const want = total ? Math.min(total, LIST_MAX) : LIST_MAX;
+  const rows = [];
+  for (let skip = 0; skip < want; skip += PAGE_SIZE) {
+    const res = await col
+      .orderBy('date', 'desc')
+      .orderBy('_id', 'desc')
+      .skip(skip)
+      .limit(Math.min(PAGE_SIZE, want - skip))
+      .get();
+    const page = (res && res.data) || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break; // 不满一页 = 已到底
+  }
+  return { rows, truncated: total ? total > rows.length : rows.length >= LIST_MAX };
 }
 
 /** 读取全部票根（组内自定义序 sortAt 优先，其余按票面日期倒序） */
@@ -261,16 +298,11 @@ async function listTickets() {
     _listTruncated = false;
     try {
       const db = wx.cloud.database();
-      const res = await db
-        .collection('tickets')
-        .orderBy('date', 'desc')
-        .limit(200)
-        .get();
-      // 新用户云库为空 → 返回空数组，走首页空态引导（真实产品该有的样子）
+      // 新用户云库为空 → rows 为空数组，走首页空态引导（真实产品该有的样子）
       // 4.14.0：byOrder = sortAt 降序优先（拖拽排序过的组），其余 byDate 兜底
-      // 4.18.0：恰好 200 条 = 触顶，可能截断（desc 序拿的是最近的 200 张）→ 亮提示横幅
-      const rows = res.data || [];
-      _listTruncated = rows.length >= 200;
+      // 5.0.0：分批拉取（原 .limit(200) 被小程序端硬上限截断）→ 见 fetchCloudTickets
+      const { rows, truncated } = await fetchCloudTickets(db);
+      _listTruncated = truncated;
       return rows.map(normalize).sort(byOrder);
     } catch (e) {
       console.warn('[store] 云库读取失败，兜底演示数据：', e);

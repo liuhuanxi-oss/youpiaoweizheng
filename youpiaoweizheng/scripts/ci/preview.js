@@ -32,7 +32,7 @@ async function main() {
     setting: { es6: true, es7: true, minify: true },
     qrcodeFormat: 'image',
     qrcodeOutputDest: qrPath,
-    pagePath: undefined // 可指定启动页，如 'pages/wall/wall'
+    pagePath: undefined // 可指定启动页，如 'pages/home/home'
   })
   console.log('预览二维码已生成：' + qrPath)
   console.log('包体积信息：', JSON.stringify(res.subPackageInfo || res.pluginInfo || {}))

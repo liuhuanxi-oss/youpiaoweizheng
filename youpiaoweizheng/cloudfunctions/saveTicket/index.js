@@ -562,6 +562,8 @@ async function artRewardGrantAction(event, OPENID) {
  * 官方推荐「推送 + 主动查单」两分支至少实现一个、结合更可靠——success 回调可能丢失。
  * @returns {{delivered:boolean, reason?:string}}
  */
+const MAX_ORDER_QTY = 1; // 单笔订单可发货的最大件数：payCreate 服务端写死 buyQuantity:1，多件不可信
+
 async function deliverOrder(db, openid, outTradeNo, productId, quantity, priceFen) {
   const product = pay.PRODUCTS[productId];
   const col = db.collection('prefs');
@@ -569,17 +571,19 @@ async function deliverOrder(db, openid, outTradeNo, productId, quantity, priceFe
   const order = found.data && found.data[0];
   if (order && order.status === 'delivered') return { delivered: false, reason: 'dup' };
   if (order && order.status === 'refunded') return { delivered: false, reason: 'refunded' };
-  const addQuota = (product ? product.quota : 0) * (Number(quantity) || 1);
+  // 5.0.0 修 P0-3：件数夹紧（原实现按 产品幅数 × Quantity 加额度，Quantity 客户端可控且无上限）
+  const qty = Math.min(Math.max(Number(quantity) || 1, 1), MAX_ORDER_QTY);
+  const addQuota = (product ? product.quota : 0) * qty;
   if (order) {
     await col.doc(order._id).update({
-      data: { status: 'delivered', deliveredAt: Date.now(), quantity: Number(quantity) || 1, updatedAt: Date.now() }
+      data: { status: 'delivered', deliveredAt: Date.now(), quantity: qty, updatedAt: Date.now() }
     });
   } else {
     // 兜底：推送先于订单可见（极端时序）→ 落一笔 delivered 记录防丢单
     await col.add({
       data: {
         _openid: openid, type: 'pay_order', outTradeNo, productId,
-        priceFen: Number(priceFen) || 0, quantity: Number(quantity) || 1,
+        priceFen: Number(priceFen) || 0, quantity: qty,
         status: 'delivered', deliveredAt: Date.now(), updatedAt: Date.now()
       }
     });
@@ -626,6 +630,31 @@ async function reconcileOrder(db, openid, order) {
   }
 }
 
+/**
+ * 支付订单审计留痕（5.0.0 修 P0-3）：一切「不发货」的异常分支都落一条带明确 status 的
+ * 记录，便于事后人工排查与对账。已有订单就地改状态，没有则新建一条。
+ * ⚠️ 已 delivered / refunded 的订单不覆盖 —— 审计绝不能把发货结果改回去。
+ */
+async function auditPayOrder(db, openid, outTradeNo, productId, status, extra) {
+  try {
+    const col = db.collection('prefs');
+    const data = Object.assign({ status, updatedAt: Date.now() }, extra || {});
+    const found = await col.where({ _openid: openid, type: 'pay_order', outTradeNo }).limit(1).get();
+    const order = found.data && found.data[0];
+    if (order) {
+      if (order.status === 'delivered' || order.status === 'refunded') return;
+      await col.doc(order._id).update({ data });
+      return;
+    }
+    await col.add({
+      data: Object.assign({
+        _openid: openid, type: 'pay_order', outTradeNo, productId: productId || '',
+        priceFen: 0, createdAt: Date.now()
+      }, data)
+    });
+  } catch (e) { /* 审计落库失败不拦路：留痕是尽力而为，不能反过来阻断主流程 */ }
+}
+
 /** 微信发货推送（消息推送 → 本函数；Event=xpay_goods_deliver_notify）。必须幂等。 */
 async function payNotifyAction(event) {
   // 官方字段语义（2026-09 文档核对）：FromUserName 在道具发货场景固定为微信官方的 openid，
@@ -645,32 +674,63 @@ async function payNotifyAction(event) {
     const order = found.data && found.data[0];
     if (order && order.status === 'delivered') return { ErrCode: 0, ErrMsg: 'ok(dup)' };
     if (order && order.status === 'refunded') return { ErrCode: 0, ErrMsg: 'ok(refunded)' };
-    // 价格校验：ActualPrice 与后台道具价不符 → 不发货不回执成功（微信侧重试/人工排查）
-    // 未知订单也落 price_mismatch 审计记录（微信重试 15 次都过不了，必须留排查线索）
-    if (product && Number(goods.ActualPrice) !== product.priceFen) {
-      if (order) {
-        await col.doc(order._id).update({ data: { status: 'price_mismatch', updatedAt: Date.now() } });
-      } else {
-        await col.add({ data: { _openid: openid, type: 'pay_order', outTradeNo, productId, priceFen: Number(goods.ActualPrice) || 0, status: 'price_mismatch', createdAt: Date.now(), updatedAt: Date.now() } });
-      }
-      return { ErrCode: -1, ErrMsg: 'price mismatch' };
+    if (!product) {
+      // 未知道具不发货（原代码只做价格比对，商品未知时 priceFen 为 undefined → 比对恒不等
+      // 虽然也会拦下，但语义含糊；这里显式拒绝并留痕）
+      await auditPayOrder(db, openid, outTradeNo, productId, 'unknown_product', { priceFen: Number(goods.ActualPrice) || 0 });
+      return { ErrCode: 0, ErrMsg: 'ok(unknown product)' };
     }
     // 归属校验：下单时 attach 带 openid，推送回带 GoodsInfo.Attach —— 防串单
+    // （客户端可自填，故只当线索不当证据；真正的归属由下方微信侧查单确定）
     let attachOk = true;
     try {
       const at = typeof goods.Attach === 'string' ? JSON.parse(goods.Attach) : (goods.Attach || null);
       if (at && at.openid && at.openid !== openid) attachOk = false;
     } catch (e) { /* attach 非本系统格式时不拦截 */ }
     if (!attachOk) {
-      if (order) {
-        await col.doc(order._id).update({ data: { status: 'attach_mismatch', updatedAt: Date.now() } });
-      } else {
-        await col.add({ data: { _openid: openid, type: 'pay_order', outTradeNo, productId, priceFen: Number(goods.ActualPrice) || 0, status: 'attach_mismatch', createdAt: Date.now(), updatedAt: Date.now() } });
-      }
-      return { ErrCode: -1, ErrMsg: 'attach mismatch' };
+      await auditPayOrder(db, openid, outTradeNo, productId, 'attach_mismatch', { priceFen: Number(goods.ActualPrice) || 0 });
+      return { ErrCode: 0, ErrMsg: 'ok(attach mismatch)' };
     }
-    // 发货（公共函数，payQuery 对账分支复用）：订单置 delivered + 付费额度 += 单件幅数 × 数量
-    const r = await deliverOrder(db, openid, outTradeNo, productId, goods.Quantity, goods.ActualPrice);
+
+    // ============ 5.0.0 修 P0-3 · 资金敞口：微信侧查单复核（唯一的发货依据）============
+    // 本函数收到的字段里，没有一个可以当作「已付款」的证据：
+    //   Event / OpenId   —— 客户端可自填（虽然已在 exports.main 拦掉客户端直调，但不依赖它）
+    //   GoodsInfo.ActualPrice —— 商品价是公开信息，填对即可
+    //   GoodsInfo.Attach —— 客户端传的，填自己 openid 就过
+    //   GoodsInfo.Quantity —— 无上限，且 deliverOrder 按 产品幅数 × Quantity 加额度
+    // 唯一可信的是拿 sessionKey 签名、向微信查回来的真实订单状态。
+    // 查单不可用（未登录/网络/签名）时既不发货也不改额度，只留痕并回 ErrCode:0 结束重推；
+    // 到账由 payConfirm（客户端支付后主动确认，走的是同一套查单逻辑）与
+    // quotaGet（进页面顺带对账滞留单）自愈，用户不会因这里失败而丢单。
+    const cfg = await pay.loadPayConfig(db);
+    const session = cfg ? await getSession(db, openid) : null;
+    if (!cfg || !session) {
+      await auditPayOrder(db, openid, outTradeNo, productId, 'verify_unavailable', { priceFen: product.priceFen });
+      return { ErrCode: 0, ErrMsg: 'ok(pending-verify)' };
+    }
+    const v = await pay.queryOrderOnWx(cloud.getWXContext().APPID, cfg, openid, session.sessionKey, outTradeNo);
+    if (!v.ok) {
+      // 查单请求本身失败 ≠ 用户没付钱：不能据此判负，留痕待重查
+      await auditPayOrder(db, openid, outTradeNo, productId, 'verify_failed', { priceFen: product.priceFen });
+      return { ErrCode: 0, ErrMsg: 'ok(check-failed)' };
+    }
+    if (v.refunded) {
+      if (order) await col.doc(order._id).update({ data: { status: 'refunded', updatedAt: Date.now() } });
+      return { ErrCode: 0, ErrMsg: 'ok(refunded)' };
+    }
+    if (!v.paid) {
+      // 微信侧明确未支付 —— 伪造推送的典型落点，绝不发货
+      await auditPayOrder(db, openid, outTradeNo, productId, 'verify_unpaid', { priceFen: Number(goods.ActualPrice) || 0 });
+      return { ErrCode: 0, ErrMsg: 'ok(not-paid)' };
+    }
+    // 金额复核：以微信侧实付为准（推送里的 ActualPrice 客户端可改）
+    if (v.paidFee && v.paidFee !== product.priceFen) {
+      await auditPayOrder(db, openid, outTradeNo, productId, 'price_mismatch', { priceFen: v.paidFee });
+      return { ErrCode: 0, ErrMsg: 'ok(price mismatch)' };
+    }
+    // 发货（公共函数，payQuery 对账分支复用）：订单置 delivered + 付费额度 += 单件幅数
+    // 数量恒为 1：payCreate 服务端写死 buyQuantity:1，推送里的 Quantity 一概不采信
+    const r = await deliverOrder(db, openid, outTradeNo, productId, 1, v.paidFee || product.priceFen);
     if (!r.delivered) return { ErrCode: 0, ErrMsg: 'ok(' + r.reason + ')' };
     return { ErrCode: 0, ErrMsg: 'ok' };
   } catch (e) {
@@ -1131,6 +1191,18 @@ exports.main = async (event) => {
   // 掉进入库主流程会返回 {ok:false,...}，微信视为应答失败 → 最多重推 15 次
   //（含对账无关事件：complaint 投诉 / wxpay_callback 支付回调等，收到即成功）。
   if (/^xpay_/.test(String(event.Event || ''))) {
+    // ⚠️ 安全门禁（5.0.0 修 P0-3 · 资金敞口）：
+    // 微信发货/退款推送是「服务端 → 云函数」的投递，消息体里没有小程序用户上下文，
+    // 因此 getWXContext().OPENID 必为空。若这里能取到 OPENID，说明这次调用来自
+    // 小程序端 wx.cloud.callFunction 的伪造（用户可自填 Event / OpenId / Quantity）。
+    // 一律拒绝：回 ErrCode:0 是刻意的 —— 回 -1 会让微信重推 15 次，等于给伪造者
+    // 15 次尝试机会；回 0 直接终结。
+    // 注意：这只是第一道闸。真正的发货依据是 payNotifyAction 里的微信侧查单复核，
+    // 即便本闸被绕过，查单也会挡下（双重保险）。
+    if (cloud.getWXContext().OPENID) {
+      console.warn('[xpay] 拒绝客户端直调伪造的推送事件：', String(event.Event));
+      return { ErrCode: 0, ErrMsg: 'rejected(client-origin)' };
+    }
     switch (event.Event) {
       case 'xpay_goods_deliver_notify':
         return payNotifyAction(event);

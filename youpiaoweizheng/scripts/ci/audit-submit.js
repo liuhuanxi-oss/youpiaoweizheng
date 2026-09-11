@@ -16,7 +16,7 @@ async function main() {
     // 审核项列表，至多5项；首版按首页进入
     item_list: [
       {
-        address: 'pages/wall/wall',
+        address: 'pages/home/home',
         tag: '首页 票根墙',
         first_class: config.audit.categoryId,
         second_class: '',

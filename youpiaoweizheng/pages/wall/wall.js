@@ -146,12 +146,13 @@ Page({
     sk.start(this);
     try {
       const [raw, gOrder] = await Promise.all([store.listTickets(), store.getGroupOrder()]);
-      // 4.18.0：列表状态横幅——云库读取失败兜底成演示数据（可点重试）/ 超 200 张截断提示
+      // 4.18.0：列表状态横幅——云库读取失败兜底成演示数据（可点重试）/ 超上限截断提示
       // 演示模式两标志恒 false，横幅不亮；成功读取会自动清掉旧横幅
+      // 5.0.0：上限改成 store 的 LIST_MAX（随分批拉取一并调整），文案不再写死数字
       const flags = store.listFlags();
       const netBar = flags.netFallback
         ? { text: '网络开小差了，先看演示票根 · 点我重试', retry: true }
-        : (flags.truncated ? { text: '票根超过 200 张，当前显示最近的 200 张', retry: false } : null);
+        : (flags.truncated ? { text: `票根超过 ${flags.cap} 张，当前显示最近的 ${flags.cap} 张`, retry: false } : null);
       this._groupOrder = Array.isArray(gOrder) ? gOrder : [];
       const all = raw.map(decorate);
       this._all = all;
