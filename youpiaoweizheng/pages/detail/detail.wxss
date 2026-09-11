@@ -22,7 +22,7 @@
 .dtc-photo { position: relative; }
 .dtc-img {
   width: 100%; height: 440rpx;
-  border-radius: 24rpx;
+  border-radius: 4rpx;   /* 收进邮票白框内，跟着外框走小圆角 */
   background: var(--soft, #F5EDE2);
   opacity: 0; transition: opacity 0.4s;
   display: block;
@@ -33,10 +33,44 @@
   border-radius: 24rpx;
   background: linear-gradient(160deg, var(--bg), var(--soft));
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 14rpx;
+  gap: 18rpx;
 }
-.dtc-fb-emoji { font-size: 96rpx; }
+.dtc-fb-ic { width: 110rpx; height: 110rpx; }
 .dtc-fb-title { font-size: 30rpx; font-weight: 700; color: var(--brown, #6B5B50); }
+
+/* ===== 邮票外框（品牌全案·稿屏4：照片装进一枚邮票）=====
+   白边 16rpx；四边齿孔用 radial-gradient 挖出页面底色的半圆。
+   齿孔拆两片：::before 管上下（repeat-x）、::after 管左右（repeat-y）——
+   单个元素没法同时按两个方向平铺。挖不干净时会退化成「白边照片」，不会破版。 */
+.dtc-stamp-frame {
+  position: relative;
+  padding: 16rpx;
+  background: var(--card, #FFFFFF);
+  border-radius: 6rpx;
+  box-shadow: 0 10rpx 28rpx rgba(var(--text-rgb, 107, 91, 80), 0.16);
+}
+.dtc-stamp-frame::before {
+  content: '';
+  position: absolute; left: 0; right: 0; top: -1rpx; bottom: -1rpx;
+  background-image:
+    radial-gradient(circle at 50% 0, var(--bg, #FAF5EE) 8rpx, transparent 8rpx),
+    radial-gradient(circle at 50% 100%, var(--bg, #FAF5EE) 8rpx, transparent 8rpx);
+  background-size: 26rpx 15rpx, 26rpx 15rpx;
+  background-position: 0 0, 0 100%;
+  background-repeat: repeat-x, repeat-x;
+  pointer-events: none;
+}
+.dtc-stamp-frame::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: -1rpx; right: -1rpx;
+  background-image:
+    radial-gradient(circle at 0 50%, var(--bg, #FAF5EE) 8rpx, transparent 8rpx),
+    radial-gradient(circle at 100% 50%, var(--bg, #FAF5EE) 8rpx, transparent 8rpx);
+  background-size: 15rpx 26rpx, 15rpx 26rpx;
+  background-position: 0 0, 100% 0;
+  background-repeat: repeat-y, repeat-y;
+  pointer-events: none;
+}
 
 /* 出血邮戳（比瀑布卡戳更大） */
 .dtc-stamp {
@@ -50,6 +84,7 @@
 .anniv-chip {
   position: absolute;
   top: 22rpx; left: 22rpx;
+  display: flex; align-items: center; gap: 6rpx;
   font-size: 19rpx;
   color: var(--stamp, #C26B5E);
   background: var(--card-bg, var(--card));
@@ -57,6 +92,7 @@
   border-radius: 999rpx;
   padding: 6rpx 18rpx;
 }
+.anniv-chip-ic { width: 20rpx; height: 20rpx; }
 
 /* 标题 + 类型 chip */
 .dtc-title-row {
@@ -78,28 +114,25 @@
   font-size: 22rpx; font-weight: 600;
 }
 
-/* 地点行 / 场馆行 */
-.dtc-line {
-  margin-top: 14rpx;
-  font-size: 26rpx;
-  color: var(--brown, #6B5B50);
-}
+.dtc-title-star { flex: 0 0 34rpx; width: 34rpx; height: 34rpx; }
 
-/* 票号行（浅底圆角 + 收藏红心） */
-.dtc-no-row {
-  display: flex; align-items: center; gap: 16rpx;
-  margin-top: 24rpx;
-  padding: 18rpx 22rpx;
-  border-radius: 16rpx;
-  background: var(--chip);   /* 浅色票号底（随主题；film 下自动转暗） */
+/* 三行信息（品牌全案·稿屏4：线性图标 + 标签 + 值）
+   7.0.0 修：取代原「地点/场馆两行文本 + 票号独立色块」的写法 */
+.dtc-rows { margin-top: 20rpx; }
+.dtc-row { display: flex; align-items: center; gap: 16rpx; padding: 13rpx 0; }
+.dtc-row-ic { flex: 0 0 34rpx; width: 34rpx; height: 34rpx; }
+.dtc-row-k {
+  flex: 0 0 72rpx;
+  font-size: 25rpx; color: var(--text2, #A5968A);
 }
-.dtc-no-label { font-size: 24rpx; color: var(--text2, #A5968A); }
-.dtc-no-heart {
-  margin-left: auto;
-  font-size: 40rpx; line-height: 1;
-  color: rgba(var(--text-rgb), 0.28);
+.dtc-row-v {
+  flex: 1; min-width: 0;
+  font-size: 27rpx; font-weight: 500;
+  color: var(--brown, #6B5B50);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.dtc-no-heart.on { color: var(--stamp, #C26B5E); }
+.dtc-row-serial { flex: 0 0 auto; }
+.dtc-heart { flex: 0 0 40rpx; width: 40rpx; height: 40rpx; margin-left: auto; }
 
 /* 底缘齿孔撕裂线：负 margin 撑满卡宽 */
 .dtc-perf { margin: 24rpx -24rpx 0; }
@@ -110,31 +143,47 @@
   margin: 24rpx 44rpx 0;
 }
 .dtc-same-dash { flex: 1; }
+.dtc-same-ic { flex: 0 0 24rpx; width: 24rpx; height: 24rpx; }
 .dtc-same-txt {
   font-size: 22rpx; color: var(--rose, #D9A0A6);
   white-space: nowrap;
 }
 
-/* ===== 手写风 AI 文案（页面底色上直排，右侧星光） ===== */
-.dtc-cap {
+/* ===== AI 时光手记卡（品牌全案·稿屏4：浅绿底 + 左侧竖条 + 徽章） =====
+   7.0.0 修：原为页面底色上直排的手写体 + 一颗 ✦，与设计稿的「卡」形态不符 */
+.dtc-memo {
   position: relative;
-  margin: 36rpx 44rpx 0;
-  padding-right: 60rpx;
-  min-height: 60rpx;
+  margin: 34rpx 32rpx 0;
+  padding: 26rpx 26rpx 28rpx 30rpx;
+  background: var(--sage-soft, #E8F0E6);
+  border: 1rpx solid var(--sage-line, rgba(169, 195, 166, 0.45));
+  border-radius: 22rpx;
+  overflow: hidden;
 }
-.dtc-cap-txt {
-  font-size: 32rpx; line-height: 1.9;
+.dtc-memo-bar {
+  position: absolute; left: 0; top: 22rpx; bottom: 22rpx;
+  width: 6rpx; border-radius: 0 6rpx 6rpx 0;
+  background: var(--sage, #A9C3A6);
+}
+.dtc-memo-badge {
+  display: inline-flex; align-items: center; gap: 10rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  background: var(--card, #FFFFFF);
+  color: var(--brown, #6B5B50);
+  font-size: 24rpx; font-weight: 700; letter-spacing: 1rpx;
+}
+.dtc-memo-badge-ic { width: 28rpx; height: 28rpx; }
+.dtc-memo-txt {
+  margin-top: 18rpx;
+  font-size: 31rpx; line-height: 1.85;
   color: var(--brown, #6B5B50);
 }
-.dtc-cap-txt.dim { color: var(--text2, #A5968A); font-size: 28rpx; }
-.dtc-cap-star {
-  position: absolute; right: 0; top: 0;
-  font-size: 36rpx;
-}
+.dtc-memo-txt.dim { color: var(--text2, #A5968A); font-size: 27rpx; }
 
-/* ===== 信息面板 ===== */
+/* ===== 补充信息面板（座位/票价/天气；全空时整块不渲染） ===== */
 .dtc-fields {
-  margin: 32rpx 32rpx 0;
+  margin: 28rpx 32rpx 0;
   padding: 10rpx 26rpx;
   background: var(--card-bg, var(--card));
   border-radius: var(--card-r, 22rpx);
@@ -144,15 +193,17 @@
   -webkit-backdrop-filter: var(--card-blur, none);
 }
 .dtc-f-row {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: 14rpx;
   padding: 18rpx 0;
   border-bottom: 1rpx solid var(--border, #EFE5D8);
 }
 .dtc-f-row:last-child { border-bottom: none; }
-.dtc-f-k { font-size: 25rpx; color: var(--text2, #A5968A); }
+.dtc-f-ic { flex: 0 0 32rpx; width: 32rpx; height: 32rpx; }
+.dtc-f-k { flex: 0 0 140rpx; font-size: 25rpx; color: var(--text2, #A5968A); }
 .dtc-f-v {
+  flex: 1; min-width: 0;
   font-size: 25rpx; color: var(--brown, #6B5B50); font-weight: 500;
-  text-align: right; margin-left: 24rpx;
+  text-align: right;
 }
 
 /* ===== 底部操作三胶囊 ===== */
@@ -180,6 +231,9 @@
   color: var(--on-primary);
   box-shadow: 0 8rpx 22rpx var(--rose);
 }
+/* 胶囊内图标（7.0.0：取代原 ✦ / 🎨 / 🔗 emoji） */
+.dtc-btn-ic { width: 32rpx; height: 32rpx; margin-right: 12rpx; flex: 0 0 32rpx; }
+
 /* 分享 button 样式重置（原生 button → 胶囊外观） */
 .share-hit {
   margin: 0; padding: 0;
@@ -303,7 +357,7 @@
   padding: 140rpx 60rpx;
   text-align: center;
 }
-.empty .big { font-size: 96rpx; line-height: 1; margin-bottom: 24rpx; }
+.empty .nf-ic { width: 128rpx; height: 128rpx; margin-bottom: 24rpx; }
 .empty > view { font-size: 30rpx; font-weight: 700; color: var(--text); }
 .empty .nf-sub {
   margin-top: 16rpx;

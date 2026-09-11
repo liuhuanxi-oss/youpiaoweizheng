@@ -427,7 +427,7 @@ page {
   --page-deco-size: 8rpx 8rpx;
   /* 品牌标准色直通（手册 §色彩系统） */
   --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
-  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --sage: #A9C3A6; --sage-soft: #E9F0E6; --sage-line: rgba(169,195,166,.5); --brown: #6B5B50; --stamp: #C26B5E;
   --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
   --hero-top: #EDE6D8; --hero-mid: #F5F0E6;
 }
@@ -459,7 +459,7 @@ page {
                radial-gradient(40% 26% at 8% 82%, rgba(217, 160, 166, 0.55), transparent 72%);
   --page-deco-size: 100% 100%;
   --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
-  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --sage: #A9C3A6; --sage-soft: #EDF4EA; --sage-line: rgba(169,195,166,.5); --brown: #6B5B50; --stamp: #C26B5E;
   --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
   --hero-top: #F6E8D8; --hero-mid: #FBF4EA;
 }
@@ -488,7 +488,7 @@ page {
   --page-deco: radial-gradient(rgba(107, 91, 80, 0.14) 0.9px, transparent 1.2px);
   --page-deco-size: 32rpx 32rpx;
   --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
-  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --sage: #A9C3A6; --sage-soft: #F1F4EA; --sage-line: rgba(169,195,166,.5); --brown: #6B5B50; --stamp: #C26B5E;
   --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
   --hero-top: #FBF3D9; --hero-mid: #FDF8EC;
 }
@@ -518,7 +518,7 @@ page {
                radial-gradient(70% 40% at 50% 108%, rgba(194, 107, 94, 0.18), transparent 72%);
   --page-deco-size: 100% 100%;
   --cream: #1F1A17; --peach: #C26B5E; --butter: #F6DFA8; --rose: #C26B5E;
-  --sage: #A9C3A6; --brown: #EDE3D6; --stamp: #C26B5E;
+  --sage: #A9C3A6; --sage-soft: rgba(169,195,166,.13); --sage-line: rgba(169,195,166,.28); --brown: #EDE3D6; --stamp: #C26B5E;
   --cat-show: #C26B5E; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
   --hero-top: #2A2320; --hero-mid: #1F1A17;
 }
@@ -549,7 +549,7 @@ page {
                radial-gradient(40% 26% at 76% 92%, rgba(244, 198, 180, 0.5), transparent 70%);
   --page-deco-size: 100% 100%;
   --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
-  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --sage: #A9C3A6; --sage-soft: #E8F0E6; --sage-line: rgba(169,195,166,.5); --brown: #6B5B50; --stamp: #C26B5E;
   --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
   --hero-top: #E8F0E6; --hero-mid: #F6FAF5;
 }
@@ -578,7 +578,7 @@ page {
   --page-deco: none;
   --page-deco-size: auto;
   --cream: #FFFFFF; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
-  --sage: #A9C3A6; --brown: #1A1A1A; --stamp: #C26B5E;
+  --sage: #A9C3A6; --sage-soft: #F2F6F0; --sage-line: rgba(169,195,166,.45); --brown: #1A1A1A; --stamp: #C26B5E;
   --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
   --hero-top: #F5F5F5; --hero-mid: #FFFFFF;
 }

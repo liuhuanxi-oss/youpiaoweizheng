@@ -50,7 +50,44 @@ const ICON_PATH = {
     P('M9.6 6.8V4.6h4.8v2.2M12 10.4v3') +
     P('M8.6 16.4h.02M15.4 16.4h.02'),
   plane:   // 旅行：纸飞机
-    P('M20.8 3.2 3.2 10.4l6.6 2.6 2.6 6.6Z') + P('M9.8 13 20.8 3.2')
+    P('M20.8 3.2 3.2 10.4l6.6 2.6 2.6 6.6Z') + P('M9.8 13 20.8 3.2'),
+
+  // ===== 票根详情页信息行（品牌全案·稿屏4 的图标位）=====
+  music:   // 时间：音符
+    P('M9 17.5V6.4l9-1.8v11.1') + C(7, 17.5, 2) + C(16, 15.7, 2),
+  pin:     // 地点：定位针
+    P('M12 20.5c0 0-6.5-5.2-6.5-10a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10-6.5 10Z') +
+    P('M12 11h.01'),
+  seat:    // 座位：座椅
+    P('M6.4 10.4V6.6a1.6 1.6 0 0 1 1.6-1.6h8a1.6 1.6 0 0 1 1.6 1.6v3.8') +
+    R(5, 10.4, 14, 5.5, 1.3) +
+    P('M8.2 15.9v3.3M15.8 15.9v3.3'),
+  wallet:  // 票价：纸币
+    R(3, 7.4, 18, 9.2, 1.4) + C(12, 12, 2.4) +
+    P('M6.6 10.6h.01M17.4 13.4h.01'),
+  moon:    // 天气：月亮
+    P('M19.6 13.8A7.6 7.6 0 1 1 10.2 4.4a6 6 0 0 0 9.4 9.4Z') +
+    P('M6.8 6.8h.01M17.2 17.2h.01'),
+
+  // ===== 底部三胶囊 / 收藏 =====
+  wand:    // 修复：魔法棒 + 星点（比扳手更贴合「AI 修复」的实际功能）
+    P('M4.2 19.8 14.4 9.6') +
+    P('M16.8 7.2l-2.4 2.4-2.4-2.4 2.4-2.4Z') +
+    P('M18.6 3l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1Z') +
+    P('M19.8 13.8l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6Z'),
+  palette: // 重绘：调色盘
+    P('M12 3.6a8.4 8.4 0 0 0 0 16.8c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.1 0-1 .8-1.8 1.8-1.8h1.7a4.1 4.1 0 0 0 4.1-4.1c0-3.8-3.8-6.8-8.4-6.8Z') +
+    C(8, 10.6, 1.1) + C(12, 7.8, 1.1) + C(16, 10.6, 1.1),
+  share:   // 分享：向上箭头出框
+    P('M4 11.6v7.2a1.2 1.2 0 0 0 1.2 1.2h13.6a1.2 1.2 0 0 0 1.2-1.2v-7.2') +
+    P('M12 15.4V4.2') + P('M7.8 8.4 12 4.2l4.2 4.2'),
+  heart:   // 收藏：心形（描边）
+    P('M12 19.6C7.2 16.2 4.2 13.4 4.2 9.8A4.4 4.4 0 0 1 12 7.2a4.4 4.4 0 0 1 7.8 2.6c0 3.6-3 6.4-7.8 9.8Z'),
+
+  // ===== AI 文案卡 =====
+  sparkle: // ✦ 四角星（原为文本 ✦，换成线性图标保证六主题下都不漏字形）
+    P('M12 3.4l1.9 5.3 5.3 1.9-5.3 1.9-1.9 5.3-1.9-5.3-5.3-1.9 5.3-1.9Z') +
+    P('M18.6 15.6l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z')
 };
 
 /**
@@ -59,16 +96,19 @@ const ICON_PATH = {
  * @param {string} color    十六进制实色，如 '#D9A0A6'；非法字符会被剥离
  * @param {number} [opacity] 0-1，小于 1 时写成 stroke-opacity
  * @param {number} [width]   描边宽度，默认 1.6
+ * @param {boolean} [solid]  true = 实心填充（如收藏态的实心心），此时 opacity/width 不适用
  */
-function iconSrc(name, color, opacity, width) {
+function iconSrc(name, color, opacity, width, solid) {
   const body = ICON_PATH[name] || ICON_PATH.ticket;
   // 只放行十六进制色值字符：防注入，也防有人误传 var(--x)（SVG 不认）
   const safe = String(color || '#6B5B50').replace(/[^#0-9a-zA-Z]/g, '');
   const op = typeof opacity === 'number' && opacity < 1 ? " stroke-opacity='" + opacity + "'" : '';
   const sw = typeof width === 'number' && width > 0 ? width : 1.6;
-  const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='" +
-    safe + "'" + op + " stroke-width='" + sw + "' stroke-linecap='round' stroke-linejoin='round'>" +
-    body + '</svg>';
+  const paint = solid
+    ? "fill='" + safe + "' stroke='none'"
+    : "fill='none' stroke='" + safe + "'" + op + " stroke-width='" + sw + "'";
+  const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' " + paint +
+    " stroke-linecap='round' stroke-linejoin='round'>" + body + '</svg>';
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 

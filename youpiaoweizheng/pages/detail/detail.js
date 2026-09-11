@@ -10,13 +10,49 @@ const { weatherText } = require('../../utils/weather.js'); // V1.5：天气记�
 const { annivYears } = require('../../utils/date.js');     // 4.11.0：周年语气
 const track = require('../../utils/track.js');             // 4.17.0：拉新埋点
 const ads = require('../../utils/ads.js');                 // 4.21.0：底部 Banner 广告位（未配置 ID 时整块隐藏）
+const { iconSrc } = require('../../utils/icons.js');       // 7.0.0：线性图标（替换原 emoji）
 
 const LS_CAP_STYLE = 'sp_cap_style'; // 4.11.0：文案风格本地记忆（detail/card 共用）
+
+// 修复/重绘两颗胶囊的图标色：与 .dtc-btn.ghost / .dtc-btn.sage 的文字色同值
+// （按钮是浅色实底 + 深色字，图标必须跟着字色走，不能吃主题变量）
+const BTN_FIX_FG = '#5F7F5C';
+const BTN_ART_FG = '#8A6F3A';
+
+/**
+ * 按当前主题色板编译本页用到的线性图标（7.0.0）。
+ * 为什么要这么绕：SVG 的 stroke 不认 CSS 变量 var()，图标必须给**实色**，
+ * 所以每套主题各编译一份，主题变了就重编（见 onShow）。
+ * 副色一律用 text + stroke-opacity 表达，而不是取 meta.text2 ——
+ * film/minimal 两套主题的 text2 是 rgba() 字面量，塞进 SVG 会变成无效色值。
+ */
+function buildIcons(themeKey) {
+  const m = themeUtil.getThemeMeta(themeKey);
+  return {
+    // 卡内三行（设计稿：图标落在浅色圆角块里，故用主题色实色更好看）
+    iRowTime: iconSrc('music', m.primary),
+    iRowPlace: iconSrc('pin', m.primary),
+    iRowNo: iconSrc('ticket', m.primary),
+    // 补充信息面板（有值才出现）
+    iSeat: iconSrc('seat', m.text, 0.5),
+    iPrice: iconSrc('wallet', m.text, 0.5),
+    iWeather: iconSrc('moon', m.text, 0.5),
+    iSpark: iconSrc('sparkle', m.accent),
+    iHeart: iconSrc('heart', m.text, 0.28),
+    iHeartOn: iconSrc('heart', m.accent, 1, 1.6, true),
+    iFix: iconSrc('wand', BTN_FIX_FG),
+    iArt: iconSrc('palette', BTN_ART_FG),
+    iShare: iconSrc('share', '#FFFFFF'),
+    iTicketEmpty: iconSrc('ticket', m.text, 0.3)
+  };
+}
 
 Page({
 
   onShow() {
     themeUtil.apply(this);
+    // 主题可能在「外观主题」页被改过，回到本页要重编图标实色
+    this.setData({ icons: buildIcons(themeUtil.getTheme()) });
   },
 
   /** 4.15.0：离开页面清掉彩蛋定时器（v5.1 D2：一并清打字机） */
@@ -26,6 +62,7 @@ Page({
   },
   data: {
     theme: "paper",
+    icons: {},        // 7.0.0：按主题编译的线性图标 data-uri（onShow 填充）
     t: null,
     typeText: '',
     genLoading: false,

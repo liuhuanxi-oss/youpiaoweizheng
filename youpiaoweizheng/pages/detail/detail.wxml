@@ -29,28 +29,31 @@
     </view>
   </view>
 
-  <view class="demo-tip" wx:if="{{t.isDemo}}">🎫 演示票根 · 示例数据，收藏你自己的票后这里就是你的回忆</view>
+  <view class="demo-tip" wx:if="{{t.isDemo}}">演示票根 · 示例数据，收藏你自己的票后这里就是你的回忆</view>
 
   <!-- ===== 时光卡主卡 ===== -->
   <view class="dtc-card">
     <view class="b-tape dtc-tape"></view>
 
-    <!-- 封面照片（点击全屏预览；无图落纸票兜底） -->
+    <!-- 封面照片：装进一枚邮票（白边 + 四边齿孔，品牌全案·稿屏4）
+         点击全屏预览；无图落纸票兜底 -->
     <view class="dtc-photo">
-      <image
-        wx:if="{{t.img && !imgFail}}"
-        class="dtc-img {{imgLoaded ? 'ld' : ''}}"
-        src="{{t.img}}"
-        mode="aspectFill"
-        bindload="onImgLoad"
-        binderror="onImgError"
-        bindtap="previewPhoto"
-        aria-role="button"
-        aria-label="点击全屏查看票根原图"
-      />
-      <view class="dtc-img-fb" wx:else>
-        <text class="dtc-fb-emoji">🎫</text>
-        <text class="dtc-fb-title">{{t.title}}</text>
+      <view class="dtc-stamp-frame">
+        <image
+          wx:if="{{t.img && !imgFail}}"
+          class="dtc-img {{imgLoaded ? 'ld' : ''}}"
+          src="{{t.img}}"
+          mode="aspectFill"
+          bindload="onImgLoad"
+          binderror="onImgError"
+          bindtap="previewPhoto"
+          aria-role="button"
+          aria-label="点击全屏查看票根原图"
+        />
+        <view class="dtc-img-fb" wx:else>
+          <image class="dtc-fb-ic" src="{{icons.iTicketEmpty}}" mode="aspectFit" aria-hidden="true" />
+          <text class="dtc-fb-title">{{t.title}}</text>
+        </view>
       </view>
       <!-- 出血邮戳（b-stamp 公共类：虚线双环 + 城市/日/月年三行） -->
       <view class="b-stamp dtc-stamp">
@@ -60,24 +63,46 @@
           <text class="b-stamp-date">{{t.stampMY}}</text>
         </view>
       </view>
-      <view class="anniv-chip" wx:if="{{anniv}}">今天 {{anniv}} 周年 ✦</view>
+      <view class="anniv-chip" wx:if="{{anniv}}">
+        <text>今天 {{anniv}} 周年</text>
+        <image class="anniv-chip-ic" src="{{icons.iSpark}}" mode="aspectFit" aria-hidden="true" />
+      </view>
     </view>
 
-    <!-- 标题 + 类型 chip（灰玫粉实底） -->
+    <!-- 标题 + 星点 + 类型 chip（灰玫粉实底） -->
     <view class="dtc-title-row">
       <text class="dtc-title">{{t.title}}</text>
+      <image class="dtc-title-star" src="{{icons.iSpark}}" mode="aspectFit" aria-hidden="true" />
       <text class="dtc-chip">{{typeText}}</text>
     </view>
 
-    <!-- 地点 · 日期时间 / 场馆 -->
-    <view class="dtc-line">📍 {{t.city || '未记地点'}}<text wx:if="{{t.date}}"> · {{t.date}}{{t.time ? ' ' + t.time : ''}}</text></view>
-    <view class="dtc-line" wx:if="{{t.venue}}">🏛 {{t.venue}}</view>
-
-    <!-- 票号行（浅底圆角 + 收藏红心） -->
-    <view class="dtc-no-row">
-      <text class="dtc-no-label">票号</text>
-      <text class="b-serial">NO. {{t.no}}</text>
-      <text class="dtc-no-heart {{t.fav ? 'on' : ''}}" catchtap="toggleFav" aria-role="button" aria-label="{{t.fav ? '取消收藏' : '收藏'}}">{{t.fav ? '♥' : '♡'}}</text>
+    <!-- 三行信息（品牌全案·稿屏4：线性图标 + 标签 + 值，票号落虚线小票框）
+         7.0.0 修：原为 emoji（📍🏛🎫）当图标，且把地点/时间拆成两行、票号另起一块；
+         现按设计稿合成三行，与 6 套主题的线性图标体系统一。 -->
+    <view class="dtc-rows">
+      <view class="dtc-row">
+        <image class="dtc-row-ic" src="{{icons.iRowTime}}" mode="aspectFit" aria-hidden="true" />
+        <text class="dtc-row-k">时间</text>
+        <text class="dtc-row-v">{{t.date || '未记日期'}}{{t.time ? ' ' + t.time : ''}}</text>
+      </view>
+      <view class="dtc-row">
+        <image class="dtc-row-ic" src="{{icons.iRowPlace}}" mode="aspectFit" aria-hidden="true" />
+        <text class="dtc-row-k">地点</text>
+        <text class="dtc-row-v">{{t.city || '未记地点'}}{{t.venue ? ' · ' + t.venue : ''}}</text>
+      </view>
+      <view class="dtc-row">
+        <image class="dtc-row-ic" src="{{icons.iRowNo}}" mode="aspectFit" aria-hidden="true" />
+        <text class="dtc-row-k">票号</text>
+        <text class="b-serial dtc-row-serial">No. {{t.no}}</text>
+        <image
+          class="dtc-heart pressable"
+          src="{{t.fav ? icons.iHeartOn : icons.iHeart}}"
+          mode="aspectFit"
+          catchtap="toggleFav"
+          aria-role="button"
+          aria-label="{{t.fav ? '取消收藏' : '收藏'}}"
+        />
+      </view>
     </view>
 
     <!-- 底缘齿孔撕裂线（b-perf：与页面背景同色形成半圆孔） -->
@@ -87,33 +112,60 @@
   <!-- 同场印记（品牌稿外既有功能，保留为最小一行） -->
   <view class="dtc-same" wx:if="{{t.eventKey}}">
     <view class="b-dash-path dtc-same-dash"></view>
-    <text class="dtc-same-txt">✦ {{sameText}}</text>
+    <image class="dtc-same-ic" src="{{icons.iSpark}}" mode="aspectFit" aria-hidden="true" />
+    <text class="dtc-same-txt">{{sameText}}</text>
   </view>
 
-  <!-- ===== 手写风 AI 文案（打字机；无文案时点按生成） ===== -->
-  <view class="dtc-cap" bindtap="{{t.aiCaption ? '' : 'genCaption'}}">
-    <view class="dtc-cap-txt hand" wx:if="{{t.aiCaption}}">
+  <!-- ===== AI 时光手记（品牌全案·稿屏4：浅绿卡 + 左侧竖条 + 徽章；打字机保留）
+       无文案时点按生成 ===== -->
+  <view class="dtc-memo" bindtap="{{t.aiCaption ? '' : 'genCaption'}}">
+    <view class="dtc-memo-bar"></view>
+    <view class="dtc-memo-badge">
+      <image class="dtc-memo-badge-ic" src="{{icons.iSpark}}" mode="aspectFit" aria-hidden="true" />
+      <text>AI 时光手记</text>
+    </view>
+    <view class="dtc-memo-txt" wx:if="{{t.aiCaption}}">
       <text>{{captionShow || t.aiCaption}}</text><text class="cap-cursor" wx:if="{{captionTyping}}">|</text>
     </view>
-    <view class="dtc-cap-txt hand dim" wx:else>{{genLoading ? '✦ AI 正在为你落笔…' : 'AI 还没为这一页写字 · 点一下，让它替你记下那天'}}</view>
-    <text class="b-spark dtc-cap-star">✦</text>
+    <view class="dtc-memo-txt dim" wx:else>
+      <text>{{genLoading ? 'AI 正在为你落笔…' : 'AI 还没为这一页写字 · 点一下，让它替你记下那天'}}</text>
+    </view>
   </view>
 
-  <!-- ===== 信息面板（label 图标 + 值；座位/票价/天气有则随行，样式与稿一致） ===== -->
-  <view class="dtc-fields">
-    <view class="dtc-f-row"><text class="dtc-f-k">📅 演出时间</text><text class="dtc-f-v">{{t.date}} {{t.time}}</text></view>
-    <view class="dtc-f-row"><text class="dtc-f-k">📍 演出地点</text><text class="dtc-f-v">{{t.city}}{{t.venue ? ' ' + t.venue : ''}}</text></view>
-    <view class="dtc-f-row"><text class="dtc-f-k">🎫 票　　号</text><text class="dtc-f-v">NO. {{t.no}}</text></view>
-    <view class="dtc-f-row" wx:if="{{t.seat}}"><text class="dtc-f-k">💺 座　　位</text><text class="dtc-f-v">{{t.seat}}</text></view>
-    <view class="dtc-f-row" wx:if="{{t.price}}"><text class="dtc-f-k">💰 票　　价</text><text class="dtc-f-v">¥{{t.price}}<text wx:if="{{t.source}}" decode="{{false}}"> · {{t.source}}</text></text></view>
-    <view class="dtc-f-row" wx:if="{{weatherText}}"><text class="dtc-f-k">🌙 当晚天气</text><text class="dtc-f-v">{{weatherText}}</text></view>
+  <!-- ===== 补充信息（品牌稿外的既有字段：座位/票价/天气有则随行）
+       7.0.0 修：原面板把时间/地点/票号又列了一遍，与卡内三行重复；现只留有值才出现的补充项 ===== -->
+  <view class="dtc-fields" wx:if="{{t.seat || t.price || weatherText}}">
+    <view class="dtc-f-row" wx:if="{{t.seat}}">
+      <image class="dtc-f-ic" src="{{icons.iSeat}}" mode="aspectFit" aria-hidden="true" />
+      <text class="dtc-f-k">座位</text>
+      <text class="dtc-f-v">{{t.seat}}</text>
+    </view>
+    <view class="dtc-f-row" wx:if="{{t.price}}">
+      <image class="dtc-f-ic" src="{{icons.iPrice}}" mode="aspectFit" aria-hidden="true" />
+      <text class="dtc-f-k">票价</text>
+      <text class="dtc-f-v">¥{{t.price}}<text wx:if="{{t.source}}" decode="{{false}}"> · {{t.source}}</text></text>
+    </view>
+    <view class="dtc-f-row" wx:if="{{weatherText}}">
+      <image class="dtc-f-ic" src="{{icons.iWeather}}" mode="aspectFit" aria-hidden="true" />
+      <text class="dtc-f-k">当晚天气</text>
+      <text class="dtc-f-v">{{weatherText}}</text>
+    </view>
   </view>
 
-  <!-- ===== 底部操作：修复 / 重绘 / 分享（品牌稿屏2 三胶囊） ===== -->
+  <!-- ===== 底部操作：修复 / 重绘 / 分享（品牌稿屏2 三胶囊；7.0.0 换线性图标） ===== -->
   <view class="dtc-actions">
-    <view class="dtc-btn ghost pressable" hover-class="press-hover" bindtap="goRepair" aria-role="button" aria-label="AI 修复">✦ 修复</view>
-    <view class="dtc-btn sage pressable" hover-class="press-hover" bindtap="goArt" aria-role="button" aria-label="AI 重绘">🎨 重绘</view>
-    <button class="dtc-btn solid share-hit" open-type="share" hover-class="none" aria-label="分享">🔗 分享</button>
+    <view class="dtc-btn ghost pressable" hover-class="press-hover" bindtap="goRepair" aria-role="button" aria-label="AI 修复">
+      <image class="dtc-btn-ic" src="{{icons.iFix}}" mode="aspectFit" aria-hidden="true" />
+      <text>修复</text>
+    </view>
+    <view class="dtc-btn sage pressable" hover-class="press-hover" bindtap="goArt" aria-role="button" aria-label="AI 重绘">
+      <image class="dtc-btn-ic" src="{{icons.iArt}}" mode="aspectFit" aria-hidden="true" />
+      <text>重绘</text>
+    </view>
+    <button class="dtc-btn solid share-hit" open-type="share" hover-class="none" aria-label="分享">
+      <image class="dtc-btn-ic" src="{{icons.iShare}}" mode="aspectFit" aria-hidden="true" />
+      <text>分享</text>
+    </button>
   </view>
 
   <!-- 导航「···」更多（生成纪念卡片 / AI 文案） -->
@@ -130,7 +182,7 @@
 <!-- 4.18.0 notFound 空态（分享落地/过期 id） -->
 <view class="tk-page theme-{{theme}} dtc-page" wx:else>
   <view class="empty">
-    <view class="big">🎫</view>
+    <image class="nf-ic" src="{{icons.iTicketEmpty}}" mode="aspectFit" aria-hidden="true" />
     <view>这张时光券不在你的册子里</view>
     <view class="nf-sub">它可能正在别人的回忆里 · 收好自己的第一张，让时光有迹可循</view>
     <view class="nf-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去收第一张票">去收第一张票</view>
