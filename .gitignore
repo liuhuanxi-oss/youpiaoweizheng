@@ -22,6 +22,3 @@ Thumbs.db
 
 # ===== 小程序 IDE 本地配置（含个人编译设置，不入库）=====
 youpiaoweizheng/project.private.config.json
-
-# ===== 嵌套的历史重复目录（微信开发者工具会把它打进小程序包，勿提交）=====
-youpiaoweizheng/youpiaoweizheng/
