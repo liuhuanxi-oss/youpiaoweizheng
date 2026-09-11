@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "票根详情",
+  "usingComponents": {
+    "svg-icon": "/components/svg-icon/index"
+  }
+}

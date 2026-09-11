@@ -1,0 +1,138 @@
+<!-- pages/album/album.wxml —— v6.2 票夹（三主题变量化）
+     业务字段沿用 wall 全套：groups/filters/activeFilter/kw/timeMachine/hasTickets -->
+<view class="tk-page theme-{{theme}}">
+<scroll-view
+  class="ab-scroll"
+  scroll-y
+  enhanced
+  show-scrollbar="{{false}}"
+  refresher-enabled="{{!skeleton}}"
+  refresher-default-style="none"
+  refresher-background="transparent"
+  refresher-threshold="{{60}}"
+  refresher-max-drag-rate="{{0.5}}"
+  refresher-triggered="{{refreshing}}"
+  bindrefresherrefresh="onRefresh"
+  bindrefresherpulling="onPulling"
+  bindrefresherrestore="onRestore"
+>
+
+  <!-- 顶部 hero（蓝天白云 → 主题底）+ 搜索 + 铃铛 -->
+  <view class="tk-hero ab-hero">
+    <view class="ab-hero-row">
+      <view class="ab-title">
+        <text class="tk-h1 ab-title-t">我的票夹</text>
+      </view>
+      <text class="ab-icon-btn" hover-class="press-item-hover" aria-role="button" aria-label="消息">🔔</text>
+    </view>
+    <view class="ab-search">
+      <text class="ab-search-ico">⌕</text>
+      <input
+        class="ab-search-input"
+        placeholder="搜票名 / 场馆 / 城市 / 座位"
+        placeholder-class="ab-search-ph"
+        value="{{kw}}"
+        confirm-type="search"
+        bindinput="onSearch"
+      />
+      <text class="ab-search-clear" wx:if="{{kw}}" catchtap="onSearchClear" aria-role="button" aria-label="清空搜索">✕</text>
+    </view>
+  </view>
+
+  <!-- 横向分类 Tabs -->
+  <scroll-view class="ab-tabs" scroll-x enable-flex enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="ab-tab {{activeFilter === item.key ? 'on' : ''}}"
+      hover-class="press-item-hover"
+      data-key="{{item.key}}"
+      bindtap="onFilterTap"
+    >{{item.label}}</view>
+  </scroll-view>
+
+  <!-- 加载态骨架（v6.6.0 动效3：与 ab-list-card 像素级一致——同 thumb 116rpx/标题行/地点行/
+       标签行/右侧日期列高度节奏，圆角同 var(--card-r)，数据替换零跳动） -->
+  <block wx:if="{{skeleton}}">
+    <view class="ab-sk-item" wx:for="{{[1,2,3,4]}}" wx:key="*this">
+      <view class="ab-sk-thumb tk-skeleton"></view>
+      <view class="ab-sk-body">
+        <view class="ab-sk-line tk-skeleton"></view>
+        <view class="ab-sk-line short tk-skeleton"></view>
+        <view class="ab-sk-chip tk-skeleton"></view>
+      </view>
+      <view class="ab-sk-date">
+        <view class="ab-sk-date-d tk-skeleton"></view>
+        <view class="ab-sk-date-m tk-skeleton"></view>
+      </view>
+    </view>
+  </block>
+
+  <view class="fade-in-200" wx:else>
+    <!-- 那年今日·时光机（命中 → 票根卡；未命中 → 不显示） -->
+    <view class="ab-tm tk-ticket pressable" wx:if="{{timeMachine}}" hover-class="press-item-hover" bindtap="goTimeMachine">
+      <view class="ab-tm-inner">
+        <view class="ab-tm-badge">忆</view>
+        <view class="ab-tm-body">
+          <view class="ab-tm-date">{{timeMachine.label}}</view>
+          <view class="ab-tm-title">{{timeMachine.title}}</view>
+          <view class="ab-tm-sub">{{timeMachine.sub}}</view>
+        </view>
+        <view class="ab-tm-go">›</view>
+      </view>
+    </view>
+
+    <!-- 月分组票根流（票根缩略 + 中信息 + 右日期） -->
+    <block wx:for="{{groups}}" wx:key="label" wx:for-item="group">
+      <view class="ab-sec-title">
+        <text class="ab-t">{{group.label}}</text>
+        <text class="ab-s">共 {{group.list.length}} 张</text>
+      </view>
+      <view
+        wx:for="{{group.list}}"
+        wx:key="id"
+        wx:for-item="t"
+        class="tk-card ab-list-card pressable"
+        hover-class="press-item-hover"
+        bindtap="goDetail"
+        data-id="{{t.id}}"
+      >
+        <view class="tk-stub ab-list-thumb ab-tag-{{t.type}}">
+          <text>{{t.type === 'show' ? '🎤' : t.type === 'movie' ? '🎬' : t.type === 'traffic' ? '🚄' : '🎫'}}</text>
+        </view>
+        <view class="ab-list-body">
+          <view class="ab-list-title">{{t.title}}</view>
+          <view class="ab-list-meta">{{t.city}}{{t.venue ? ' · ' + t.venue : ''}}</view>
+          <view class="ab-list-tags">
+            <text class="tk-chip ab-chip-{{t.type}}">{{t.type === 'show' ? '演出' : t.type === 'movie' ? '电影' : t.type === 'traffic' ? '交通' : '其他'}}</text>
+          </view>
+        </view>
+        <view class="ab-list-date">
+          <text class="ab-date-d">{{t.date ? t.date.slice(8, 10) : '--'}}</text>
+          <text class="ab-date-m">{{t.date ? t.date.slice(5, 7) + '月' : '--'}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 空态（三分支：搜索无果 / 新用户 0 票根 / 该类没票根） -->
+  <view wx:if="{{!skeleton && !groups.length && kw}}" class="tk-empty">
+    <text class="ab-empty-emoji">🔍</text>
+    <view class="tk-empty-title">没找到与「{{kw}}」相关的票根</view>
+    <view class="tk-empty-sub" bindtap="onSearchClear" hover-class="press-item-hover">点这里清空搜索，回到全部 →</view>
+  </view>
+  <view wx:elif="{{!skeleton && !groups.length && !hasTickets}}" class="tk-empty">
+    <text class="ab-empty-emoji">🎫</text>
+    <view class="tk-empty-title">还没有票根</view>
+    <view class="tk-empty-sub">上传第一张，时光从此有了形状</view>
+    <view class="tk-empty-cta pressable" bindtap="goScan" hover-class="press-item-hover" aria-role="button" aria-label="收进第一张票根">📷 收进第一张</view>
+  </view>
+  <view wx:elif="{{!skeleton && !groups.length}}" class="tk-empty">
+    <text class="ab-empty-emoji">🎫</text>
+    <view class="tk-empty-title">这一类还没有票根</view>
+    <view class="tk-empty-sub" bindtap="goScan" hover-class="press-item-hover">从这里开始，收进第一张 →</view>
+  </view>
+
+  <view class="tk-safe-bottom"></view>
+</scroll-view>
+</view>

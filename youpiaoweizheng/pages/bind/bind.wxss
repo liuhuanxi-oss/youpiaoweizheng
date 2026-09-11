@@ -1,0 +1,88 @@
+/* pages/bind/bind.wxss —— 邀请中转页（v6 六主题变量化） */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 40rpx 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* 标题衬线随主题字体分化（paper/collage/literary 衬线，glass/film/minimal 无衬线） */
+.serif { font-family: var(--font-title); }
+
+.box {
+  margin: 0 48rpx;
+  padding: 64rpx 40rpx 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, none);
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+
+.pair { position: relative; height: 120rpx; margin-bottom: 28rpx; width: 240rpx; }
+.avatar {
+  position: absolute;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38rpx;
+  color: var(--on-primary);
+  border: 5rpx solid var(--bg);
+}
+.a1 { left: 0; background: var(--rose); z-index: 1; }
+.a2 { right: 0; background: var(--sage); }
+.link {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1rpx solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: var(--text);
+}
+
+.t { font-size: 33rpx; letter-spacing: 2rpx; text-align: center; }
+.s {
+  font-size: 23rpx;
+  color: var(--text2);
+  margin: 16rpx 0 26rpx;
+  text-align: center;
+  letter-spacing: 1rpx;
+}
+.btn-main, .btn-ghost { width: 100%; box-sizing: border-box; margin: 0; }
+.btn-main {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: var(--btn-r, 28rpx);
+}
+.btn-main.accent {
+  background: var(--stamp);
+  color: var(--on-primary);
+  box-shadow: var(--card-shadow, none);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text2);
+  border: 2rpx solid var(--border);
+  border-radius: var(--btn-r, 28rpx);
+}
+.btn-main { margin-bottom: 20rpx; }

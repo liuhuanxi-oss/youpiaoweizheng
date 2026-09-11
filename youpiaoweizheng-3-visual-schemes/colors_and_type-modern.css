@@ -1,0 +1,65 @@
+/* 有票为证 · 方案三：现代收藏家 Modern Collector */
+:root {
+  /* 品牌原始色 */
+  --ypw-ink: #1A1A2E;
+  --ypw-cyan: #4CC9F0;
+  --ypw-magenta: #F72585;
+  --ypw-cloud: #F8F9FA;
+  --ypw-steel: #6C757D;
+  --ypw-silver: #ADB5BD;
+  --ypw-paper: #FFFFFF;
+
+  /* 语义别名 */
+  --ypw-background: var(--ypw-paper);
+  --ypw-foreground: var(--ypw-ink);
+  --ypw-card: var(--ypw-cloud);
+  --ypw-card-foreground: var(--ypw-ink);
+  --ypw-popover: var(--ypw-paper);
+  --ypw-popover-foreground: var(--ypw-ink);
+  --ypw-primary: var(--ypw-ink);
+  --ypw-primary-foreground: #FFFFFF;
+  --ypw-secondary: var(--ypw-cyan);
+  --ypw-secondary-foreground: var(--ypw-ink);
+  --ypw-muted: #E9ECEF;
+  --ypw-muted-foreground: var(--ypw-steel);
+  --ypw-accent: var(--ypw-magenta);
+  --ypw-accent-foreground: #FFFFFF;
+  --ypw-border: #DEE2E6;
+  --ypw-input: #DEE2E6;
+  --ypw-ring: var(--ypw-cyan);
+  --ypw-radius-small: 6px;
+  --ypw-radius-medium: 10px;
+  --ypw-radius-large: 16px;
+
+  /* 标准别名 */
+  --background: var(--ypw-background);
+  --foreground: var(--ypw-foreground);
+  --card: var(--ypw-card);
+  --card-foreground: var(--ypw-card-foreground);
+  --popover: var(--ypw-popover);
+  --popover-foreground: var(--ypw-popover-foreground);
+  --primary: var(--ypw-primary);
+  --primary-foreground: var(--ypw-primary-foreground);
+  --secondary: var(--ypw-secondary);
+  --secondary-foreground: var(--ypw-secondary-foreground);
+  --muted: var(--ypw-muted);
+  --muted-foreground: var(--ypw-muted-foreground);
+  --accent: var(--ypw-accent);
+  --accent-foreground: var(--ypw-accent-foreground);
+  --border: var(--ypw-border);
+  --input: var(--ypw-input);
+  --ring: var(--ypw-ring);
+  --radius: var(--ypw-radius-medium);
+
+  /* 字体 */
+  --font-display: "Inter", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--ypw-background);
+  color: var(--ypw-foreground);
+}
+
+.font-display { font-family: var(--font-display); }

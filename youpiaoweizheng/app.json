@@ -1,0 +1,60 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/album/album",
+    "pages/discover/discover",
+    "pages/me/me",
+    "pages/duo/duo",
+    "pages/scan/scan",
+    "pages/detail/detail",
+    "pages/card/card",
+    "pages/bind/bind",
+    "pages/map/map",
+    "pages/timeline/timeline",
+    "pages/report/report",
+    "pages/annual/annual",
+    "pages/protocol/protocol",
+    "pages/theme/theme",
+    "pages/art/art"
+  ],
+  "__usePrivacyCheck__": true,
+  "permission": {
+    "scope.camera": {
+      "desc": "用于拍摄票根照片，让 AI 帮你识别、存档与作画"
+    }
+  },
+  "window": {
+    "navigationBarBackgroundColor": "#F4EFE6",
+    "navigationBarTitleText": "有票为证",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F4EFE6",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#9C8F80",
+    "selectedColor": "#E0532F",
+    "backgroundColor": "#FFFCF5",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "票根墙"
+      },
+      {
+        "pagePath": "pages/album/album",
+        "text": "时光机"
+      },
+      {
+        "pagePath": "pages/discover/discover",
+        "text": "回忆地图"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

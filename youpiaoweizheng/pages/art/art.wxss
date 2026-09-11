@@ -1,0 +1,210 @@
+/* 4.19.0 票根博物志 —— 纸质博物馆风（v6.5 六主题令牌变量化） */
+
+/* 根容器：随 6 套主题换底/换字（paper/glass/collage/literary/minimal 浅底，film 深底） */
+page { background: var(--bg, var(--paper)); }
+.page { background: var(--bg, var(--paper)); color: var(--text, var(--ink)); }
+
+.wrap { padding: 0 32rpx 80rpx; }
+
+/* —— 题头 —— */
+.head { padding: 30rpx 8rpx 0; }
+.h-title {
+  font-size: 46rpx;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 3rpx;
+}
+.h-sub { margin-top: 10rpx; font-size: 24rpx; color: var(--text2); }
+/* 4.21.0 额度可视化：免费 3 格印章格（实心=已用）——额度先被看见，才被珍惜 */
+.quota {
+  display: inline-flex;
+  align-items: center;
+  gap: 14rpx;
+  flex-wrap: wrap;
+  margin-top: 22rpx;
+  font-size: 22rpx;
+  color: var(--accent);
+  background: var(--soft);
+  border: 1rpx solid var(--border);
+  border-radius: 999rpx;
+  padding: 8rpx 24rpx;
+}
+.q-pips { display: inline-flex; gap: 8rpx; align-items: center; }
+.pip {
+  width: 18rpx;
+  height: 18rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--accent); /* 空心 = 可用 */
+  background: transparent;
+}
+.pip.used {
+  background: var(--accent); /* 实心 = 已用（印章落下） */
+  border-color: var(--accent);
+}
+.q-paid {
+  font-size: 20rpx;
+  color: var(--accent);
+  background: var(--chip);
+  border-radius: 999rpx;
+  padding: 4rpx 14rpx;
+}
+.q-txt { font-size: 22rpx; }
+
+/* —— 4.21.0 品牌化付费墙（bottom-sheet 内容区）—— */
+.pw { padding: 8rpx 8rpx 20rpx; }
+.pw-plate {
+  border: 2rpx dashed var(--border);
+  border-radius: var(--card-r, 20rpx);
+  background: var(--soft);
+  padding: 40rpx 30rpx;
+  text-align: center;
+}
+.pw-plate-t { margin-top: 10rpx; font-size: 32rpx; font-weight: 700; color: var(--text); letter-spacing: 4rpx; }
+.pw-plate-d { margin-top: 10rpx; font-size: 23rpx; color: var(--text2); line-height: 1.7; }
+.pw-opt {
+  margin-top: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26rpx 28rpx;
+  border-radius: var(--card-r, 20rpx);
+  background: var(--card-bg, var(--card));
+  border: 2rpx solid var(--border);
+}
+.pw-opt.pw-buy { border-color: var(--accent); } /* 主推出路：品牌描边 */
+.pw-opt-t { font-size: 27rpx; font-weight: 600; color: var(--text); }
+.pw-opt-s { margin-top: 6rpx; font-size: 21rpx; color: var(--text2); }
+.pw-go { font-size: 34rpx; color: var(--text2); line-height: 1; }
+.pw-go.accent { color: var(--accent); font-weight: 700; }
+.pw-note { margin-top: 20rpx; text-align: center; font-size: 20rpx; color: var(--text2); letter-spacing: 2rpx; }
+
+.stage { padding: 30rpx 0 20rpx; }
+
+/* —— idle：空白画框（虚线卡纸感） —— */
+.plate-blank {
+  border: 2rpx dashed var(--border);
+  border-radius: var(--card-r, 24rpx);
+  background: var(--card-bg, var(--card));
+  padding: 88rpx 44rpx;
+  text-align: center;
+}
+.pb-star { font-size: 46rpx; color: var(--accent); }
+.pb-t { margin-top: 18rpx; font-size: 38rpx; font-weight: 700; color: var(--text); letter-spacing: 4rpx; }
+.pb-d { margin-top: 16rpx; font-size: 25rpx; color: var(--text2); line-height: 1.9; }
+.pb-no { margin-top: 26rpx; font-size: 21rpx; color: var(--text2); letter-spacing: 3rpx; }
+
+.fail-msg {
+  margin-top: 26rpx;
+  font-size: 24rpx;
+  color: var(--stamp);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.btn-main { margin-top: 42rpx; }
+.btn-main.dis { opacity: 0.6; }
+.btn-sub {
+  margin-top: 24rpx;
+  text-align: center;
+  font-size: 25rpx;
+  color: var(--text2);
+  padding: 12rpx 0;
+}
+
+/* —— running：作画中 —— */
+.painting {
+  position: relative;
+  height: 560rpx;
+  border-radius: var(--card-r, 24rpx);
+  background: var(--card-bg, var(--card));
+  border: 2rpx solid var(--border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.halo {
+  position: absolute;
+  width: 340rpx;
+  height: 340rpx;
+  border-radius: 50%;
+  /* 暖光晕随主题反色（浅底=暖褐柔光，film 暗底=暖白柔光） */
+  background: radial-gradient(circle, rgba(var(--text-rgb), 0.18), rgba(var(--text-rgb), 0) 70%);
+  animation: art-halo 2.4s ease-in-out infinite;
+}
+.halo.h2 { width: 480rpx; height: 480rpx; animation-delay: 1.2s; opacity: 0.6; }
+@keyframes art-halo {
+  0%, 100% { transform: scale(0.82); opacity: 0.55; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
+.star {
+  font-size: 64rpx;
+  color: var(--accent);
+  animation: art-spin 3.2s linear infinite;
+}
+@keyframes art-spin { to { transform: rotate(360deg); } }
+.p-t { margin-top: 36rpx; text-align: center; font-size: 32rpx; font-weight: 600; color: var(--text); letter-spacing: 2rpx; }
+.p-d { margin-top: 14rpx; text-align: center; font-size: 24rpx; color: var(--text2); line-height: 1.9; }
+
+/* —— done：藏品装裱框 —— */
+.art-frame {
+  position: relative;
+  margin-top: 6rpx;
+  border-radius: var(--card-r, 24rpx);
+  overflow: hidden;
+  background: var(--card-bg, var(--card));
+  border: var(--card-border, 2rpx solid var(--border));
+  box-shadow: var(--card-shadow, 0 14rpx 40rpx rgba(var(--text-rgb), 0.16));
+}
+.art-img { width: 100%; display: block; min-height: 300rpx; }
+.frame-no {
+  position: absolute;
+  right: 22rpx;
+  bottom: 16rpx;
+  font-size: 20rpx;
+  color: var(--on-primary);
+  letter-spacing: 3rpx;
+  text-shadow: 0 1rpx 8rpx rgba(0, 0, 0, 0.5);
+}
+
+.ops { margin-top: 38rpx; }
+.op-row { display: flex; gap: 20rpx; margin-top: 24rpx; }
+.btn-half {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  border-radius: 999rpx;
+  background: var(--card-bg, var(--card));
+  border: 2rpx solid var(--border);
+  font-size: 27rpx;
+  color: var(--text);
+}
+/* button UA 复位（与 detail 分享钮同思路：视觉由类承担，::after 边框去掉） */
+.share-btn {
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 400;
+}
+.share-btn::after { border: none; }
+
+.back-link {
+  margin-top: 32rpx;
+  text-align: center;
+  font-size: 25rpx;
+  color: var(--text2);
+  padding: 10rpx 0;
+}
+
+/* —— 空态（lost/empty，配合全局 .empty/.big） —— */
+.empty { color: var(--text2); }
+.e-sub { margin-top: 14rpx; font-size: 24rpx; color: var(--text2); line-height: 1.7; }
+.empty .btn-main { margin-top: 44rpx; width: 340rpx; }
+
+/* —— 合成画布：移出可视区（type=2d 只在保存瞬间绘制） —— */
+.cv-off {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 360px;
+  height: 480px;
+}

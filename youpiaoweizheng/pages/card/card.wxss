@@ -1,0 +1,146 @@
+/* pages/card/card.wxss —— M3.1 卡片页（画布舞台，v6.5 六主题令牌变量化）
+   注：海报本体由 card.js 的 Canvas 绘制，颜色不随 CSS 变量走，本文件只改 UI 部分。 */
+page { background: var(--bg, #17120E); }
+.page {
+  min-height: 100vh;
+  /* 画布舞台底色随主题：浅色主题=浅底衬托海报，film=深褐暗底 */
+  background: var(--bg, #17120E);
+  color: var(--text);
+  padding-top: 24rpx;
+}
+
+/* 画布舞台：600×960 逻辑比例（内容区宽 686rpx → 高 1098rpx） */
+.stage {
+  margin: 0 32rpx 26rpx;
+  border-radius: var(--card-r, 28rpx);
+  overflow: hidden;
+  box-shadow: var(--card-shadow, 0 30rpx 80rpx rgba(0, 0, 0, 0.55));
+  border: var(--card-border, 1rpx solid rgba(var(--text-rgb), 0.08));
+}
+.card-canvas {
+  width: 100%;
+  height: 1098rpx;
+  display: block;
+}
+
+/* 风格切换（四枚一行；4.8.1 加大加实提升可发现性） */
+.styles-hint {
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--text2);
+  margin: 0 0 14rpx;
+}
+.styles {
+  display: flex;
+  gap: 12rpx;
+  justify-content: center;
+  margin: 0 24rpx 30rpx;
+}
+.chip {
+  font-size: 26rpx;
+  color: var(--text);
+  border: 2rpx solid var(--border);
+  border-radius: 999rpx;
+  padding: 13rpx 28rpx;
+  background: var(--chip);
+}
+.chip.on {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+/* 幽灵按钮（页内样式覆盖 app.wxss） */
+.btn-ghost {
+  border-color: var(--border);
+  color: var(--text2);
+}
+
+/* 分享按钮（button 原生样式重置） */
+.btn-share {
+  margin: 6rpx 32rpx 0;
+  background: transparent;
+  border: none;
+  font-size: 25rpx;
+  color: var(--text2);
+  letter-spacing: 1rpx;
+  line-height: 2.4;
+}
+.btn-share::after { border: none; }
+
+.safe-bottom { height: 80rpx; }
+
+/* ===== 4.19.1 空态：票根未命中兜底（与 detail 4.18.0 空态同款） ===== */
+.empty {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 60rpx;
+  font-size: 28rpx;
+  color: var(--text);
+  letter-spacing: 1rpx;
+}
+.nf-sub {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: var(--text2);
+  line-height: 1.7;
+}
+.nf-btn {
+  margin-top: 44rpx;
+  width: 340rpx;
+  padding: 20rpx 0;
+  border-radius: 999rpx;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  box-shadow: var(--card-shadow, 0 10rpx 24rpx rgba(var(--text-rgb), 0.3));
+}
+.nf-back {
+  margin-top: 28rpx;
+  font-size: 25rpx;
+  color: var(--text2);
+  padding: 10rpx 24rpx;
+}
+
+/* ===== v5.0 S1 小红书竖版导出按钮 + 提示行 ===== */
+.btn-main.xhs {
+  background: var(--card-bg, var(--card));
+  color: var(--accent);
+  box-shadow: var(--card-shadow, 0 12rpx 32rpx rgba(0, 0, 0, 0.25));
+}
+.xhs-hint {
+  margin: 12rpx 36rpx 0;
+  text-align: center;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: var(--text2);
+}
+
+/* ===== v5.1 S3 分享文案 3 模板（文艺 / 晒票 / 邀约，点选即按该语气分享） ===== */
+.share-tpls {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+  margin: 14rpx 32rpx 0;
+}
+.share-tpl {
+  flex: 1;
+  max-width: 190rpx;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 2rpx solid var(--border);
+  border-radius: 30rpx;
+  font-size: 22rpx;
+  line-height: 2.3;
+  color: var(--text2);
+}
+.share-tpl::after { border: none; }
+.share-tpl-press { opacity: 0.65; }

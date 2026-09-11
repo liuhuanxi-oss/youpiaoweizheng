@@ -1,0 +1,37 @@
+<view class="page theme-{{theme}} fade-up">
+  <view class="card box">
+
+    <!-- 确认绑定 -->
+    <block wx:if="{{state === 'confirm'}}">
+      <view class="pair">
+        <view class="avatar a1 serif">TA</view>
+        <view class="avatar a2 serif serif-me">你</view>
+        <view class="link serif">?</view>
+      </view>
+      <view class="t serif">有人邀请你共写一本时光收藏册</view>
+      <view class="s">邀请码 · {{code}}</view>
+      <view class="btn-main accent pressable" hover-class="press-hover" bindtap="accept">接受邀请</view>
+      <view class="btn-ghost pressable" hover-class="press-hover" bindtap="decline">先逛逛再说</view>
+    </block>
+
+    <!-- 绑定成功 -->
+    <block wx:elif="{{state === 'done'}}">
+      <view class="pair">
+        <view class="avatar a1 serif">TA</view>
+        <view class="avatar a2 serif serif-me">你</view>
+        <view class="link serif">∞</view>
+      </view>
+      <view class="t serif">绑定成功！</view>
+      <view class="s">你们的票根从此汇入同一条时间线</view>
+      <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goDuo">进入我们的回忆</view>
+    </block>
+
+    <!-- 失败 -->
+    <block wx:else>
+      <view class="t serif">没能完成绑定</view>
+      <view class="s">{{msg}}</view>
+      <view class="btn-ghost pressable" hover-class="press-hover" bindtap="decline">知道了</view>
+    </block>
+
+  </view>
+</view>

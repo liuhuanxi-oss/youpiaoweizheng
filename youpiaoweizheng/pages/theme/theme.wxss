@@ -1,0 +1,167 @@
+/* pages/theme/theme.wxss —— 六主题选择页（统一版式卡片） */
+
+/* —— 页头 —— */
+.th-head { padding: 56rpx 36rpx 28rpx; }
+.th-title { color: var(--text); font-family: "PingFang SC", sans-serif; }
+.th-sub { margin-top: 12rpx; color: var(--text2); }
+.th-hint { margin-top: 18rpx; font-size: 23rpx; color: var(--text2); letter-spacing: 1rpx; }
+
+/* —— 卡片列表 —— */
+.th-list { padding: 0 28rpx; }
+.th-card {
+  margin-bottom: 32rpx;
+  border: 4rpx solid transparent;
+  border-radius: 32rpx;
+  transition: border-color 200ms ease, transform 200ms ease;
+}
+.th-card.on { border-color: var(--primary); }
+.th-card-hover { transform: scale(0.985); }
+
+/* ① IP 头像区（三套一致形象，仅换背景色/光） */
+.th-ip {
+  position: relative;
+  height: 220rpx;
+  border-radius: 28rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+}
+.th-ip-glow {
+  position: absolute;
+  width: 300rpx; height: 300rpx; border-radius: 50%;
+  opacity: 0.55; filter: blur(30rpx);
+}
+.th-ip-svg { position: relative; width: 168rpx; height: 168rpx; z-index: 1; }
+.th-ip-name {
+  position: relative; z-index: 1;
+  margin-top: 4rpx;
+  font-size: 26rpx; font-weight: 700; letter-spacing: 2rpx;
+}
+
+/* ② 主题名 */
+.th-name-row { display: flex; align-items: center; gap: 14rpx; }
+.th-name { font-weight: 800; }
+.th-check {
+  width: 34rpx; height: 34rpx; border-radius: 50%;
+  color: #FFF; font-size: 20rpx; line-height: 34rpx; text-align: center;
+  flex: 0 0 34rpx;
+}
+.th-tagline { margin-top: 8rpx; letter-spacing: 1rpx; }
+.th-desc { margin-top: 6rpx; line-height: 1.55; }
+
+/* ③ 色板 */
+.th-swatch-title {
+  margin: 26rpx 0 14rpx;
+  letter-spacing: 3rpx;
+  font-weight: 600;
+}
+.th-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+.th-sw {
+  width: 148rpx;
+  border-radius: 20rpx;
+  background: var(--bg);
+  padding: 10rpx 10rpx 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+.th-sw-dot {
+  width: 100%; height: 56rpx; border-radius: 14rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.06);
+}
+.th-sw-name { font-size: 20rpx; color: var(--text2); }
+.th-sw-hex {
+  font-size: 18rpx; color: var(--text2);
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.5rpx; opacity: 0.85;
+}
+
+/* ④ 字体层级样例 */
+.th-type {
+  border-radius: 20rpx;
+  background: var(--bg);
+  padding: 18rpx 20rpx;
+}
+.th-type-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid var(--border);
+}
+.th-type-row:last-child { border-bottom: none; }
+.th-type-label {
+  flex: 0 0 128rpx;
+  font-size: 20rpx; color: var(--text2);
+}
+.th-type-sample {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.th-type-spec {
+  flex: 0 0 auto;
+  font-size: 18rpx; color: var(--text2); opacity: 0.8;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ⑤ 4 个装饰元素 SVG */
+.th-decos {
+  display: flex;
+  gap: 14rpx;
+}
+.th-deco {
+  flex: 1;
+  min-width: 0;
+  border-radius: 20rpx;
+  background: var(--bg);
+  padding: 14rpx 8rpx 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+.th-deco svg { width: 72rpx; height: 52rpx; }
+.th-deco-label {
+  font-size: 18rpx; color: var(--text2);
+  white-space: nowrap;
+  transform: scale(0.92);
+}
+
+/* —— 底部固定操作条 —— */
+.th-safe { height: 40rpx; }
+.th-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: var(--card);
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+.th-bar-reset {
+  flex: 0 0 auto;
+  border: 2rpx solid var(--border);
+  color: var(--text2);
+  font-size: 26rpx;
+  padding: 20rpx 36rpx;
+}
+.th-bar-apply { flex: 1; height: 88rpx; line-height: 88rpx; }
+.th-bar-apply.is-cur {
+  background: var(--soft);
+  color: var(--primary);
+  box-shadow: none;
+}
+.tk-btn-hover { transform: scale(0.97); opacity: 0.9; }

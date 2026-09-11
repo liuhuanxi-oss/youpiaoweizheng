@@ -1,0 +1,92 @@
+<view class="tk-page theme-{{theme}}">
+<!-- pages/discover/discover.wxml —— v6.2 发现·时光地图（三主题变量化） -->
+<scroll-view
+  class="dc-scroll"
+  scroll-y
+  enhanced
+  show-scrollbar="{{false}}"
+  refresher-enabled
+  bindrefresherrefresh="onPullDownRefresh"
+>
+
+  <!-- 顶部 hero -->
+  <view class="dc-hero">
+    <view class="dc-top-title serif">回忆地图</view>
+    <view class="dc-slogan">足迹点亮每一座城，时光连成回家的路。</view>
+
+    <!-- 3D 地图占位（CSS 渐变 + 城市 emoji 标记，TODO 设计提供真实地图资源） -->
+    <view class="dc-map" bindtap="goMapFull" hover-class="press-item-hover" aria-label="3D 城市地图，点击看完整地图">
+      <view class="dc-map-bg"></view>
+      <!-- 城市标记散落（基于 cityList 位置） -->
+      <view
+        wx:for="{{cityList}}"
+        wx:key="city"
+        class="dc-map-pin"
+        style="left: {{(item.idx || 0) * 70 + 40}}rpx; top: {{(item.idx || 0) * 55 + 30 + 50}}rpx;"
+        wx:if="{{item.idx < 6}}"
+      >📍</view>
+      <!-- 飞机装饰 -->
+      <text class="dc-map-plane">✈</text>
+      <text class="dc-map-emoji">🗺️</text>
+    </view>
+
+    <!-- 统计行 -->
+    <view class="dc-map-stats">
+      <view class="dc-stat">
+        <text class="dc-stat-n">{{cities}}</text>
+        <text class="dc-stat-k">座城市</text>
+      </view>
+      <view class="dc-stat">
+        <text class="dc-stat-n">{{total}}</text>
+        <text class="dc-stat-k">张票根</text>
+      </view>
+      <view class="dc-stat" bindtap="goMapFull" hover-class="press-item-hover" aria-label="查看完整地图">
+        <text class="dc-stat-go">查看完整地图 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 时间轴 -->
+  <view class="dc-time-head">
+    <text class="dc-t">时间轴</text>
+    <text class="dc-s">共 {{total}} 张</text>
+  </view>
+
+  <block wx:for="{{(showAll ? timeline : timeline.slice(0, 3))}}" wx:key="ym" wx:for-item="grp">
+    <view class="dc-time-grp">
+      <view class="dc-time-dot"></view>
+      <view class="dc-time-body">
+        <view class="dc-time-label">{{grp.label}}</view>
+        <view
+          wx:for="{{grp.list}}"
+          wx:key="id"
+          wx:for-item="t"
+          class="dc-time-card pressable"
+          hover-class="press-item-hover"
+          bindtap="goDetail"
+          data-id="{{t.id}}"
+        >
+          <view class="dc-time-thumb dc-tag-{{t.type}}">
+            <text>{{t.type === 'show' ? '🎤' : t.type === 'movie' ? '🎬' : t.type === 'traffic' ? '🚄' : '🎫'}}</text>
+          </view>
+          <view class="dc-time-info">
+            <view class="dc-time-title">{{t.title}}</view>
+            <view class="dc-time-meta">{{t.date}} · {{t.city}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:if="{{timeline.length > 3 && !showAll}}" class="dc-time-more pressable" hover-class="press-item-hover" bindtap="toggleShowAll" aria-role="button" aria-label="展开全部月份">展开全部 · 共 {{timeline.length}} 个月 ›</view>
+  <view wx:if="{{timeline.length > 3 && showAll}}" class="dc-time-more pressable" hover-class="press-item-hover" bindtap="toggleShowAll" aria-role="button" aria-label="收起">收起</view>
+
+  <view wx:if="{{!total}}" class="tk-empty">
+    <text class="dc-empty-emoji">🗺</text>
+    <view class="tk-empty-title">还没有足迹</view>
+    <view class="tk-empty-sub">收进第一张票根，地图开始点亮</view>
+  </view>
+
+  <view class="tk-safe-bottom"></view>
+</scroll-view>
+</view>

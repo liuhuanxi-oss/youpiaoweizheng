@@ -1,0 +1,151 @@
+/* pages/timeline/timeline.wxss —— M4-b 双人时间线完整版（v6 六主题变量化） */
+.page {
+  padding-top: 36rpx;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* 标题衬线随主题字体分化（paper/collage/literary 衬线，glass/film/minimal 无衬线） */
+.serif { font-family: var(--font-title); }
+
+/* —— 骨架（v6.6.0 动效3：结构与真实时间轴像素级一致，呼吸走 .skeleton-bone 本地口径） —— */
+.sk { margin: 0 32rpx; }
+.sk-head { margin-bottom: 26rpx; }
+.sk-h-t { width: 40%; height: 56rpx; border-radius: 12rpx; }
+.sk-h-s { width: 62%; height: 30rpx; border-radius: 8rpx; margin-top: 16rpx; }
+.sk-month { width: 26%; height: 40rpx; border-radius: 10rpx; margin: 0 4rpx 22rpx; }
+.sk-card {
+  display: flex; align-items: center; gap: 22rpx;
+  padding: 24rpx 0;                    /* 与真实 .row 同 padding，高度零跳动 */
+  border-bottom: 1rpx dashed var(--border);
+}
+.sk-dot { width: 18rpx; height: 18rpx; border-radius: 50%; flex-shrink: 0; }  /* 与真实 .dot 同尺寸 */
+.sk-lines { flex: 1; }
+.sk-l1 { width: 58%; height: 32rpx; border-radius: 9rpx; }
+.sk-l2 { width: 38%; height: 22rpx; border-radius: 7rpx; margin-top: 12rpx; }
+/* v6.6.0 骨架骨料：奶油灰块呼吸（opacity 1→0.5，1.2s 一来回） */
+.skeleton-bone {
+  background: var(--soft);
+  animation: tl-sk-breath 1.2s ease-in-out infinite;
+}
+@keyframes tl-sk-breath {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bone { animation: none; opacity: 0.6; }
+}
+
+/* —— 头 —— */
+.head { margin: 0 36rpx 30rpx; }
+.h-t { font-size: 40rpx; letter-spacing: 2rpx; }
+.h-s { font-size: 22rpx; color: var(--text2); margin-top: 10rpx; letter-spacing: 1rpx; }
+.demo-tag {
+  display: inline-block;
+  margin-left: 12rpx;
+  font-size: 18rpx;
+  color: var(--text2);
+  border: 1rpx solid var(--border);
+  border-radius: 6rpx;
+  padding: 1rpx 10rpx;
+}
+.h-stats {
+  margin-top: 16rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--primary);
+}
+.h-stats .u { font-size: 22rpx; color: var(--text2); font-weight: 400; margin: 0 14rpx 0 4rpx; }
+.h-stats .sep { color: var(--border); }
+
+/* —— 月分组 —— */
+.m-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 34rpx 36rpx 16rpx;
+}
+.ml-t { font-size: 28rpx; color: var(--text); letter-spacing: 2rpx; }
+.ml-n { font-size: 20rpx; color: var(--text2); }
+
+/* —— 行 —— */
+.tl {
+  padding: 8rpx 30rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, none);
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx dashed var(--border);
+}
+.row:last-child { border-bottom: none; }
+.dot {
+  width: 18rpx;
+  height: 18rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--accent);
+}
+.dot.show { background: var(--cat-show); }
+.dot.movie { background: var(--cat-movie); }
+.dot.traffic { background: var(--cat-transport); }
+.main { flex: 1; min-width: 0; }
+.r-t { font-size: 27rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-s { font-size: 20rpx; color: var(--text2); margin-top: 6rpx; }
+.tag {
+  flex-shrink: 0;
+  font-size: 18rpx;
+  color: var(--text);
+  background: var(--soft);
+  border-radius: 999rpx;
+  padding: 4rpx 16rpx;
+  letter-spacing: 2rpx;
+}
+.go { flex-shrink: 0; font-size: 32rpx; color: var(--text2); width: 40rpx; text-align: center; }
+
+/* —— TA 的票行内展开 —— */
+.r-detail {
+  margin-top: 14rpx;
+  padding: 16rpx 20rpx;
+  /* 4.9.7：固定米底 → 语义次级底（深色主题下跟随变深） */
+  background: var(--soft);
+  border-radius: 14rpx;
+  border-left: 4rpx solid var(--border);
+}
+.rd-row { font-size: 22rpx; color: var(--text2); line-height: 1.9; }
+.rd-hint { font-size: 18rpx; color: var(--text2); margin-top: 8rpx; }
+
+/* —— 空态 / 错误 —— */
+.empty {
+  text-align: center;
+  padding: 70rpx 30rpx;
+  color: var(--text2);
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, none);
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+.e-icon { font-size: 60rpx; }
+.e-t { font-size: 30rpx; margin-top: 18rpx; }
+.e-s { font-size: 22rpx; color: var(--text2); margin-top: 10rpx; }
+
+.foot-note {
+  text-align: center;
+  font-size: 19rpx;
+  color: var(--text2);
+  margin-top: 40rpx;
+  letter-spacing: 1rpx;
+}
+
+.safe-bottom { height: 60rpx; }

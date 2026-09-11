@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "拍照上传",
+  "usingComponents": {
+    "bottom-sheet": "/components/bottom-sheet/index",
+    "privacy-sheet": "/components/privacy-sheet/index"
+  }
+}

@@ -1,0 +1,61 @@
+<view class="page theme-{{theme}} fade-up" wx:if="{{t}}">
+
+
+  <!-- 4.10.1 重装饰层：纸面噪点（全主题）/ C 水彩晕染头 -->
+  <view class="grain"></view>
+  <!-- ===== 海报画布（Canvas 真实渲染，可导出） ===== -->
+  <view class="stage">
+    <canvas type="2d" id="cardCanvas" class="card-canvas"></canvas>
+  </view>
+
+  <!-- ===== 风格切换（4.8.1：加提示行 + 选中✓，解决"发现不了是按钮"） ===== -->
+  <view class="styles-hint">卡片风格 · 点击标签切换</view>
+  <view class="styles">
+    <view
+      wx:for="{{styles}}"
+      wx:key="key"
+      class="chip pressable {{style === item.key ? 'on' : ''}}"
+      hover-class="press-hover"
+      data-key="{{item.key}}"
+      aria-role="button"
+      aria-label="卡片风格·{{item.label}}{{style === item.key ? '，已选中' : ''}}"
+      bindtap="pickStyle"
+    >{{style === item.key ? '✓ ' : ''}}{{item.label}}</view>
+  </view>
+
+  <!-- ===== 操作（v5.0 S1：新增小红书竖版导出——3:4 标准比例，转发自带品牌水印） ===== -->
+  <view class="btn-main accent pressable" hover-class="press-hover" bindtap="save">{{exporting ? '正在导出…' : '保存到相册'}}</view>
+  <view class="btn-main xhs pressable" hover-class="press-hover" bindtap="saveXHS" aria-role="button" aria-label="导出小红书竖版图">📕 存图发小红书</view>
+  <view class="xhs-hint">竖版 3:4 · 转发/收藏册晒图两相宜</view>
+  <view class="btn-ghost pressable" hover-class="press-hover" bindtap="redo">{{redoing ? '✦ AI 重写中…' : '✦ 换一版文案'}}</view>
+  <button class="btn-share" open-type="share">分享给朋友</button>
+  <!-- v5.1 S3：分享文案 3 模板（点选即以对应语气分享；onShareAppMessage 按 dataset.tpl 出文案） -->
+  <view class="share-tpls">
+    <button
+      wx:for="{{shareTpls}}"
+      wx:key="key"
+      class="share-tpl"
+      hover-class="share-tpl-press"
+      open-type="share"
+      data-tpl="{{item.key}}"
+      aria-label="以{{item.label}}语气分享卡片"
+    >{{item.label}}</button>
+  </view>
+  <view class="safe-bottom"></view>
+</view>
+
+<!-- 4.19.1 空态：票根未命中（过期 id / 云库异常 / 分享落地）。
+     此前整页挂在 wx:if="{{t}}" 下，未命中时只剩导航栏——
+     四个卡片风格「消失」即此 bug 的真机表现。给明确出路而非白屏。 -->
+<view class="page theme-{{theme}}" wx:elif="{{notFound}}">
+  <view class="empty">
+    <view class="big">🎴</view>
+    <view>这张时光券不在你的册子里</view>
+    <view class="nf-sub">它可能正在别人的回忆里 · 收好自己的第一张，让时光有迹可循</view>
+    <view class="nf-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去收第一张票">去收第一张票</view>
+    <view class="nf-back pressable" hover-class="press-hover" bindtap="goBack" aria-role="button" aria-label="返回">返回看看</view>
+  </view>
+</view>
+
+<!-- M5 隐私授权弹窗（saveImageToPhotosAlbum 相册写入） -->
+<privacy-sheet />

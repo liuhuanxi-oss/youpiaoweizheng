@@ -1,0 +1,2 @@
+<!-- components/svg-icon/index.wxml —— V3：image 直出上色 SVG（不走 mask，规避方块退化） -->
+<image class="svg-ic" src="{{src}}" style="width: {{size}}rpx; height: {{size}}rpx;" mode="aspectFit" />

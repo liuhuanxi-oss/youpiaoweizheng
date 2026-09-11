@@ -1,0 +1,131 @@
+<!-- pages/home/home.wxml —— v6.4 时光档案墙（品牌全案 · 小程序核心三屏之一）
+     结构：logo+名称+个人中心 → 问候语+星光 → 搜索框 → 分类 chips → 2 列瀑布流票卡
+     配色：品牌 7 色（奶油白 #FAF5EE 底 / 灰玫粉 #D9A0A6 选中 / 邮政红 #C26B5E 点缀）
+     邮戳/齿孔/胶带/波浪线/星点 = app.wxss 品牌辅助图形公共类（b-*） -->
+<view class="tk-page theme-{{theme}}">
+<scroll-view
+  class="fa-scroll"
+  scroll-y
+  enhanced
+  show-scrollbar="{{false}}"
+  refresher-enabled
+  refresher-default-style="none"
+  refresher-background="transparent"
+  bindrefresherrefresh="onPullDownRefresh"
+>
+
+  <!-- ===== 顶部：logo + 名称 + 个人中心 ===== -->
+  <view class="fa-head">
+    <image class="fa-logo" src="/images/brand-logo.png" mode="aspectFill"/>
+    <text class="fa-brand">有票为证</text>
+    <view class="fa-user" bindtap="goProfile" hover-class="press-item-hover" aria-role="button" aria-label="个人中心">
+      <view class="fa-user-ico"></view>
+    </view>
+  </view>
+
+  <!-- ===== 问候语（手写风两行 + 星光） ===== -->
+  <view class="fa-greet">
+    <view class="fa-greet-txt hand">
+      <text>你好，愿这些票根</text>
+      <text>都是你热爱生活的证据</text>
+    </view>
+    <text class="b-spark fa-greet-star">✦</text>
+  </view>
+
+  <!-- ===== 搜索框（点击 → 票夹页搜索） ===== -->
+  <view class="fa-search" bindtap="goSearch" hover-class="press-item-hover" aria-role="searchbox" aria-label="搜索票根">
+    <view class="fa-search-ico"></view>
+    <text class="fa-search-ph">搜索你想找的票根...</text>
+  </view>
+
+  <!-- ===== 分类 chips（演出/电影/交通/旅行，选中灰玫粉实底） ===== -->
+  <view class="fa-chips">
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="fa-chip {{active === item.key ? 'on' : ''}}"
+      hover-class="press-item-hover"
+      bindtap="onFilter"
+      data-key="{{item.key}}"
+      aria-role="button"
+      aria-label="{{item.name}}"
+    >
+      <text class="fa-chip-ico">{{item.icon}}</text>
+      <text>{{item.name}}</text>
+    </view>
+  </view>
+
+  <!-- ===== 2 列瀑布流票卡（数据到位 → 200ms 淡入替换骨架） ===== -->
+  <view class="fa-masonry fade-in-200" wx:if="{{!loading && (colA.length || colB.length)}}">
+    <view class="fa-col">
+      <view class="fa-card" wx:for="{{colA}}" wx:key="idx" bindtap="goDetail" data-id="{{item.id}}" hover-class="press-item-hover">
+        <view class="fa-cover">
+          <image wx:if="{{item.img}}" src="{{item.img}}" mode="aspectFill" class="fa-cover-img" lazy-load/>
+          <view wx:else class="fa-cover-fb fa-cat-{{item.type}}"><text>{{item.icon}}</text></view>
+          <view class="b-stamp fa-stamp">
+            <view class="b-stamp-in">
+              <text class="b-stamp-city">{{item.stampCity}}</text>
+              <text class="b-stamp-date">{{item.stampD}}</text>
+              <text class="b-stamp-date">{{item.stampMY}}</text>
+            </view>
+          </view>
+          <view class="fa-no"><text class="fa-no-heart">♥</text><text>{{item.idx}}</text></view>
+        </view>
+        <view class="fa-title">{{item.title}}</view>
+        <view class="fa-meta">
+          <text class="fa-meta-loc">📍 {{item.city || '未记地点'}} · {{item.dateText}}</text>
+          <text class="fa-heart {{item.fav ? 'on' : ''}}" catchtap="toggleFav" data-id="{{item.id}}">{{item.fav ? '♥' : '♡'}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="fa-col">
+      <view class="fa-card" wx:for="{{colB}}" wx:key="idx" bindtap="goDetail" data-id="{{item.id}}" hover-class="press-item-hover">
+        <view class="fa-cover">
+          <image wx:if="{{item.img}}" src="{{item.img}}" mode="aspectFill" class="fa-cover-img" lazy-load/>
+          <view wx:else class="fa-cover-fb fa-cat-{{item.type}}"><text>{{item.icon}}</text></view>
+          <view class="b-stamp fa-stamp">
+            <view class="b-stamp-in">
+              <text class="b-stamp-city">{{item.stampCity}}</text>
+              <text class="b-stamp-date">{{item.stampD}}</text>
+              <text class="b-stamp-date">{{item.stampMY}}</text>
+            </view>
+          </view>
+          <view class="fa-no"><text class="fa-no-heart">♥</text><text>{{item.idx}}</text></view>
+        </view>
+        <view class="fa-title">{{item.title}}</view>
+        <view class="fa-meta">
+          <text class="fa-meta-loc">📍 {{item.city || '未记地点'}} · {{item.dateText}}</text>
+          <text class="fa-heart {{item.fav ? 'on' : ''}}" catchtap="toggleFav" data-id="{{item.id}}">{{item.fav ? '♥' : '♡'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载骨架（v6.6.0 动效3：与 fa-card 像素级一致——同 padding/圆角/两列栅格，
+       照片区 380rpx（照片卡）/320rpx（分类兜底卡）交替，标题行+地点行同高；数据到位 fade-in-200 替换） -->
+  <view class="fa-sk" wx:if="{{loading}}">
+    <view class="fa-col">
+      <view class="fa-sk-card" wx:for="{{[1,2]}}" wx:key="*this">
+        <view class="fa-sk-cover {{index === 0 ? '' : 'short'}} tk-skeleton"></view>
+        <view class="fa-sk-title tk-skeleton"></view>
+        <view class="fa-sk-meta tk-skeleton"></view>
+      </view>
+    </view>
+    <view class="fa-col">
+      <view class="fa-sk-card" wx:for="{{[3,4]}}" wx:key="*this">
+        <view class="fa-sk-cover {{index === 0 ? 'short' : ''}} tk-skeleton"></view>
+        <view class="fa-sk-title tk-skeleton"></view>
+        <view class="fa-sk-meta tk-skeleton"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空态 -->
+  <view class="tk-empty fa-empty" wx:if="{{!loading && !colA.length && !colB.length}}">
+    <text class="tk-empty-title">还没有这类票根</text>
+    <view class="tk-empty-cta pressable" bindtap="goScan" hover-class="press-item-hover" aria-role="button" aria-label="去拍一张">📷 去拍一张</view>
+  </view>
+
+  <view class="tk-safe-bottom"></view>
+</scroll-view>
+</view>

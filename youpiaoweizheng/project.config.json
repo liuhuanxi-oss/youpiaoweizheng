@@ -1,0 +1,29 @@
+{
+  "description": "有票为证 —— 纸质票根数字化珍藏小程序",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "libVersion": "3.7.1",
+  "appid": "wx42ef98dfb4ecab23",
+  "projectname": "youpiaoweizheng",
+  "condition": {},
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}

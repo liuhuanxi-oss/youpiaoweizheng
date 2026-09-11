@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "票根博物志",
+  "navigationBarBackgroundColor": "#F4EFE6",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#F4EFE6",
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "privacy-sheet": "/components/privacy-sheet/index",
+    "bottom-sheet": "/components/bottom-sheet/index"
+  }
+}

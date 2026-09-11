@@ -1,0 +1,88 @@
+<view class="page theme-{{theme}} fade-up">
+
+
+  <!-- 4.10.1 重装饰层：纸面噪点（全主题）/ C 水彩晕染头 -->
+  <view class="grain"></view>
+  <!-- ===== 骨架屏（v6.6.0 动效3：与真实时间轴像素级一致——头部两行/月标签/节点行
+        （dot 18rpx + 标题行 + 地点行，行 padding 24rpx 0），数据替换零跳动） ===== -->
+  <view class="sk" wx:if="{{skeleton}}">
+    <view class="sk-head">
+      <view class="sk-h-t skeleton-bone"></view>
+      <view class="sk-h-s skeleton-bone"></view>
+    </view>
+    <view class="sk-month skeleton-bone" wx:for="{{[1,2]}}" wx:key="*this"></view>
+    <view class="sk-card" wx:for="{{[1,2,3]}}" wx:key="*this">
+      <view class="sk-dot skeleton-bone"></view>
+      <view class="sk-lines">
+        <view class="sk-l1 skeleton-bone"></view>
+        <view class="sk-l2 skeleton-bone"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="fade-in" wx:elif="{{!error}}">
+
+    <!-- ===== 头 ===== -->
+    <view class="head">
+      <view class="h-t serif">我们的时间线</view>
+      <view class="h-s">两本收藏册，汇成同一条河<text wx:if="{{demo}}" class="demo-tag">演示数据</text></view>
+      <view class="h-stats"><animated-number value="{{total}}" /><text class="u">张票根</text><text class="sep">·</text><animated-number value="{{cities}}" /><text class="u">座城</text></view>
+    </view>
+
+    <!-- ===== 按月分组 ===== -->
+    <block wx:for="{{months}}" wx:key="label" wx:for-item="mo">
+      <view class="m-label" wx:if="{{mo.rows.length}}">
+        <text class="ml-t serif">{{mo.label}}</text>
+        <text class="ml-n">{{mo.rows.length}} 张</text>
+      </view>
+      <view class="card tl" wx:if="{{mo.rows.length}}">
+        <view
+          class="row pressable {{item.mine ? '' : 'partner'}}"
+          hover-class="press-item-hover"
+          wx:for="{{mo.rows}}"
+          wx:for-item="it"
+          wx:key="id"
+          bindtap="onRow"
+          data-id="{{it.id}}"
+          data-mine="{{it.mine}}"
+        >
+          <view class="dot {{it.type}}"></view>
+          <view class="main">
+            <view class="r-t serif">{{it.title}}</view>
+            <view class="r-s">{{it.date}} · {{it.typeText}} · {{it.ownerName}}收藏的</view>
+            <!-- TA 的票：行内展开详情（不进详情页） -->
+            <view class="r-detail" wx:if="{{expandId === it.id && !it.mine}}">
+              <view class="rd-row" wx:if="{{it.venue}}">场馆：{{it.venue}}</view>
+              <view class="rd-row" wx:if="{{it.city}}">城市：{{it.city}}</view>
+              <view class="rd-row" wx:if="{{it.seat}}">座位：{{it.seat}}</view>
+              <view class="rd-row" wx:if="{{it.price}}">票价：¥{{it.price}}</view>
+              <view class="rd-hint">TA 收藏的票根，仅 TA 本人可打开详情</view>
+            </view>
+          </view>
+          <view class="tag" wx:if="{{it.together}}">一起</view>
+          <view class="go">{{it.mine ? '›' : (expandId === it.id ? '﹀' : '﹥')}}</view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 空态（4.12.1：整卡可点直达录入，与 wall 空态同构） -->
+    <view class="empty card pressable" hover-class="press-item-hover" wx:if="{{!months.length}}" bindtap="goScan" aria-role="button" aria-label="去收第一张票根">
+      <view class="e-icon">🗓️</view>
+      <view class="e-t serif">时间线还空着</view>
+      <view class="e-s">收下第一张票根，故事就开始了 →</view>
+    </view>
+
+    <view class="foot-note">TA 的票带「TA收藏的」标记 · 同一场次你们都收了 → 「一起」</view>
+  </view>
+
+  <!-- 错误态（未绑定 / 云端失败） -->
+  <view class="fade-in" wx:else>
+    <view class="empty card">
+      <view class="e-icon">🔗</view>
+      <view class="e-t serif">{{error}}</view>
+      <view class="e-s">绑定后就能看到两个人的时间线</view>
+    </view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

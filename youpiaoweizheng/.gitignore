@@ -1,0 +1,25 @@
+# ===== 密钥与环境变量（绝不提交）=====
+.env
+.env.*
+!.env.ci.example
+*.key
+private.*.key
+secret/
+.secrets/
+
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+miniprogram_npm/
+# 云函数各自依赖
+cloudfunctions/**/node_modules/
+
+# ===== 编辑器/系统 =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# ===== 嵌套的历史重复目录（勿打包，确认后建议物理删除）=====
+youpiaoweizheng/

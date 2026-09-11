@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "我的",
+  "usingComponents": {
+    "animated-number": "/components/animated-number/index",
+    "bottom-sheet": "/components/bottom-sheet/index",
+    "privacy-sheet": "/components/privacy-sheet/index"
+  }
+}

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有票为证 · 十屏全套高保真复刻</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#FAF5EE; --card:#FFFDF8; --primary:#D9A0A6; --peach:#F4C6B4;
+  --yellow:#F6DFA8; --green:#A9C3A6; --text:#6B5B50; --text2:#A99888;
+  --red:#C26B5E; --line:#EBDDC9; --ink:#6B5B50;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Noto Sans SC",-apple-system,"PingFang SC",sans-serif;background:#E7D9C6;color:var(--text)}
+.bar{position:sticky;top:0;z-index:30;background:#fffdf9;padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 2px 10px rgba(107,91,80,.08)}
+.bar h1{font-family:"Noto Serif SC",serif;font-size:15px;font-weight:900}
+.bar h1 small{display:block;font-size:10px;color:var(--text2);font-weight:400;font-family:"Noto Sans SC"}
+.pgs{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.pg{border:1.5px solid var(--line);background:#fff;color:var(--text2);padding:7px 12px;border-radius:999px;font-size:11.5px;cursor:pointer;min-height:38px;font-family:inherit}
+.pg.active{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700}
+.stage{display:flex;justify-content:center;padding:22px 14px}
+.phone{width:375px;background:#161311;border-radius:48px;padding:10px;box-shadow:0 18px 50px rgba(107,91,80,.3)}
+.scr{border-radius:38px;overflow:hidden;height:780px;background:var(--bg);position:relative;display:flex;flex-direction:column}
+.notch{height:24px;display:grid;place-items:center;flex:none}.notch::after{content:"";width:84px;height:16px;background:#000;border-radius:9px}
+.body{flex:1;position:relative;overflow:hidden}
+.page{position:absolute;inset:0;overflow-y:auto;display:none;flex-direction:column;padding-bottom:86px;background:
+  radial-gradient(circle at 8% 4%, rgba(244,198,180,.18), transparent 22%),var(--bg)}
+.page.show{display:flex}
+
+/* 顶栏 */
+.hd{padding:8px 18px 4px;display:flex;align-items:center;gap:9px}
+.hd .logo{width:28px;height:28px;border-radius:8px}
+.hd .t{font-family:"Noto Serif SC",serif;font-weight:900;font-size:17px}
+.hd .back{color:var(--text2);font-size:18px;margin-right:2px}
+.hd .right{margin-left:auto;color:var(--text2);font-size:16px}
+.hd .ct{margin-left:auto;font-family:"Noto Serif SC";font-weight:900;font-size:16px}
+
+.greet{padding:8px 18px 2px;font-family:"Noto Serif SC",serif;font-size:17px;font-weight:700;line-height:1.5;color:#7a5f52}
+.search{margin:9px 18px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:11.5px;color:var(--text2)}
+.chips{display:flex;gap:7px;padding:4px 18px 10px;overflow:auto}
+.chip{flex:none;font-size:11.5px;padding:6px 13px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--text2)}
+.chip.on{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700}
+
+/* 票根卡 */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:2px 18px}
+.tc{background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden;position:relative;box-shadow:0 3px 10px rgba(107,91,80,.05)}
+.tc .ph{height:108px;position:relative}
+.tc .ph .g{width:100%;height:100%;display:grid;place-items:center;color:#fff;font-family:"Noto Serif SC";font-weight:700;font-size:13px;letter-spacing:1px}
+.tc .meta{padding:7px 10px}
+.tc .nm{font-size:12px;font-weight:700;font-family:"Noto Serif SC"}
+.tc .sub{font-size:9.5px;color:var(--text2);margin-top:3px}
+.postmark{position:absolute;top:5px;right:5px;width:40px;height:40px;opacity:.5}
+
+/* 通用卡片 */
+.card{margin:10px 18px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}
+.kv{display:flex;font-size:12.5px;margin-top:9px}
+.kv .k{width:52px;color:var(--text2)}.kv .v{flex:1;font-weight:500}
+.tag{font-size:9.5px;background:var(--peach);color:#8a5a4a;padding:3px 9px;border-radius:999px;font-weight:600}
+.title{font-family:"Noto Serif SC";font-size:19px;font-weight:900;display:flex;align-items:center;gap:8px}
+.btns{display:flex;gap:9px;margin:4px 18px 0}
+.btn{flex:1;padding:12px 0;border-radius:999px;text-align:center;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px}
+.btn.green{background:var(--green);color:#fff}.btn.yellow{background:var(--yellow);color:#8a6a2a}.btn.pink{background:var(--primary);color:#fff}
+
+/* 拍照 */
+.scan{margin:12px 18px;background:#3a2f28;border-radius:16px;height:250px;position:relative;overflow:hidden;display:grid;place-items:center}
+.corner{position:absolute;width:24px;height:24px;border:2.5px solid #fff;opacity:.9}
+.c-tl{left:14px;top:14px;border-right:0;border-bottom:0}.c-tr{right:14px;top:14px;border-left:0;border-bottom:0}
+.c-bl{left:14px;bottom:14px;border-right:0;border-top:0}.c-br{right:14px;bottom:14px;border-left:0;border-top:0}
+.stub{width:170px;height:104px;background:linear-gradient(160deg,#f6ecda,#e8d8bc);border-radius:4px;position:relative;box-shadow:0 8px 22px rgba(0,0,0,.35);display:grid;place-items:center}
+.stub::before,.stub::after{content:"";position:absolute;left:0;right:0;height:8px;background-image:radial-gradient(circle at 9px -3px,transparent 6.5px,#3a2f28 7px);background-size:18px 8px}
+.stub::before{top:-8px}.stub::after{bottom:-8px;transform:rotate(180deg)}
+.stub .lbl{font-family:"Noto Serif SC";font-weight:700;color:#9a7f5e;font-size:12px;letter-spacing:2px}
+.stepline{display:flex;justify-content:space-between;align-items:center;margin:14px 26px}
+.step{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:9.5px;color:var(--text2)}
+.step .dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:14px}
+.sl{flex:1;height:2px;background:var(--line);margin:0 4px;margin-bottom:20px}
+.camrow{display:flex;justify-content:center;align-items:center;gap:26px;margin-top:8px}
+.camrow .icn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;color:var(--text2)}
+.camrow .big{width:60px;height:60px;border-radius:50%;background:var(--primary);border:4px solid #fff;box-shadow:0 0 0 2px var(--primary);display:grid;place-items:center;color:#fff;font-size:24px}
+
+/* 地图 */
+.mapbox{margin:10px 18px;height:440px;border-radius:20px;overflow:hidden;position:relative;background:linear-gradient(180deg,#eef0e2,#e2e8d4);border:1px solid var(--line)}
+.cty{position:absolute;transform:translate(-50%,-100%);text-align:center}
+.cty .bub{background:#fff;border:1px solid var(--line);border-radius:11px;padding:4px 8px;font-size:9.5px;font-weight:700;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.08)}
+.cty .bub small{display:block;font-size:8.5px;color:var(--red);font-weight:400}
+.cty .dot{width:10px;height:10px;border:2px solid #fff;border-radius:50%;margin:3px auto 0}
+
+/* 时光机 */
+.tl{padding:8px 18px;position:relative}
+.tl::before{content:"";position:absolute;left:30px;top:18px;bottom:20px;width:2px;background:var(--line)}
+.tl-i{position:relative;padding-left:42px;padding-bottom:16px}
+.tl-i .yr{position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:8.5px;font-weight:700}
+.tl-i .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:9px;display:flex;gap:9px;align-items:center}
+.tl-i .th{width:58px;height:44px;border-radius:8px;flex:none;display:grid;place-items:center;color:#fff;font-size:9px}
+.tl-i .tn{font-size:12px;font-weight:700;font-family:"Noto Serif SC"}.tl-i .ts{font-size:9.5px;color:var(--text2);margin-top:2px}
+
+/* 我的/报告 */
+.mhead{margin:6px 18px 12px;background:linear-gradient(135deg,var(--peach),var(--yellow));border-radius:20px;padding:16px;display:flex;align-items:center;gap:12px}
+.mav{width:54px;height:54px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.mnm{font-family:"Noto Serif SC";font-weight:900;font-size:16px}.mms{font-size:10px;color:#8a6a5a;margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 18px 12px}
+.st{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 4px;text-align:center}
+.st .n{font-family:"Noto Serif SC";font-size:22px;font-weight:900;color:var(--primary)}.st .l{font-size:9.5px;color:var(--text2);margin-top:2px}
+.menu{margin:0 18px;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.mi{display:flex;align-items:center;gap:11px;padding:13px 15px;border-bottom:1px solid var(--line);font-size:13px}
+.mi:last-child{border:0}.mi .ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:#fff;font-size:12px}
+.mi .ar{margin-left:auto;color:var(--text2)}
+
+.quote{margin:12px 18px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px;font-family:"Noto Serif SC";font-size:13px;line-height:1.8;color:#7a5f54}
+.section{font-family:"Noto Serif SC";font-weight:900;font-size:15px;padding:6px 18px;display:flex;align-items:center;gap:6px}
+
+/* tabbar 5槽 */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px dashed var(--line);display:flex;z-index:10}
+.tabbar .t{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#6B5B50;opacity:.55;gap:2px}
+.tabbar .t.on{color:var(--primary);opacity:1;font-weight:700}
+.tabbar .t svg{width:23px;height:23px}
+.tabbar .cam{flex:.7;display:grid;place-items:center}
+.tabbar .cam span{width:54px;height:54px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;margin-top:-18px;box-shadow:0 6px 16px rgba(217,160,166,.5)}
+.tabbar .cam svg{width:26px;height:26px}
+.deco{position:absolute;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <h1>有票为证 · 十屏高保真复刻<small>复古手账明信片风 · 5槽Tab栏 · 按精修图逆向</small></h1>
+  <nav class="pgs" id="pgs">
+    <button class="pg active" data-p="home">首页</button>
+    <button class="pg" data-p="scan">拍照</button>
+    <button class="pg" data-p="detail">详情</button>
+    <button class="pg" data-p="redraw">重绘</button>
+    <button class="pg" data-p="card">纪念卡</button>
+    <button class="pg" data-p="map">地图</button>
+    <button class="pg" data-p="timeline">时光机</button>
+    <button class="pg" data-p="report">年报</button>
+    <button class="pg" data-p="duo">双人</button>
+    <button class="pg" data-p="me">我的</button>
+  </nav>
+</header>
+
+<div class="stage"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div class="body">
+
+    <!-- 02 首页 -->
+    <div class="page show" data-p="home">
+      <div class="hd">
+        <svg class="logo" viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#D9A0A6"/><path d="M33 36 L50 52 L67 36 L67 64 L50 78 L33 64 Z" fill="#fff"/></svg>
+        <div class="t">有票为证</div><div class="right">♙</div>
+      </div>
+      <div class="greet">愿这些票根<br>都是你热爱生活的证据</div>
+      <div class="search">⌕&nbsp; 搜索演出、展览、城市…</div>
+      <div class="chips"><span class="chip on">演出</span><span class="chip">电影</span><span class="chip">交通</span><span class="chip">旅行</span></div>
+      <div class="grid">
+        <div class="tc"><div class="ph"><div class="g" style="background:linear-gradient(135deg,#e8a5a5,#c96a6a)">现场</div><svg class="postmark" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#8a6f5e" stroke-width="1.3"/><text x="22" y="20" text-anchor="middle" font-size="6.5" fill="#8a6f5e">PARIS</text><text x="22" y="28" text-anchor="middle" font-size="6.5" fill="#8a6f5e">1956</text></svg></div><div class="meta"><div class="nm">夏夜Livehouse</div><div class="sub">北京·2024.06.29</div></div></div>
+        <div class="tc"><div class="ph"><div class="g" style="background:linear-gradient(135deg,#e8c8a0,#d89860)">影院</div></div><div class="meta"><div class="nm">第一次的约会</div><div class="sub">上海·2024.02.14</div></div></div>
+        <div class="tc"><div class="ph"><div class="g" style="background:linear-gradient(135deg,#c9b8d8,#9a7fb8)">古迹</div></div><div class="meta"><div class="nm">成都之行</div><div class="sub">成都·2025.03.03</div></div></div>
+        <div class="tc"><div class="ph"><div class="g" style="background:linear-gradient(135deg,#a8c8d8,#6a98b8)">海岸</div></div><div class="meta"><div class="nm">爱琴海的风</div><div class="sub">雅典·2025.08.09</div></div></div>
+      </div>
+    </div>
+
+    <!-- 03 拍照 -->
+    <div class="page" data-p="scan">
+      <div class="hd"><div class="back">‹</div><div class="t">扫描票根</div><div class="right">⋯</div></div>
+      <div class="scan">
+        <span class="corner c-tl"></span><span class="corner c-tr"></span><span class="corner c-bl"></span><span class="corner c-br"></span>
+        <div class="stub"><div class="lbl">PARIS · MUSEE</div></div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:10px">将票根放入框内，自动识别</div>
+      <div class="camrow">
+        <div class="icn">▣</div>
+        <div class="big">◉</div>
+        <div class="icn">⟳</div>
+      </div>
+      <div class="section">✦ AI 智能处理中</div>
+      <div class="stepline">
+        <div class="step"><div class="dot" style="background:var(--primary)">◉</div>识别</div><div class="sl"></div>
+        <div class="step"><div class="dot" style="background:var(--yellow)">✎</div>修复</div><div class="sl"></div>
+        <div class="step"><div class="dot" style="background:var(--green)">✦</div>重绘</div><div class="sl"></div>
+        <div class="step"><div class="dot" style="background:#b8a898">□</div>入档</div>
+      </div>
+    </div>
+
+    <!-- 04 详情 -->
+    <div class="page" data-p="detail">
+      <div class="hd"><div class="back">‹</div><div class="t">票根详情</div><div class="right">⋯</div></div>
+      <div class="card" style="padding:8px">
+        <div style="height:150px;border-radius:12px;background:linear-gradient(135deg,#e8a5a5,#c96a6a);display:grid;place-items:center;color:#fff;font-family:'Noto Serif SC';font-weight:900;letter-spacing:2px">现场</div>
+      </div>
+      <div class="card">
+        <div class="title">夏夜 Livehouse <span class="tag">演出</span></div>
+        <div class="kv"><div class="k">时间</div><div class="v">2025.06.21 20:00</div></div>
+        <div class="kv"><div class="k">地点</div><div class="v">上海 · MAO Livehouse</div></div>
+        <div class="kv"><div class="k">票号</div><div class="v">No. 078463</div></div>
+      </div>
+      <div class="quote">✦ AI 时光手记<br>那个夏夜的声浪和汗水，都被这张票好好收着了。</div>
+      <div class="btns"><div class="btn green">✦ 修复</div><div class="btn yellow">◐ 重绘</div><div class="btn pink">分享</div></div>
+    </div>
+
+    <!-- 05 重绘 -->
+    <div class="page" data-p="redraw">
+      <div class="hd"><div class="back">‹</div><div class="t">AI 艺术重绘</div><span class="tag" style="margin-left:auto">重绘新签</span></div>
+      <div class="card" style="padding:8px">
+        <div style="height:180px;border-radius:12px;background:linear-gradient(160deg,#f0dcc8,#d8b89c);display:grid;place-items:center;font-family:'Noto Serif SC';color:#8a6f5e">重绘结果</div>
+      </div>
+      <div class="camrow" style="margin-top:12px"><div class="icn">▣</div><div class="big">◉</div><div class="icn">⟳</div></div>
+      <div class="section">✦ AI 智能处理中</div>
+      <div class="stepline">
+        <div class="step"><div class="dot" style="background:var(--primary)">◉</div>识别</div><div class="sl"></div>
+        <div class="step"><div class="dot" style="background:var(--yellow)">✎</div>修复</div><div class="sl"></div>
+        <div class="step"><div class="dot" style="background:var(--green)">✦</div>重绘</div><div class="sl"></div>
+        <div class="step"><div class="dot" style="background:#b8a898">□</div>入档</div>
+      </div>
+      <div class="btns" style="margin-top:12px"><div class="btn pink" style="flex:1">保存重绘</div></div>
+      <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:10px">再画一张</div>
+    </div>
+
+    <!-- 06 纪念卡 -->
+    <div class="page" data-p="card">
+      <div class="hd"><div class="back">‹</div><div class="t">纪念卡片</div><div class="right">⋯</div></div>
+      <div class="card" style="margin-top:6px">
+        <div style="height:230px;border-radius:10px;border:6px solid #fff;box-shadow:0 4px 14px rgba(107,91,80,.12);background:linear-gradient(160deg,#f0dcc8,#e8c8a8);display:grid;place-items:center;position:relative">
+          <div style="font-family:'Noto Serif SC';color:#8a6f5e">PARIS · 明信片票根</div>
+          <svg style="position:absolute;top:8px;right:8px;width:44px;height:44px;opacity:.5" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#8a6f5e" stroke-width="1.3"/></svg>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:12px">保存为手账照，直接分享至朋友圈</div>
+      </div>
+      <div class="btns" style="margin-top:8px"><div class="btn pink" style="flex:1">保存重绘</div></div>
+      <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:10px">再画一张</div>
+    </div>
+
+    <!-- 07 地图 -->
+    <div class="page" data-p="map">
+      <div class="hd"><div class="back">‹</div><div class="t">回忆地图</div><div class="right">⋯</div></div>
+      <div class="mapbox">
+        <svg viewBox="0 0 300 440" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;opacity:.6">
+          <path d="M120 60 Q180 80 200 150 Q220 220 170 260 Q130 300 150 360 Q160 400 120 430 L80 430 Q60 360 90 300 Q60 240 90 180 Q100 110 120 60 Z" fill="#e8d8c8"/>
+        </svg>
+        <div class="cty" style="left:42%;top:30%"><div class="bub">北京<small>3 张</small></div><div class="dot" style="background:var(--primary)"></div></div>
+        <div class="cty" style="left:62%;top:48%"><div class="bub">上海<small>5 张</small></div><div class="dot" style="background:var(--green)"></div></div>
+        <div class="cty" style="left:38%;top:60%"><div class="bub">成都<small>2 张</small></div><div class="dot" style="background:var(--yellow)"></div></div>
+        <div class="cty" style="left:58%;top:78%"><div class="bub">广州<small>4 张</small></div><div class="dot" style="background:var(--peach)"></div></div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--text2);padding:12px">— 已走过 4 座城市 · 14 段时光 —</div>
+    </div>
+
+    <!-- 08 时光机 -->
+    <div class="page" data-p="timeline">
+      <div class="hd"><div class="back">‹</div><div class="t">时光机</div><div class="right">⋮</div></div>
+      <div class="tl">
+        <div class="tl-i"><div class="yr">26</div><div class="card"><div class="th" style="background:linear-gradient(135deg,#e8a5a5,#c96a6a)">演唱会</div><div><div class="tn">第一次看演唱会</div><div class="ts">2026.06.12</div></div></div></div>
+        <div class="tl-i"><div class="yr">25</div><div class="card"><div class="th" style="background:linear-gradient(135deg,#c9b8d8,#9a7fb8)">博物馆</div><div><div class="tn">城市博物馆</div><div class="ts">2025.09.01</div></div></div></div>
+        <div class="tl-i"><div class="yr">24</div><div class="card"><div class="th" style="background:linear-gradient(135deg,#a8c8d8,#6a98b8)">电影</div><div><div class="tn">最后一场电影</div><div class="ts">2024.12.21</div></div></div></div>
+      </div>
+    </div>
+
+    <!-- 09 年报 -->
+    <div class="page" data-p="report">
+      <div class="hd"><div class="back">‹</div><div class="ct">年度报告</div><div class="right">⋯</div></div>
+      <div class="greet" style="text-align:center">我的年度票根报告</div>
+      <div class="stats">
+        <div class="st"><div class="n">36</div><div class="l">珍藏票根</div></div>
+        <div class="st"><div class="n">8</div><div class="l">走过城市</div></div>
+        <div class="st"><div class="n">52</div><div class="l">美好回忆</div></div>
+      </div>
+      <div class="menu">
+        <div class="mi"><div class="ic" style="background:var(--primary)">▣</div>我的收藏夹<span class="ar">›</span></div>
+        <div class="mi"><div class="ic" style="background:var(--yellow)">◷</div>时光机<span class="ar">›</span></div>
+        <div class="mi"><div class="ic" style="background:var(--green)">◉</div>回忆地图<span class="ar">›</span></div>
+        <div class="mi"><div class="ic" style="background:#b8a898">≡</div>数据统计<span class="ar">›</span></div>
+      </div>
+    </div>
+
+    <!-- 10 双人 -->
+    <div class="page" data-p="duo">
+      <div class="hd"><div class="back">‹</div><div class="ct">双人回忆</div><div class="right">⋯</div></div>
+      <div class="mhead"><div class="mav">♡</div><div><div class="mnm">和 TA 一起</div><div class="mms">同一张票根，两个人的故事</div></div></div>
+      <div class="section">我们的共同场景</div>
+      <div class="card" style="margin-top:0;padding:6px">
+        <div class="mi" style="border:0"><div class="th" style="width:46px;height:34px;border-radius:8px;background:linear-gradient(135deg,#e8a5a5,#c96a6a)"></div><div>草莓音乐节<div style="font-size:10px;color:var(--text2)">2025.05.20</div></div><span class="ar">›</span></div>
+        <div class="mi" style="border:0"><div class="th" style="width:46px;height:34px;border-radius:8px;background:linear-gradient(135deg,#e8c8a0,#d89860)"></div><div>看展约会<div style="font-size:10px;color:var(--text2)">2025.03.14</div></div><span class="ar">›</span></div>
+        <div class="mi" style="border:0"><div class="th" style="width:46px;height:34px;border-radius:8px;background:linear-gradient(135deg,#a8c8d8,#6a98b8)"></div><div>日本之旅<div style="font-size:10px;color:var(--text2)">2025.04.05</div></div><span class="ar">›</span></div>
+      </div>
+    </div>
+
+    <!-- 11 我的 -->
+    <div class="page" data-p="me">
+      <div class="hd"><div class="ct">个人中心</div><div class="right">⚙</div></div>
+      <div class="mhead"><div class="mav">♙</div><div><div class="mnm">票根收藏家</div><div class="mms">时光不回头，票根存温柔</div></div></div>
+      <div class="stats">
+        <div class="st"><div class="n">36</div><div class="l">已收藏</div></div>
+        <div class="st"><div class="n">8</div><div class="l">城市足迹</div></div>
+        <div class="st"><div class="n">52</div><div class="l">美好回忆</div></div>
+      </div>
+      <div class="menu">
+        <div class="mi"><div class="ic" style="background:var(--primary)">▣</div>我的收藏夹<span class="ar">›</span></div>
+        <div class="mi"><div class="ic" style="background:var(--yellow)">◷</div>时光机<span class="ar">›</span></div>
+        <div class="mi"><div class="ic" style="background:var(--green)">◉</div>回忆地图<span class="ar">›</span></div>
+        <div class="mi"><div class="ic" style="background:#b8a898">≡</div>数据统计<span class="ar">›</span></div>
+        <div class="mi"><div class="ic" style="background:var(--peach)">⚙</div>设置<span class="ar">›</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tabbar">
+    <div class="t on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg>票根墙</div>
+    <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>时光机</div>
+    <div class="cam"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span></div>
+    <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 1114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>回忆地图</div>
+    <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>我的</div>
+  </div>
+</div></div></div>
+
+<script>
+const TB={home:0,timeline:1,map:3,me:4};
+function show(p){
+  document.querySelectorAll('.pg').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  document.querySelectorAll('.body .page').forEach(el=>el.classList.toggle('show',el.dataset.p===p));
+  const tabs=document.querySelectorAll('.tabbar .t');
+  tabs.forEach(t=>t.classList.remove('on'));
+  if(p in TB) tabs[TB[p]].classList.add('on');
+}
+document.getElementById('pgs').addEventListener('click',e=>{const b=e.target.closest('.pg');if(b)show(b.dataset.p)});
+</script>
+</body>
+</html>

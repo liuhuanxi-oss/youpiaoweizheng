@@ -1,0 +1,25 @@
+{
+  "name": "youpiaoweizheng-cicd",
+  "version": "5.1.0",
+  "private": true,
+  "description": "有票为证 小程序自动化构建/上传/云函数部署/提审发布脚本",
+  "scripts": {
+    "preview": "node scripts/ci/preview.js",
+    "upload": "node scripts/ci/upload.js",
+    "deploy:fn": "node scripts/ci/deploy-fns.js",
+    "token": "node scripts/ci/token.js",
+    "audit": "node scripts/ci/audit-submit.js",
+    "audit:status": "node scripts/ci/audit-status.js",
+    "release": "node scripts/ci/release.js",
+    "pipeline:dev": "powershell -ExecutionPolicy Bypass -File scripts/ci/pipeline-dev.ps1",
+    "ai:task": "node scripts/ai/dispatch.js",
+    "ai:cli:install": "npm i -g @tencent-ai/codebuddy-code"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "miniprogram-ci": "^1.10.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

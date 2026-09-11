@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "我们的时间线",
+  "usingComponents": {
+    "animated-number": "/components/animated-number/index"
+  }
+}

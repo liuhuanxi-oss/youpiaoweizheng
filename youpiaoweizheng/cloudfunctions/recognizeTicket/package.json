@@ -1,0 +1,9 @@
+{
+  "name": "recognizeTicket",
+  "version": "1.0.0",
+  "description": "票根 OCR 识别 + 规则解析",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>有票为证 · 视觉方案三：现代收藏家 Modern Collector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../colors_and_type-modern.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style id="theme-vars">
+    :root {
+      --ypw-ink: #1A1A2E;
+      --ypw-cyan: #4CC9F0;
+      --ypw-magenta: #F72585;
+      --ypw-cloud: #F8F9FA;
+      --ypw-steel: #6C757D;
+      --ypw-silver: #ADB5BD;
+      --ypw-paper: #FFFFFF;
+
+      --ypw-background: var(--ypw-paper);
+      --ypw-foreground: var(--ypw-ink);
+      --ypw-card: var(--ypw-cloud);
+      --ypw-card-foreground: var(--ypw-ink);
+      --ypw-popover: var(--ypw-paper);
+      --ypw-popover-foreground: var(--ypw-ink);
+      --ypw-primary: var(--ypw-ink);
+      --ypw-primary-foreground: #FFFFFF;
+      --ypw-secondary: var(--ypw-cyan);
+      --ypw-secondary-foreground: var(--ypw-ink);
+      --ypw-muted: #E9ECEF;
+      --ypw-muted-foreground: var(--ypw-steel);
+      --ypw-accent: var(--ypw-magenta);
+      --ypw-accent-foreground: #FFFFFF;
+      --ypw-border: #DEE2E6;
+      --ypw-input: #DEE2E6;
+      --ypw-ring: var(--ypw-cyan);
+      --ypw-radius-small: 6px;
+      --ypw-radius-medium: 10px;
+      --ypw-radius-large: 16px;
+
+      --background: var(--ypw-background);
+      --foreground: var(--ypw-foreground);
+      --card: var(--ypw-card);
+      --card-foreground: var(--ypw-card-foreground);
+      --popover: var(--ypw-popover);
+      --popover-foreground: var(--ypw-popover-foreground);
+      --primary: var(--ypw-primary);
+      --primary-foreground: var(--ypw-primary-foreground);
+      --secondary: var(--ypw-secondary);
+      --secondary-foreground: var(--ypw-secondary-foreground);
+      --muted: var(--ypw-muted);
+      --muted-foreground: var(--ypw-muted-foreground);
+      --accent: var(--ypw-accent);
+      --accent-foreground: var(--ypw-accent-foreground);
+      --border: var(--ypw-border);
+      --input: var(--ypw-input);
+      --ring: var(--ypw-ring);
+      --radius: var(--ypw-radius-medium);
+
+      --font-display: "Inter", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-body: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      background: #FFFFFF;
+      color: var(--ypw-ink);
+    }
+
+    .page-bg {
+      position: relative;
+      min-height: 100vh;
+      background-image:
+        linear-gradient(rgba(233,236,239,0.6) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(233,236,239,0.6) 1px, transparent 1px),
+        radial-gradient(circle, rgba(76,201,240,0.14) 1px, transparent 1px);
+      background-size: 40px 40px, 40px 40px, 20px 20px;
+      background-position: center top, center top, center top;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .phone-frame {
+      width: 300px;
+      height: 620px;
+      border-radius: 46px;
+      background: #1A1A2E;
+      padding: 12px;
+      box-shadow:
+        0 25px 80px rgba(26,26,46,0.18),
+        inset 0 0 0 1px rgba(255,255,255,0.08);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .phone-screen {
+      width: 276px;
+      height: 596px;
+      border-radius: 38px;
+      background: #FFFFFF;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 86px;
+      height: 24px;
+      background: #1A1A2E;
+      border-radius: 9999px;
+      z-index: 20;
+    }
+
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 4px;
+      background: rgba(0,0,0,0.18);
+      border-radius: 9999px;
+      z-index: 20;
+    }
+
+    .barcode-line {
+      display: inline-block;
+      background: #1A1A2E;
+      border-radius: 1px;
+      vertical-align: bottom;
+    }
+  </style>
+</head>
+<body class="page-bg">
+  <header class="pt-12 pb-2 text-center">
+    <p class="text-[10px] font-bold tracking-[0.2em] uppercase text-[#6C757D]">Scheme 03 · Modern Collector</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-black tracking-tight text-[#1A1A2E] font-display">现代收藏家</h1>
+    <p class="mt-2 text-sm text-[#6C757D]">极简 · 数据驱动 · 高对比</p>
+  </header>
+
+  <main class="flex justify-start md:justify-center gap-8 overflow-x-auto px-6 py-10 w-full max-w-[1600px] mx-auto">
+
+    <!-- 1. 启动页 / 首页 -->
+    <div class="phone-frame">
+      <div class="dynamic-island"></div>
+      <div class="phone-screen flex flex-col items-center">
+        <div class="screen-scroll w-full h-full overflow-y-auto no-scrollbar relative flex flex-col items-center">
+          <!-- 蓝天白云极简插画 -->
+          <div class="w-full h-[180px] relative overflow-hidden shrink-0">
+            <div class="absolute inset-0" style="background: linear-gradient(180deg, #E0F7FA 0%, #FFFFFF 100%);"></div>
+            <svg class="absolute top-8 left-6 w-20 h-12 text-white opacity-90" viewBox="0 0 80 48" fill="currentColor">
+              <ellipse cx="28" cy="32" rx="22" ry="12" />
+              <ellipse cx="50" cy="26" rx="18" ry="10" />
+              <ellipse cx="66" cy="36" rx="12" ry="8" />
+            </svg>
+            <svg class="absolute top-14 right-8 w-16 h-10 text-white opacity-80" viewBox="0 0 80 48" fill="currentColor">
+              <ellipse cx="26" cy="30" rx="20" ry="11" />
+              <ellipse cx="48" cy="24" rx="16" ry="9" />
+              <ellipse cx="64" cy="34" rx="12" ry="7" />
+            </svg>
+            <div class="absolute top-10 right-16 w-3 h-3 rounded-full bg-[#F72585]"></div>
+            <div class="absolute bottom-0 left-0 right-0 h-8 bg-white/60"></div>
+          </div>
+
+          <h2 class="mt-10 text-[38px] leading-none font-black tracking-tight text-[#1A1A2E] font-display">有票为证</h2>
+          <p class="mt-3 px-8 text-center text-xs font-medium leading-relaxed text-[#6C757D]">每一张票，都是回得去的时光</p>
+
+          <button class="mt-8 bg-[#1A1A2E] text-white text-sm font-bold px-8 py-3 rounded-[10px] shadow-lg hover:scale-[1.02] transition-transform">开始收藏</button>
+
+          <div class="mt-auto w-full h-[200px] relative">
+            <img src="../assets/scheme-modern-hero.jpg" alt="hero" class="absolute bottom-0 left-0 w-full h-full object-cover rounded-t-[24px]" />
+            <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/90 to-transparent"></div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 2. 首页仪表盘 -->
+    <div class="phone-frame">
+      <div class="dynamic-island"></div>
+      <div class="phone-screen flex flex-col">
+        <div class="screen-scroll w-full h-full overflow-y-auto no-scrollbar px-4 pt-12 pb-6">
+          <h2 class="text-lg font-black text-[#1A1A2E] font-display">Hi, 旅途收藏家！</h2>
+          <p class="text-[10px] text-[#6C757D] mt-1">今天也要好好记录旅程</p>
+
+          <div class="grid grid-cols-2 gap-2 mt-4">
+            <div class="bg-[#F8F9FA] rounded-[10px] p-3 border border-[#E9ECEF]">
+              <p class="text-[28px] font-black leading-none text-[#1A1A2E] font-display">32</p>
+              <p class="text-[10px] font-semibold text-[#6C757D] mt-1">全部票根</p>
+            </div>
+            <div class="bg-[#F8F9FA] rounded-[10px] p-3 border border-[#E9ECEF]">
+              <p class="text-[28px] font-black leading-none text-[#4CC9F0] font-display">12</p>
+              <p class="text-[10px] font-semibold text-[#6C757D] mt-1">城市足迹</p>
+            </div>
+            <div class="bg-[#F8F9FA] rounded-[10px] p-3 border border-[#E9ECEF]">
+              <p class="text-[28px] font-black leading-none text-[#F72585] font-display">8</p>
+              <p class="text-[10px] font-semibold text-[#6C757D] mt-1">演出现场</p>
+            </div>
+            <div class="bg-[#F8F9FA] rounded-[10px] p-3 border border-[#E9ECEF]">
+              <p class="text-[28px] font-black leading-none text-[#6C757D] font-display">6</p>
+              <p class="text-[10px] font-semibold text-[#6C757D] mt-1">影院时光</p>
+            </div>
+          </div>
+
+          <div class="mt-3 h-9 bg-[#F8F9FA] rounded-[10px] flex items-center px-3 border border-[#E9ECEF]">
+            <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <span class="ml-2 text-[11px] text-[#ADB5BD]">搜索票根、城市、演出...</span>
+          </div>
+
+          <div class="mt-5">
+            <p class="text-[10px] font-bold tracking-wider uppercase text-[#6C757D]">最近添加</p>
+            <div class="mt-2 space-y-2">
+              <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-2">
+                <div class="w-2 h-10 rounded-full bg-[#4CC9F0] mr-3"></div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-bold text-[#1A1A2E] truncate">杭州东站 → 上海虹桥</p>
+                  <p class="text-[10px] text-[#6C757D]">2025.09.01 · 交通</p>
+                </div>
+                <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+              </div>
+              <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-2">
+                <div class="w-2 h-10 rounded-full bg-[#F72585] mr-3"></div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-bold text-[#1A1A2E] truncate">陈奕迅 Fear and Dreams</p>
+                  <p class="text-[10px] text-[#6C757D]">2025.08.24 · 演出</p>
+                </div>
+                <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+              </div>
+              <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-2">
+                <div class="w-2 h-10 rounded-full bg-[#1A1A2E] mr-3"></div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-bold text-[#1A1A2E] truncate">《奥本海默》IMAX</p>
+                  <p class="text-[10px] text-[#6C757D]">2025.08.20 · 电影</p>
+                </div>
+                <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 3. 我的票根 -->
+    <div class="phone-frame">
+      <div class="dynamic-island"></div>
+      <div class="phone-screen flex flex-col">
+        <div class="screen-scroll w-full h-full overflow-y-auto no-scrollbar pt-12 pb-6">
+          <div class="px-4 flex items-center justify-between">
+            <h2 class="text-xl font-black text-[#1A1A2E] font-display">我的票根</h2>
+            <button class="w-7 h-7 rounded-full bg-[#F8F9FA] flex items-center justify-center text-[#1A1A2E]">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+
+          <div class="mt-4 px-4 flex gap-2 overflow-x-auto no-scrollbar">
+            <span class="px-3 py-1.5 rounded-full bg-[#1A1A2E] text-white text-[10px] font-bold whitespace-nowrap">全部</span>
+            <span class="px-3 py-1.5 rounded-full bg-[#F8F9FA] text-[#6C757D] text-[10px] font-bold whitespace-nowrap border border-[#E9ECEF]">交通</span>
+            <span class="px-3 py-1.5 rounded-full bg-[#F8F9FA] text-[#6C757D] text-[10px] font-bold whitespace-nowrap border border-[#E9ECEF]">演出</span>
+            <span class="px-3 py-1.5 rounded-full bg-[#F8F9FA] text-[#6C757D] text-[10px] font-bold whitespace-nowrap border border-[#E9ECEF]">电影</span>
+            <span class="px-3 py-1.5 rounded-full bg-[#F8F9FA] text-[#6C757D] text-[10px] font-bold whitespace-nowrap border border-[#E9ECEF]">旅行</span>
+          </div>
+
+          <div class="mt-5 px-4 space-y-2">
+            <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-3">
+              <div class="w-1.5 h-12 rounded-full bg-[#4CC9F0] mr-3"></div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-[#1A1A2E] truncate">杭州东 → 上海虹桥</p>
+                <p class="text-[10px] text-[#6C757D] mt-0.5">2025.09.01 · 杭州</p>
+              </div>
+              <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-3">
+              <div class="w-1.5 h-12 rounded-full bg-[#F72585] mr-3"></div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-[#1A1A2E] truncate">陈奕迅 Fear and Dreams</p>
+                <p class="text-[10px] text-[#6C757D] mt-0.5">2025.08.24 · 上海</p>
+              </div>
+              <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-3">
+              <div class="w-1.5 h-12 rounded-full bg-[#1A1A2E] mr-3"></div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-[#1A1A2E] truncate">《奥本海默》IMAX</p>
+                <p class="text-[10px] text-[#6C757D] mt-0.5">2025.08.20 · 北京</p>
+              </div>
+              <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-3">
+              <div class="w-1.5 h-12 rounded-full bg-[#6C757D] mr-3"></div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-[#1A1A2E] truncate">成都大熊猫基地</p>
+                <p class="text-[10px] text-[#6C757D] mt-0.5">2025.07.15 · 成都</p>
+              </div>
+              <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="flex items-center bg-white border border-[#E9ECEF] rounded-[10px] p-3">
+              <div class="w-1.5 h-12 rounded-full bg-[#4CC9F0] mr-3"></div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-[#1A1A2E] truncate">广州白云 → 东京成田</p>
+                <p class="text-[10px] text-[#6C757D] mt-0.5">2025.06.10 · 广州</p>
+              </div>
+              <svg class="w-4 h-4 text-[#ADB5BD]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 4. 票根详情 -->
+    <div class="phone-frame">
+      <div class="dynamic-island"></div>
+      <div class="phone-screen flex flex-col relative">
+        <div class="screen-scroll w-full h-full overflow-y-auto no-scrollbar">
+          <div class="h-[180px] w-full relative shrink-0">
+            <img src="../assets/scheme-modern-hero.jpg" alt="ticket cover" class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-gradient-to-b from-black/10 to-black/40"></div>
+            <button class="absolute top-10 left-4 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-[#1A1A2E]">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+          </div>
+
+          <div class="relative -mt-8 mx-3 bg-[#1A1A2E] rounded-[16px] p-4 text-white shadow-xl">
+            <p class="text-[10px] font-bold tracking-wider uppercase text-[#4CC9F0]">CONCERT TICKET</p>
+            <h3 class="mt-1 text-lg font-black leading-tight font-display">陈奕迅 Fear and Dreams</h3>
+
+            <div class="grid grid-cols-2 gap-y-3 gap-x-2 mt-4">
+              <div>
+                <p class="text-[9px] uppercase text-[#ADB5BD]">日期</p>
+                <p class="text-xs font-bold">2025.08.24</p>
+              </div>
+              <div>
+                <p class="text-[9px] uppercase text-[#ADB5BD]">时间</p>
+                <p class="text-xs font-bold">19:30</p>
+              </div>
+              <div>
+                <p class="text-[9px] uppercase text-[#ADB5BD]">地点</p>
+                <p class="text-xs font-bold">上海市</p>
+              </div>
+              <div>
+                <p class="text-[9px] uppercase text-[#ADB5BD]">场馆</p>
+                <p class="text-xs font-bold">梅赛德斯奔驰文化中心</p>
+              </div>
+              <div>
+                <p class="text-[9px] uppercase text-[#ADB5BD]">座位</p>
+                <p class="text-xs font-bold">A区 12排 08号</p>
+              </div>
+              <div>
+                <p class="text-[9px] uppercase text-[#ADB5BD]">票价</p>
+                <p class="text-xs font-bold text-[#F72585]">¥ 1280</p>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-white/10">
+              <p class="text-[9px] uppercase text-[#ADB5BD]">票号</p>
+              <p class="text-xs font-mono tracking-widest">EVN-20250824-A1208</p>
+              <div class="mt-3 h-10 flex items-end justify-center gap-[2px] px-2 bg-white rounded-[6px] py-2">
+                <span class="barcode-line w-[2px] h-4"></span>
+                <span class="barcode-line w-[1px] h-6"></span>
+                <span class="barcode-line w-[3px] h-5"></span>
+                <span class="barcode-line w-[1px] h-3"></span>
+                <span class="barcode-line w-[2px] h-6"></span>
+                <span class="barcode-line w-[1px] h-4"></span>
+                <span class="barcode-line w-[3px] h-5"></span>
+                <span class="barcode-line w-[1px] h-3"></span>
+                <span class="barcode-line w-[2px] h-6"></span>
+                <span class="barcode-line w-[1px] h-4"></span>
+                <span class="barcode-line w-[3px] h-5"></span>
+                <span class="barcode-line w-[1px] h-3"></span>
+                <span class="barcode-line w-[2px] h-6"></span>
+                <span class="barcode-line w-[1px] h-4"></span>
+                <span class="barcode-line w-[3px] h-5"></span>
+                <span class="barcode-line w-[1px] h-3"></span>
+                <span class="barcode-line w-[2px] h-6"></span>
+                <span class="barcode-line w-[1px] h-4"></span>
+                <span class="barcode-line w-[3px] h-5"></span>
+                <span class="barcode-line w-[1px] h-3"></span>
+                <span class="barcode-line w-[2px] h-6"></span>
+                <span class="barcode-line w-[1px] h-4"></span>
+                <span class="barcode-line w-[3px] h-5"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="h-16"></div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-[#E9ECEF] px-4 py-2 flex justify-around items-center z-10">
+          <button class="flex flex-col items-center gap-0.5 text-[#1A1A2E]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span class="text-[9px] font-semibold">编辑</span>
+          </button>
+          <button class="flex flex-col items-center gap-0.5 text-[#1A1A2E]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51 15.42 17.49M15.41 6.51 8.59 10.49"/></svg>
+            <span class="text-[9px] font-semibold">分享</span>
+          </button>
+          <button class="flex flex-col items-center gap-0.5 text-[#F72585]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span class="text-[9px] font-semibold">删除</span>
+          </button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 5. 个人中心 -->
+    <div class="phone-frame">
+      <div class="dynamic-island"></div>
+      <div class="phone-screen flex flex-col">
+        <div class="screen-scroll w-full h-full overflow-y-auto no-scrollbar">
+          <div class="h-[150px] bg-[#1A1A2E] rounded-b-[24px] px-5 pt-12 pb-5 flex items-center gap-3 relative overflow-hidden">
+            <div class="absolute top-6 right-6 w-20 h-20 rounded-full border border-white/10"></div>
+            <div class="absolute top-10 right-10 w-12 h-12 rounded-full border border-white/10"></div>
+            <div class="w-14 h-14 rounded-full bg-[#4CC9F0] border-2 border-white/20 flex items-center justify-center text-white text-xl font-black font-display">M</div>
+            <div class="text-white">
+              <p class="text-base font-black font-display">MomoCollector</p>
+              <div class="mt-1 inline-flex items-center px-2 py-0.5 rounded-full bg-[#F72585] text-[9px] font-bold">Lv.7 资深藏家</div>
+            </div>
+          </div>
+
+          <div class="px-4 -mt-5 relative z-10">
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-white rounded-[12px] p-2 text-center shadow-sm border border-[#E9ECEF]">
+                <p class="text-xl font-black text-[#1A1A2E] font-display">32</p>
+                <p class="text-[9px] text-[#6C757D] font-semibold mt-0.5">票根</p>
+              </div>
+              <div class="bg-white rounded-[12px] p-2 text-center shadow-sm border border-[#E9ECEF]">
+                <p class="text-xl font-black text-[#4CC9F0] font-display">12</p>
+                <p class="text-[9px] text-[#6C757D] font-semibold mt-0.5">城市</p>
+              </div>
+              <div class="bg-white rounded-[12px] p-2 text-center shadow-sm border border-[#E9ECEF]">
+                <p class="text-xl font-black text-[#F72585] font-display">86</p>
+                <p class="text-[9px] text-[#6C757D] font-semibold mt-0.5">足迹</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 mx-4 flex items-center justify-between bg-[#F8F9FA] rounded-[10px] px-3 py-2 border border-[#E9ECEF]">
+            <span class="text-xs font-bold text-[#1A1A2E]">深色模式</span>
+            <div class="w-10 h-5 rounded-full bg-[#E9ECEF] relative">
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow"></div>
+            </div>
+          </div>
+
+          <div class="mt-4 px-4">
+            <p class="text-[10px] font-bold tracking-wider uppercase text-[#6C757D]">功能</p>
+            <div class="grid grid-cols-4 gap-2 mt-2">
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#F72585]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">收藏夹</span>
+              </div>
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#4CC9F0]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">时光机</span>
+              </div>
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#1A1A2E]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">纪念地图</span>
+              </div>
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#6C757D]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">数据统计</span>
+              </div>
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#6C757D]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">回收站</span>
+              </div>
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#F72585]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">勋章</span>
+              </div>
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#1A1A2E]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">隐私</span>
+              </div>
+              <div class="bg-[#F8F9FA] rounded-[10px] p-2 flex flex-col items-center justify-center gap-1 border border-[#E9ECEF]">
+                <svg class="w-5 h-5 text-[#6C757D]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span class="text-[9px] font-semibold text-[#1A1A2E]">设置</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="h-8"></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="pb-10 text-center text-[10px] text-[#ADB5BD]">
+    有票为证 · 现代收藏家视觉方案
+  </footer>
+
+  <script>
+    // interactions placeholder
+  </script>
+</body>
+</html>

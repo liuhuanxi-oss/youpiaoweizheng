@@ -1,0 +1,66 @@
+/* 有票为证 · 方案二：旅行图志风 Travel Journal */
+:root {
+  /* 品牌原始色 */
+  --ypw-sand: #F5E6D3;
+  --ypw-sky: #4FA8E8;
+  --ypw-clay: #E07A5F;
+  --ypw-sage: #81B29A;
+  --ypw-gold: #F2CC8F;
+  --ypw-navy: #3D405B;
+  --ypw-slate: #8D99AE;
+  --ypw-paper: #FFFCF8;
+
+  /* 语义别名 */
+  --ypw-background: var(--ypw-sand);
+  --ypw-foreground: var(--ypw-navy);
+  --ypw-card: var(--ypw-paper);
+  --ypw-card-foreground: var(--ypw-navy);
+  --ypw-popover: var(--ypw-paper);
+  --ypw-popover-foreground: var(--ypw-navy);
+  --ypw-primary: var(--ypw-sky);
+  --ypw-primary-foreground: #FFFFFF;
+  --ypw-secondary: var(--ypw-clay);
+  --ypw-secondary-foreground: #FFFFFF;
+  --ypw-muted: #EBE1D6;
+  --ypw-muted-foreground: var(--ypw-slate);
+  --ypw-accent: var(--ypw-sage);
+  --ypw-accent-foreground: #FFFFFF;
+  --ypw-border: #E3D5C5;
+  --ypw-input: #E3D5C5;
+  --ypw-ring: var(--ypw-sky);
+  --ypw-radius-small: 8px;
+  --ypw-radius-medium: 14px;
+  --ypw-radius-large: 20px;
+
+  /* 标准别名 */
+  --background: var(--ypw-background);
+  --foreground: var(--ypw-foreground);
+  --card: var(--ypw-card);
+  --card-foreground: var(--ypw-card-foreground);
+  --popover: var(--ypw-popover);
+  --popover-foreground: var(--ypw-popover-foreground);
+  --primary: var(--ypw-primary);
+  --primary-foreground: var(--ypw-primary-foreground);
+  --secondary: var(--ypw-secondary);
+  --secondary-foreground: var(--ypw-secondary-foreground);
+  --muted: var(--ypw-muted);
+  --muted-foreground: var(--ypw-muted-foreground);
+  --accent: var(--ypw-accent);
+  --accent-foreground: var(--ypw-accent-foreground);
+  --border: var(--ypw-border);
+  --input: var(--ypw-input);
+  --ring: var(--ypw-ring);
+  --radius: var(--ypw-radius-medium);
+
+  /* 字体 */
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--ypw-background);
+  color: var(--ypw-foreground);
+}
+
+.font-display { font-family: var(--font-display); }

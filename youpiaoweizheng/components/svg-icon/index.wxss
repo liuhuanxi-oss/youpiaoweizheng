@@ -1,0 +1,5 @@
+/* components/svg-icon/index.wxss */
+.svg-ic {
+  display: block;
+  vertical-align: middle;
+}

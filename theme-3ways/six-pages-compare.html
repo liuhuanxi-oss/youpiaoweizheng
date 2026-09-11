@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有票为证 · 三主题六页对照</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=ZCOOL+KuaiLe&display=swap">
+<style>
+:root{--sans:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--round:"ZCOOL KuaiLe","Noto Sans SC",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:#EFEBE6;color:#2b2b33;min-height:100vh}
+.bar{position:sticky;top:0;z-index:30;background:#fffdfb;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:14px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bar h1{font-size:16px;font-weight:900}.bar h1 small{display:block;font-size:10.5px;color:#999;font-weight:400;letter-spacing:1px}
+.pgs{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.pg{border:1.5px solid #e3ddd6;background:#fff;color:#666;padding:9px 15px;border-radius:999px;font-size:12.5px;cursor:pointer;min-height:42px;font-family:inherit;transition:.2s}
+.pg.active{background:#333;color:#fff;font-weight:700}
+
+.row{max-width:1400px;margin:26px auto;padding:0 22px;display:grid;grid-template-columns:repeat(3,340px);gap:24px;justify-content:center;align-items:start}
+.row>div{width:340px;max-width:100%}
+@media(max-width:1120px){.row{grid-template-columns:repeat(3,1fr);gap:14px}}
+.col-label{text-align:center;font-weight:900;font-size:15px;margin-bottom:10px}
+
+/* 手机框 */
+.phone{background:#111;border-radius:44px;padding:10px;box-shadow:0 16px 44px rgba(0,0,0,.18)}
+.scr{border-radius:36px;overflow:hidden;height:720px;position:relative;display:flex;flex-direction:column}
+.notch{height:22px;display:grid;place-items:center;flex:none}.notch::after{content:"";width:78px;height:15px;background:#000;border-radius:9px;opacity:.85}
+/* 三套主题变量作用于 .scr */
+.scr.warm{--bg:#FBF2EC;--card:#fff;--primary:#F26D8D;--accent:#F4A26B;--soft:#FBDCE3;--text:#4A3F3A;--text2:#9C8B84;--border:#F0E0D8;--onp:#fff;--chip:#FDE8EE;background:var(--bg)}
+.scr.blue{--bg:#F3F9FE;--card:#fff;--primary:#4FA8E8;--accent:#F2558B;--soft:#CFE8F7;--text:#2C3E50;--text2:#7A8CA3;--border:#DDE9F2;--onp:#fff;--chip:#E7F3FC;background:var(--bg)}
+.scr.dream{--bg:#FFFFFF;--card:#fff;--primary:#A97FE0;--accent:#F45B8E;--soft:#F3D9EC;--text:#4A4A66;--text2:#8E8EA8;--border:#EDE6F2;--onp:#fff;--chip:#F6ECFA;background:var(--bg)}
+.body{flex:1;overflow:hidden;position:relative;color:var(--text)}
+.page{position:absolute;inset:0;overflow-y:auto;display:none;flex-direction:column;padding-bottom:70px}
+.page.show{display:flex}
+
+.nav{padding:6px 14px 10px;display:flex;align-items:center;gap:8px}
+.nav img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)}
+.nav .t{font-weight:900;font-size:15px}.nav .t small{display:block;font-size:9px;color:var(--text2);font-weight:400}
+.nav .back{font-size:18px;color:var(--text2);margin-right:4px}
+.nav .icons{margin-left:auto;display:flex;gap:10px;color:var(--text2)}
+
+.hero{margin:0 14px 12px;padding:15px 16px;border-radius:20px;color:#fff;position:relative;overflow:hidden}
+.scr.warm .hero{background:linear-gradient(135deg,#F26D8D,#F4A26B)}
+.scr.blue .hero{background:linear-gradient(135deg,#4FA8E8,#F2558B)}
+.scr.dream .hero{background:linear-gradient(135deg,#A97FE0,#F45B8E)}
+.hero .ht{font-size:15px;font-weight:900}.hero .hs{font-size:10.5px;opacity:.92;margin-top:4px}
+.hero .deco{position:absolute;right:10px;top:50%;transform:translateY(-50%);opacity:.55}
+
+.cam{margin:0 14px 12px;background:var(--primary);color:var(--onp);border-radius:999px;padding:14px;text-align:center;font-weight:800;font-size:14px;box-shadow:0 8px 20px color-mix(in srgb,var(--primary) 35%,transparent)}
+.cam small{display:block;font-size:10px;opacity:.9;font-weight:400;margin-top:2px}
+
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 14px 12px}
+.qi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:10px 4px;text-align:center}
+.qi .ic{width:30px;height:30px;margin:0 auto 5px;border-radius:9px;display:grid;place-items:center;color:#fff}
+.qi .ic svg{width:17px;height:17px}.qi .qt{font-size:10.5px;font-weight:600}.qi .qn{font-size:9px;color:var(--text2);margin-top:2px}
+
+.sec-h{padding:0 14px 8px;display:flex;align-items:baseline}
+.sec-h b{font-size:13.5px}.sec-h span{margin-left:auto;font-size:10px;color:var(--text2)}
+.recent{display:flex;gap:8px;padding:0 14px 8px;overflow:auto}
+.rt{flex:none;width:120px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.rt .ph{height:64px;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700}
+.rt .info{padding:7px}.rt .ti{font-size:10.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rt .tm{font-size:9px;color:var(--text2);margin-top:3px}
+
+/* 票夹页 */
+.tabs{display:flex;gap:6px;padding:4px 14px 10px;overflow:auto}
+.tab-p{flex:none;font-size:11.5px;padding:6px 13px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--text2)}
+.tab-p.on{background:var(--primary);color:var(--onp);border-color:var(--primary);font-weight:700}
+.cats{padding:0 14px;display:flex;flex-direction:column;gap:10px}
+.cat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:11px;display:flex;align-items:center;gap:11px}
+.cat .cic{width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;color:#fff}
+.cat .cic svg{width:25px;height:25px}.cat .ci{flex:1}.cat .cn{font-size:13px;font-weight:700}.cat .cm{font-size:10px;color:var(--text2);margin-top:3px}.cat .cnt{font-size:11px;color:var(--text2)}
+
+/* 详情页 */
+.poster{margin:0 14px 12px;border-radius:20px;overflow:hidden;position:relative;height:150px;color:#fff}
+.scr.warm .poster{background:linear-gradient(135deg,#5b3a4a,#a8556f)}
+.scr.blue .poster{background:linear-gradient(135deg,#2b3a6b,#7b4b96)}
+.scr.dream .poster{background:linear-gradient(135deg,#3a2a6b,#b55b8f)}
+.poster .pt{padding:16px;font-weight:900;font-size:18px}.poster .ps{font-size:11px;opacity:.9;margin-top:3px;letter-spacing:2px}
+.poster .heart{position:absolute;right:12px;top:12px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center}
+.poster .stub{position:absolute;right:14px;bottom:14px;width:34px;height:46px;background:#fff;border-radius:4px;opacity:.9}
+.fields{margin:0 14px;background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden}
+.frow{display:flex;padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.frow:last-child{border:0}.frow .k{width:64px;color:var(--text2)}.frow .v{flex:1;font-weight:500}
+
+/* 添加页 */
+.scan{margin:12px 14px;background:#1d1d22;border-radius:20px;height:260px;position:relative;overflow:hidden;display:grid;place-items:center}
+.frame-corner{position:absolute;width:26px;height:26px;border:3px solid var(--accent)}
+.fc-tl{left:14px;top:14px;border-right:0;border-bottom:0}.fc-tr{right:14px;top:14px;border-left:0;border-bottom:0}
+.fc-bl{left:14px;bottom:14px;border-right:0;border-top:0}.fc-br{right:14px;bottom:14px;border-left:0;border-top:0}
+.ticket-mock{width:150px;height:96px;background:#f2ece2;border-radius:6px;position:relative;box-shadow:0 6px 18px rgba(0,0,0,.3);display:grid;place-items:center}
+.ticket-mock .tt{font-size:13px;font-weight:800;color:#3a3a3a;letter-spacing:1px}
+.ticket-mock::before,.ticket-mock::after{content:"";position:absolute;left:0;right:0;height:8px;background-image:radial-gradient(circle at 8px -4px,transparent 6px,#1d1d22 6.5px);background-size:16px 8px}
+.ticket-mock::before{top:-8px}.ticket-mock::after{bottom:-8px;transform:rotate(180deg)}
+.scan-tip{text-align:center;color:#fff;font-size:12px;margin-top:12px}
+.scan-tip b{display:block;font-size:13px}.scan-btns{display:flex;justify-content:center;align-items:center;gap:22px;margin-top:16px}
+.sb{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;color:var(--text2)}
+.sb .cir{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);display:grid;place-items:center}
+.sb .shoot{width:56px;height:56px;border-radius:50%;background:var(--accent);border:4px solid #fff;box-shadow:0 0 0 2px var(--accent);display:grid;place-items:center;color:#fff}
+.sb .shoot svg{width:26px;height:26px}
+
+/* 我的页 */
+.me-head{margin:6px 14px 12px;display:flex;align-items:center;gap:12px;background:var(--chip);border-radius:20px;padding:14px}
+.me-head img{width:58px;height:58px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)}
+.me-head .mn{font-weight:900;font-size:15px}.me-head .ms{font-size:10px;color:var(--text2);margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 14px 12px}
+.st{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:11px 4px;text-align:center}
+.st .num{font-size:20px;font-weight:900;color:var(--primary)}.st .lb{font-size:9.5px;color:var(--text2);margin-top:2px}
+.menu{margin:0 14px;background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden}
+.mrow{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:500}
+.mrow:last-child{border:0}.mrow .mi{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:#fff;font-size:12px}
+.mrow .ar{margin-left:auto;color:var(--text2);font-size:14px}
+
+/* 地图页 */
+.map{margin:6px 14px 0;border-radius:20px;overflow:hidden;position:relative;height:430px;background:linear-gradient(180deg,#dff0e0,#cfe8d8)}
+.map-bg{position:absolute;inset:0}
+.mpin{position:absolute;transform:translate(-50%,-100%);text-align:center}
+.mpin .bubble{background:#fff;border-radius:12px;padding:5px 9px;box-shadow:0 4px 12px rgba(0,0,0,.15);font-size:10px;font-weight:700;white-space:nowrap}
+.mpin .bubble small{display:block;font-size:9px;color:var(--accent);font-weight:400}
+.mpin .dot{width:12px;height:12px;background:var(--accent);border:2px solid #fff;border-radius:50%;margin:3px auto 0}
+.foot{padding:12px 16px;text-align:center;font-size:10.5px;color:var(--text2)}
+
+/* tabbar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--border);height:60px}
+.tabbar .tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9.5px;color:var(--text2);gap:2px}
+.tabbar .tb.on{color:var(--primary);font-weight:700}
+.tabbar .tb svg{width:19px;height:19px}
+.tabbar .add{flex:.7;display:grid;place-items:center}
+.tabbar .add span{width:40px;height:40px;border-radius:50%;background:var(--primary);color:var(--onp);display:grid;place-items:center;font-size:22px;font-weight:700;margin-top:-18px;box-shadow:0 4px 12px color-mix(in srgb,var(--primary) 40%,transparent)}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <h1>有票为证 · 三主题六页对照<small>同一套功能内容，三种皮肤横向对比</small></h1>
+  <nav class="pgs" id="pgs">
+    <button class="pg active" data-p="home">首页</button>
+    <button class="pg" data-p="wall">票夹</button>
+    <button class="pg" data-p="detail">详情</button>
+    <button class="pg" data-p="add">添加</button>
+    <button class="pg" data-p="me">我的</button>
+    <button class="pg" data-p="map">地图</button>
+  </nav>
+</header>
+
+<main class="row" id="row"></main>
+
+<script>
+const IP="assets/ip.png";
+const ICO={
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  folder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>',
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  transport:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1L13 21v-1.5L11.5 18v-4.5z"/></svg>',
+  show:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10m0 0a4 4 0 100 8 4 4 0 000-8zM7 3h10"/></svg>',
+  film:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 6v12M17 6v12M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s-7-6-7-11a7 7 0 1114 0c0 5-7 11-7 11z"/><circle cx="12" cy="11" r="2.5" fill="#fff"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l9-7 9 7v10a1 1 0 01-1 1H4a1 1 0 01-1-1z"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  me:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>'
+};
+const CATS=[
+  {n:'交通出行',m:'地铁/高铁/机票',c:'#8FD0E8',cnt:'32 张',ic:ICO.transport},
+  {n:'演出现场',m:'演唱会/Livehouse',c:'#F7B3C4',cnt:'28 张',ic:ICO.show},
+  {n:'电影时光',m:'大银幕里的回忆',c:'#F7E0A8',cnt:'18 张',ic:ICO.film},
+  {n:'旅行足迹',m:'去过的远方',c:'#B8E4CC',cnt:'24 张',ic:ICO.pin}
+];
+const CITIES=[
+  {n:'北京',c:3,x:'62%',y:'24%'},{n:'上海',c:5,x:'78%',y:'46%'},
+  {n:'成都',c:2,x:'38%',y:'52%'},{n:'广州',c:4,x:'66%',y:'76%'}
+];
+const THEME_LABEL={warm:'暖光治愈',blue:'晴空旅行',dream:'马卡龙梦'};
+
+function pageHome(){return `
+  <div class="page show" data-p="home">
+    <div class="nav"><img src="${IP}"><div class="t">有票为证<small>每一张票，都是回得去的时光</small></div></div>
+    <div class="hero"><div class="ht">今年已珍藏 32 张票根</div><div class="hs">把生活的每一段旅程，都好好珍藏</div>
+      <div class="deco">${ICO.transport}</div></div>
+    <div class="cam">拍照记录<small>留住这张票的故事</small></div>
+    <div class="quick">
+      <div class="qi"><div class="ic" style="background:#F26D8D">${ICO.folder}</div><div class="qt">票夹本</div><div class="qn">32</div></div>
+      <div class="qi"><div class="ic" style="background:#4FA8E8">${ICO.cam}</div><div class="qt">分类</div><div class="qn">8</div></div>
+      <div class="qi"><div class="ic" style="background:#F4A26B">${ICO.pin}</div><div class="qt">地图足迹</div><div class="qn">12</div></div>
+      <div class="qi"><div class="ic" style="background:#9B8FF0">${ICO.cal}</div><div class="qt">回忆日历</div><div class="qn">365</div></div>
+    </div>
+    <div class="sec-h"><b>最近添加</b><span>更多 ›</span></div>
+    <div class="recent">
+      <div class="rt"><div class="ph" style="background:linear-gradient(135deg,#5b3a4a,#a8556f)">演唱会</div><div class="info"><div class="ti">周杰伦嘉年华演唱会</div><div class="tm">2024.05.18</div></div></div>
+      <div class="rt"><div class="ph" style="background:linear-gradient(135deg,#3a5a8a,#7bb0e0)">高铁票</div><div class="info"><div class="ti">G1234 深圳北→长沙</div><div class="tm">2024.04.12</div></div></div>
+      <div class="rt"><div class="ph" style="background:linear-gradient(135deg,#7a5a2a,#e0b070)">电影</div><div class="info"><div class="ti">《热辣滚烫》</div><div class="tm">2024.02.16</div></div></div>
+    </div>
+  </div>`;}
+
+function pageWall(){return `
+  <div class="page" data-p="wall">
+    <div class="nav"><div class="t">我的票夹</div><div class="icons">⋯</div></div>
+    <div class="tabs">
+      <span class="tab-p on">全部</span><span class="tab-p">交通</span><span class="tab-p">演出</span><span class="tab-p">电影</span><span class="tab-p">旅行</span>
+    </div>
+    <div class="cats">${CATS.map(c=>`<div class="cat"><div class="cic" style="background:${c.c}">${c.ic}</div>
+      <div class="ci"><div class="cn">${c.n}</div><div class="cm">${c.m}</div></div><div class="cnt">${c.cnt}</div></div>`).join('')}
+    </div>
+  </div>`;}
+
+function pageDetail(){return `
+  <div class="page" data-p="detail">
+    <div class="nav"><span class="back">‹</span><div class="t">票据详情</div><div class="icons">♡</div></div>
+    <div class="poster"><div class="pt">周杰伦<br>嘉年华世界巡回演唱会</div><div class="ps">JAY CHOU · WORLD TOUR</div>
+      <div class="heart">♡</div><div class="stub"></div></div>
+    <div class="fields">
+      <div class="frow"><div class="k">演出名称</div><div class="v">周杰伦嘉年华世界巡回演唱会</div></div>
+      <div class="frow"><div class="k">时间</div><div class="v">2024.05.18 19:30</div></div>
+      <div class="frow"><div class="k">地点</div><div class="v">上海体育场</div></div>
+      <div class="frow"><div class="k">座位</div><div class="v">内场 A 区 12 排 8 号</div></div>
+      <div class="frow"><div class="k">票种</div><div class="v">内场票</div></div>
+      <div class="frow"><div class="k">备注</div><div class="v">青春有你，现场的歌声至今难忘…</div></div>
+    </div>
+  </div>`;}
+
+function pageAdd(){return `
+  <div class="page" data-p="add">
+    <div class="nav"><span class="back">‹</span><div class="t">添加票根</div></div>
+    <div class="scan">
+      <span class="frame-corner fc-tl"></span><span class="frame-corner fc-tr"></span>
+      <span class="frame-corner fc-bl"></span><span class="frame-corner fc-br"></span>
+      <div class="ticket-mock"><div class="tt">CONCERT</div></div>
+    </div>
+    <div class="scan-tip"><b>对准票根，自动识别票根信息</b>不只是票根，更是生活的证据</div>
+    <div class="scan-btns">
+      <div class="sb"><div class="cir">${ICO.cam}</div>手动录入</div>
+      <div class="sb"><div class="shoot">${ICO.cam}</div></div>
+      <div class="sb"><div class="cir">▣</div>从相册</div>
+    </div>
+  </div>`;}
+
+function pageMe(){return `
+  <div class="page" data-p="me">
+    <div class="nav"><div class="t">我的</div><div class="icons">⚙</div></div>
+    <div class="me-head"><img src="${IP}">
+      <div><div class="mn">票根小收藏家</div><div class="ms">用票根记录生活，把热爱收进行囊</div></div></div>
+    <div class="stats">
+      <div class="st"><div class="num">128</div><div class="lb">已收藏</div></div>
+      <div class="st"><div class="num">6</div><div class="lb">城市足迹</div></div>
+      <div class="st"><div class="num">32</div><div class="lb">美好回忆</div></div>
+    </div>
+    <div class="menu">
+      <div class="mrow"><div class="mi" style="background:#F26D8D">▣</div>我的收藏夹<span class="ar">›</span></div>
+      <div class="mrow"><div class="mi" style="background:#4FA8E8">◷</span></div>时光机<span class="ar">›</span></div>
+      <div class="mrow"><div class="mi" style="background:#4FB286">◉</div>纪念地图<span class="ar">›</span></div>
+      <div class="mrow"><div class="mi" style="background:#9B8FF0">≣</div>数据统计<span class="ar">›</span></div>
+      <div class="mrow"><div class="mi" style="background:#F4A26B">♲</div>回收站<span class="ar">›</span></div>
+    </div>
+  </div>`;}
+
+function pageMap(){return `
+  <div class="page" data-p="map">
+    <div class="nav"><div class="t">回忆地图</div><div class="icons">⇅</div></div>
+    <div class="map">
+      <div class="map-bg"><svg viewBox="0 0 300 430" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;opacity:.5">
+        <path d="M0 320 Q80 260 150 300 T300 280 V430 H0 Z" fill="#bfe0c4"/>
+        <path d="M20 120 Q90 80 160 120 T300 110" stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="6 6"/>
+        <circle cx="90" cy="200" r="18" fill="#a8d8b0"/><circle cx="220" cy="180" r="24" fill="#a8d8b0"/></svg>
+      ${CITIES.map(c=>`<div class="mpin" style="left:${c.x};top:${c.y}"><div class="bubble">${c.n}<small>${c.c} 张票</small></div><div class="dot"></div></div>`).join('')}
+    </div>
+    <div class="foot">走过的每一个地方，都留下了一张票的证明<br>也是一段回忆 ♡</div>
+  </div>`;}
+
+const PAGES={home:pageHome,wall:pageWall,detail:pageDetail,add:pageAdd,me:pageMe,map:pageMap};
+const TABBAR=`<div class="tabbar">
+  <div class="tb on">${ICO.home}票夹</div><div class="tb">${ICO.clock}回忆</div>
+  <div class="add"><span>+</span></div><div class="tb">${ICO.pin}发现</div><div class="tb">${ICO.me}我的</div></div>`;
+
+// 生成三列手机
+document.getElementById('row').innerHTML=['warm','blue','dream'].map(t=>`
+  <div><div class="col-label" style="color:${t==='warm'?'#F26D8D':t==='blue'?'#4FA8E8':'#A97FE0'}">● ${THEME_LABEL[t]}</div>
+  <div class="phone"><div class="scr ${t}">
+    <div class="notch"></div>
+    <div class="body">
+      ${pageHome()}${pageWall()}${pageDetail()}${pageAdd()}${pageMe()}${pageMap()}
+    </div>
+    ${TABBAR}
+  </div></div></div>`).join('');
+
+// 切页：三列同步
+function showPage(p){
+  document.querySelectorAll('.pg').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  document.querySelectorAll('.scr .page').forEach(el=>el.classList.toggle('show',el.dataset.p===p));
+}
+document.getElementById('pgs').addEventListener('click',e=>{const b=e.target.closest('.pg');if(b)showPage(b.dataset.p)});
+</script>
+
+</script>
+</body>
+</html>

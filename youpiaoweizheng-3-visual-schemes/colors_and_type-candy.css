@@ -1,0 +1,67 @@
+/* 有票为证 · 方案一：软糖手账风 Candy Scrapbook */
+:root {
+  /* Brand primitives */
+  --ypw-cream: #FFF8F0;
+  --ypw-blush: #FFB7C5;
+  --ypw-coral: #FF8A80;
+  --ypw-butter: #FFE082;
+  --ypw-mint: #B2DFDB;
+  --ypw-lavender: #E1BEE7;
+  --ypw-chocolate: #5D4037;
+  --ypw-cocoa: #8D6E63;
+  --ypw-paper: #FFFFFF;
+
+  /* Semantic aliases */
+  --ypw-background: var(--ypw-cream);
+  --ypw-foreground: var(--ypw-chocolate);
+  --ypw-card: var(--ypw-paper);
+  --ypw-card-foreground: var(--ypw-chocolate);
+  --ypw-popover: var(--ypw-paper);
+  --ypw-popover-foreground: var(--ypw-chocolate);
+  --ypw-primary: var(--ypw-coral);
+  --ypw-primary-foreground: #FFFFFF;
+  --ypw-secondary: var(--ypw-blush);
+  --ypw-secondary-foreground: var(--ypw-chocolate);
+  --ypw-muted: #F5EBE4;
+  --ypw-muted-foreground: var(--ypw-cocoa);
+  --ypw-accent: var(--ypw-butter);
+  --ypw-accent-foreground: var(--ypw-chocolate);
+  --ypw-border: #F0E0D4;
+  --ypw-input: #F0E0D4;
+  --ypw-ring: var(--ypw-coral);
+  --ypw-radius-small: 14px;
+  --ypw-radius-medium: 22px;
+  --ypw-radius-large: 32px;
+
+  /* Standard aliases */
+  --background: var(--ypw-background);
+  --foreground: var(--ypw-foreground);
+  --card: var(--ypw-card);
+  --card-foreground: var(--ypw-card-foreground);
+  --popover: var(--ypw-popover);
+  --popover-foreground: var(--ypw-popover-foreground);
+  --primary: var(--ypw-primary);
+  --primary-foreground: var(--ypw-primary-foreground);
+  --secondary: var(--ypw-secondary);
+  --secondary-foreground: var(--ypw-secondary-foreground);
+  --muted: var(--ypw-muted);
+  --muted-foreground: var(--ypw-muted-foreground);
+  --accent: var(--ypw-accent);
+  --accent-foreground: var(--ypw-accent-foreground);
+  --border: var(--ypw-border);
+  --input: var(--ypw-input);
+  --ring: var(--ypw-ring);
+  --radius: var(--ypw-radius-medium);
+
+  /* Typography */
+  --font-display: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--ypw-background);
+  color: var(--ypw-foreground);
+}
+
+.font-display { font-family: var(--font-display); }

@@ -1,0 +1,339 @@
+/* pages/detail/detail.wxss —— v6.4 票根详情时光卡（品牌全案 · 稿屏2 一比一）
+   品牌令牌见 app.wxss .theme-paper；辅助图形公共类 b-tape/b-stamp/b-perf/b-serial/b-spark/b-dash-path 全局复用 */
+
+.dtc-page { min-height: 100vh; }
+
+/* ===== 时光卡主卡 ===== */
+.dtc-card {
+  position: relative;
+  margin: 28rpx 32rpx 0;
+  padding: 24rpx 24rpx 0;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 32rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 10rpx 36rpx rgba(var(--text-rgb), 0.08));
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+  overflow: visible;
+}
+.dtc-tape { left: 40rpx; top: -18rpx; }
+
+/* 封面照片 */
+.dtc-photo { position: relative; }
+.dtc-img {
+  width: 100%; height: 440rpx;
+  border-radius: 24rpx;
+  background: var(--soft, #F5EDE2);
+  opacity: 0; transition: opacity 0.4s;
+  display: block;
+}
+.dtc-img.ld { opacity: 1; }
+.dtc-img-fb {
+  width: 100%; height: 400rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(160deg, var(--bg), var(--soft));
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14rpx;
+}
+.dtc-fb-emoji { font-size: 96rpx; }
+.dtc-fb-title { font-size: 30rpx; font-weight: 700; color: var(--brown, #6B5B50); }
+
+/* 出血邮戳（比瀑布卡戳更大） */
+.dtc-stamp {
+  position: absolute; right: -12rpx; top: -18rpx;
+  width: 116rpx; height: 116rpx;
+  box-shadow: 0 6rpx 16rpx rgba(var(--text-rgb), 0.14);
+}
+.dtc-stamp .b-stamp-city { font-size: 17rpx; }
+.dtc-stamp .b-stamp-date { font-size: 15rpx; }
+
+.anniv-chip {
+  position: absolute;
+  top: 22rpx; left: 22rpx;
+  font-size: 19rpx;
+  color: var(--stamp, #C26B5E);
+  background: var(--card-bg, var(--card));
+  border: 1rpx solid var(--butter);
+  border-radius: 999rpx;
+  padding: 6rpx 18rpx;
+}
+
+/* 标题 + 类型 chip */
+.dtc-title-row {
+  display: flex; align-items: center; gap: 16rpx;
+  margin-top: 26rpx;
+}
+.dtc-title {
+  font-size: 40rpx; font-weight: 700;
+  color: var(--brown, #6B5B50);
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dtc-chip {
+  flex-shrink: 0;
+  padding: 6rpx 22rpx;
+  border-radius: 999rpx;
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary);
+  font-size: 22rpx; font-weight: 600;
+}
+
+/* 地点行 / 场馆行 */
+.dtc-line {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: var(--brown, #6B5B50);
+}
+
+/* 票号行（浅底圆角 + 收藏红心） */
+.dtc-no-row {
+  display: flex; align-items: center; gap: 16rpx;
+  margin-top: 24rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 16rpx;
+  background: var(--chip);   /* 浅色票号底（随主题；film 下自动转暗） */
+}
+.dtc-no-label { font-size: 24rpx; color: var(--text2, #A5968A); }
+.dtc-no-heart {
+  margin-left: auto;
+  font-size: 40rpx; line-height: 1;
+  color: rgba(var(--text-rgb), 0.28);
+}
+.dtc-no-heart.on { color: var(--stamp, #C26B5E); }
+
+/* 底缘齿孔撕裂线：负 margin 撑满卡宽 */
+.dtc-perf { margin: 24rpx -24rpx 0; }
+
+/* ===== 同场印记（最小一行） ===== */
+.dtc-same {
+  display: flex; align-items: center; gap: 14rpx;
+  margin: 24rpx 44rpx 0;
+}
+.dtc-same-dash { flex: 1; }
+.dtc-same-txt {
+  font-size: 22rpx; color: var(--rose, #D9A0A6);
+  white-space: nowrap;
+}
+
+/* ===== 手写风 AI 文案（页面底色上直排，右侧星光） ===== */
+.dtc-cap {
+  position: relative;
+  margin: 36rpx 44rpx 0;
+  padding-right: 60rpx;
+  min-height: 60rpx;
+}
+.dtc-cap-txt {
+  font-size: 32rpx; line-height: 1.9;
+  color: var(--brown, #6B5B50);
+}
+.dtc-cap-txt.dim { color: var(--text2, #A5968A); font-size: 28rpx; }
+.dtc-cap-star {
+  position: absolute; right: 0; top: 0;
+  font-size: 36rpx;
+}
+
+/* ===== 信息面板 ===== */
+.dtc-fields {
+  margin: 32rpx 32rpx 0;
+  padding: 10rpx 26rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 22rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 6rpx 24rpx rgba(var(--text-rgb), 0.05));
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+.dtc-f-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--border, #EFE5D8);
+}
+.dtc-f-row:last-child { border-bottom: none; }
+.dtc-f-k { font-size: 25rpx; color: var(--text2, #A5968A); }
+.dtc-f-v {
+  font-size: 25rpx; color: var(--brown, #6B5B50); font-weight: 500;
+  text-align: right; margin-left: 24rpx;
+}
+
+/* ===== 底部操作三胶囊 ===== */
+.dtc-actions {
+  display: flex; gap: 18rpx;
+  margin: 40rpx 32rpx 0;
+}
+.dtc-btn {
+  flex: 1; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 999rpx;
+  font-size: 28rpx; font-weight: 600;
+}
+/* 6.4.0 TabBar/详情规范图口径：修复=鼠尾草绿浅底 / 重绘=鹅黄浅底 / 分享=灰玫粉实底 */
+.dtc-btn.ghost {
+  background: var(--sage);
+  color: #5F7F5C;
+}
+.dtc-btn.sage {
+  background: var(--butter);
+  color: #8A6F3A;
+}
+.dtc-btn.solid {
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary);
+  box-shadow: 0 8rpx 22rpx var(--rose);
+}
+/* 分享 button 样式重置（原生 button → 胶囊外观） */
+.share-hit {
+  margin: 0; padding: 0;
+  border: none; border-radius: 999rpx;
+  line-height: 88rpx;
+  font-size: 28rpx; font-weight: 600;
+}
+.share-hit::after { border: none; display: none; }
+
+/* 导航「···」更多（原生导航栏不可挂自定义按钮 → 右上浮动圆钮承接） */
+.dtc-more {
+  position: fixed; right: 28rpx; top: 20rpx; z-index: 30;
+  width: 64rpx; height: 64rpx; line-height: 58rpx; text-align: center;
+  border-radius: 50%;
+  background: var(--card-bg, var(--card));
+  color: var(--brown, #6B5B50);
+  font-size: 34rpx; font-weight: 700; letter-spacing: 2rpx;
+  box-shadow: 0 6rpx 18rpx rgba(var(--text-rgb), 0.14);
+}
+
+/* ===== 骨架 ===== */
+.sk-photo { height: 320rpx; margin: 20rpx 32rpx 26rpx; border-radius: 28rpx; }
+.sk-card { height: 260rpx; margin: 0 32rpx 26rpx; border-radius: 28rpx; }
+.sk-card.short { height: 120rpx; }
+
+/* ===== 演示票提示条 ===== */
+.demo-tip {
+  margin: 0 32rpx 18rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 16rpx;
+  background: var(--card-bg, var(--card));
+  border: 1rpx solid var(--border);
+  color: var(--text2);
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+/* ===== 4.15.0 周年彩蛋（既有功能，样式保留） ===== */
+.egg-layer {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  z-index: 90;
+  pointer-events: none;
+  overflow: hidden;
+}
+.confetti {
+  position: absolute;
+  top: -48rpx;
+  opacity: 0;
+  animation: confetti-fall 2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(680deg); opacity: 0; }
+}
+.anniv-badge {
+  position: absolute;
+  left: 50%;
+  top: 33%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: anniv-slam 3.2s var(--ease-spring) forwards;
+}
+@keyframes anniv-slam {
+  0%   { transform: translate(-50%, -50%) scale(2.3) rotate(-20deg); opacity: 0; }
+  12%  { transform: translate(-50%, -50%) scale(0.94) rotate(-7deg); opacity: 1; }
+  18%  { transform: translate(-50%, -50%) scale(1.06) rotate(-8deg); }
+  24%  { transform: translate(-50%, -50%) scale(1) rotate(-8deg); }
+  82%  { opacity: 1; }
+  100% { transform: translate(-50%, -56%) scale(0.98) rotate(-8deg); opacity: 0; }
+}
+.anniv-seal {
+  position: relative;
+  width: 196rpx;
+  height: 196rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.anniv-ring {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  border: 3rpx dashed var(--rose, #D9A0A6);
+  border-radius: 50%;
+  animation: anniv-ring-pop 0.9s var(--ease-spring) 0.1s both;
+}
+@keyframes anniv-ring-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.anniv-core {
+  width: 148rpx;
+  height: 148rpx;
+  border-radius: 50%;
+  background: var(--stamp, #C26B5E);
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-primary);
+}
+.anniv-n { font-size: 64rpx; font-weight: 700; line-height: 1; }
+.anniv-u { font-size: 22rpx; letter-spacing: 6rpx; margin-top: 4rpx; opacity: 0.92; }
+.anniv-text {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  letter-spacing: 4rpx;
+  color: var(--stamp, #C26B5E);
+  background: var(--card-bg, var(--card));
+  border: 1rpx solid var(--butter, #F6DFA8);
+  border-radius: 999rpx;
+  padding: 8rpx 26rpx;
+  box-shadow: 0 6rpx 18rpx rgba(46, 42, 37, 0.1);
+}
+
+/* ===== notFound 空态 ===== */
+.empty {
+  padding: 140rpx 60rpx;
+  text-align: center;
+}
+.empty .big { font-size: 96rpx; line-height: 1; margin-bottom: 24rpx; }
+.empty > view { font-size: 30rpx; font-weight: 700; color: var(--text); }
+.empty .nf-sub {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: var(--text2);
+  line-height: 1.7;
+}
+.empty .nf-btn {
+  margin: 44rpx auto 0;
+  width: 340rpx;
+  padding: 20rpx 0;
+  border-radius: 999rpx;
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary);
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  box-shadow: 0 10rpx 24rpx var(--rose);
+}
+
+/* ===== 广告位 ===== */
+.ad-banner-wrap { margin: 28rpx 36rpx 0; padding: 16rpx 16rpx 10rpx; }
+
+/* ===== 打字机光标 ===== */
+.cap-cursor {
+  color: var(--stamp, #C26B5E);
+  font-weight: 700;
+  animation: cap-blink 0.85s step-end infinite;
+}
+
+@keyframes cap-blink {
+  50% { opacity: 0; }
+}

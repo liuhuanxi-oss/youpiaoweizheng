@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "我们的回忆",
+  "usingComponents": {
+    "animated-number": "/components/animated-number/index"
+  }
+}

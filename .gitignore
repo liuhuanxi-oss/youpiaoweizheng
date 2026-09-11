@@ -1,0 +1,27 @@
+# ===== 密钥与环境变量（绝不提交）=====
+.env
+.env.*
+!.env.ci.example
+*.key
+private.*.key
+secret/
+.secrets/
+
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+miniprogram_npm/
+cloudfunctions/**/node_modules/
+
+# ===== 编辑器 / 操作系统 =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# ===== 小程序 IDE 本地配置（含个人编译设置，不入库）=====
+youpiaoweizheng/project.private.config.json
+
+# ===== 嵌套的历史重复目录（微信开发者工具会把它打进小程序包，勿提交）=====
+youpiaoweizheng/youpiaoweizheng/

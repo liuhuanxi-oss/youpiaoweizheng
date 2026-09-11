@@ -1,0 +1,207 @@
+/* pages/home/home.wxss —— v6.4 时光档案墙（品牌全案 · 一比一还原稿屏1）
+   品牌令牌见 app.wxss .theme-paper；辅助图形公共类 b-* 全局复用 */
+
+.fa-scroll { height: 100vh; }
+
+/* ===== 顶部：logo + 名称 + 个人中心 ===== */
+.fa-head {
+  display: flex; align-items: center;
+  padding: 28rpx 32rpx 0;
+}
+.fa-logo {
+  width: 88rpx; height: 88rpx;
+  border-radius: 24rpx;
+  background: var(--cream, #FAF5EE);
+  box-shadow: 0 4rpx 14rpx rgba(var(--text-rgb), 0.10);
+}
+.fa-brand {
+  margin-left: 20rpx;
+  font-size: 40rpx; font-weight: 700;
+  color: var(--brown, #6B5B50);
+  letter-spacing: 2rpx;
+}
+.fa-user {
+  margin-left: auto;
+  width: 72rpx; height: 72rpx;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+/* 人形图标（CSS 绘制：头圆 + 肩弧，暖褐细线） */
+.fa-user-ico {
+  position: relative; width: 44rpx; height: 44rpx;
+}
+.fa-user-ico::before {
+  content: ''; position: absolute; left: 50%; top: 2rpx;
+  width: 20rpx; height: 20rpx; margin-left: -10rpx;
+  border: 3rpx solid rgba(var(--text-rgb), 0.75); border-radius: 50%;
+  box-sizing: border-box;
+}
+.fa-user-ico::after {
+  content: ''; position: absolute; left: 50%; bottom: 2rpx;
+  width: 34rpx; height: 18rpx; margin-left: -17rpx;
+  border: 3rpx solid rgba(var(--text-rgb), 0.75);
+  border-bottom: none;
+  border-radius: 17rpx 17rpx 0 0;
+  box-sizing: border-box;
+}
+
+/* ===== 问候语（手写风两行 + 右上星光） ===== */
+.fa-greet {
+  display: flex; align-items: flex-start;
+  margin: 30rpx 32rpx 0;
+}
+.fa-greet-txt {
+  display: flex; flex-direction: column;
+  font-size: 34rpx; line-height: 1.7;
+  color: var(--brown, #6B5B50);
+}
+.fa-greet-star { margin-left: 16rpx; margin-top: 4rpx; }
+
+/* ===== 搜索框 ===== */
+.fa-search {
+  display: flex; align-items: center;
+  margin: 26rpx 32rpx 0;
+  height: 80rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: 999rpx;
+  padding: 0 30rpx;
+  box-shadow: inset 0 0 0 1rpx rgba(var(--text-rgb), 0.05);
+}
+/* 放大镜（CSS 绘制：圆 + 柄） */
+.fa-search-ico {
+  position: relative; width: 30rpx; height: 30rpx; margin-right: 16rpx;
+}
+.fa-search-ico::before {
+  content: ''; position: absolute; left: 0; top: 0;
+  width: 20rpx; height: 20rpx;
+  border: 3rpx solid rgba(var(--text-rgb), 0.55);
+  border-radius: 50%; box-sizing: border-box;
+}
+.fa-search-ico::after {
+  content: ''; position: absolute; right: 2rpx; bottom: 0;
+  width: 12rpx; height: 3rpx;
+  background: rgba(var(--text-rgb), 0.55);
+  border-radius: 2rpx;
+  transform: rotate(45deg);
+  transform-origin: right bottom;
+}
+.fa-search-ph { font-size: 26rpx; color: var(--text2, #A5968A); }
+
+/* ===== 分类 chips ===== */
+.fa-chips {
+  display: flex; gap: 16rpx;
+  margin: 24rpx 32rpx 0;
+}
+.fa-chip {
+  display: flex; align-items: center; gap: 8rpx;
+  height: 68rpx; padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: var(--card-bg, var(--card));
+  box-shadow: inset 0 0 0 1rpx var(--border, #EFE5D8);
+  font-size: 26rpx; color: var(--brown, #6B5B50);
+  transition: background 0.15s;
+}
+.fa-chip-ico { font-size: 28rpx; line-height: 1; }
+.fa-chip.on {
+  background: var(--rose, #D9A0A6);
+  box-shadow: none;
+  color: var(--on-primary); font-weight: 600;
+}
+
+/* ===== 2 列瀑布流 ===== */
+.fa-masonry {
+  display: flex; gap: 20rpx;
+  margin: 28rpx 32rpx 0;
+  align-items: flex-start;
+}
+.fa-col { flex: 1; display: flex; flex-direction: column; gap: 24rpx; min-width: 0; }
+
+.fa-card {
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  padding: 16rpx 16rpx 20rpx;
+  box-shadow: var(--card-shadow, 0 6rpx 24rpx rgba(var(--text-rgb), 0.06));
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+
+/* 封面：圆角图 + 出血邮戳 + 左上编号心 */
+.fa-cover { position: relative; }
+.fa-cover-img {
+  width: 100%; height: 380rpx;
+  border-radius: 20rpx;
+  background: var(--soft, #F5EDE2);
+  display: block;
+}
+.fa-cover-fb {
+  width: 100%; height: 320rpx;
+  border-radius: 20rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 88rpx;
+}
+.fa-cat-show { background: var(--cat-show); }
+.fa-cat-movie { background: var(--cat-movie); }
+.fa-cat-traffic { background: var(--cat-transport); }
+.fa-cat-travel { background: var(--cat-travel); }
+
+/* 邮戳：右上出血（b-stamp 公共类 + 页面定位） */
+.fa-stamp {
+  position: absolute; right: -8rpx; top: -14rpx;
+  width: 92rpx; height: 92rpx;
+  box-shadow: 0 4rpx 12rpx rgba(var(--text-rgb), 0.10);
+}
+.fa-stamp .b-stamp-city { font-size: 15rpx; }
+.fa-stamp .b-stamp-date { font-size: 13rpx; }
+
+/* 左上小心形 + 收藏序号（灰玫粉） */
+.fa-no {
+  position: absolute; left: 12rpx; top: 12rpx;
+  display: flex; align-items: center; gap: 4rpx;
+  color: var(--rose, #D9A0A6);
+  font-size: 20rpx; font-weight: 700;
+  text-shadow: 0 1rpx 4rpx rgba(255, 255, 255, 0.8);
+}
+.fa-no-heart { font-size: 18rpx; }
+
+.fa-title {
+  margin-top: 16rpx;
+  font-size: 30rpx; font-weight: 700;
+  color: var(--brown, #6B5B50);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fa-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 10rpx;
+}
+.fa-meta-loc {
+  font-size: 22rpx; color: var(--text2, #A5968A);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-right: 12rpx;
+}
+.fa-heart {
+  font-size: 30rpx; line-height: 1;
+  color: rgba(var(--text-rgb), 0.30);
+}
+.fa-heart.on { color: var(--stamp, #C26B5E); }
+
+/* ===== 骨架 / 空态 ===== */
+.fa-sk {
+  display: flex; gap: 20rpx;
+  margin: 28rpx 32rpx 0;
+  align-items: flex-start;
+}
+/* v6.6.0 动效3：骨架卡与 fa-card 像素级一致（同 padding/圆角/阴影/两列栅格），
+   照片区 380rpx（照片卡）/320rpx（分类兜底卡）交替、标题行 42rpx、地点行 32rpx，
+   数据替换时零高度跳动 */
+.fa-sk-card {
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  padding: 16rpx 16rpx 20rpx;
+  box-shadow: var(--card-shadow, 0 6rpx 24rpx rgba(var(--text-rgb), 0.06));
+}
+.fa-sk-cover { height: 380rpx; border-radius: 20rpx; }
+.fa-sk-cover.short { height: 320rpx; }
+.fa-sk-title { margin-top: 16rpx; height: 42rpx; border-radius: 10rpx; }
+.fa-sk-meta { margin-top: 10rpx; height: 32rpx; width: 72%; border-radius: 8rpx; }
+.fa-empty { padding: 120rpx 0 80rpx; }

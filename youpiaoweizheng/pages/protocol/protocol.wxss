@@ -1,0 +1,57 @@
+/* pages/protocol/protocol.wxss —— M5 协议页（v6 六主题变量化 · 长文对比度优先） */
+.page {
+  padding-top: 36rpx;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* 标题衬线随主题字体分化（paper/collage/literary 衬线，glass/film/minimal 无衬线） */
+.serif { font-family: var(--font-title); }
+
+.head { margin: 0 36rpx 28rpx; position: relative; }
+.stamp {
+  position: absolute;
+  top: -6rpx; right: 4rpx;
+  font-size: 20rpx;
+  color: var(--stamp);
+  border: 2rpx solid var(--stamp);
+  border-radius: 8rpx;
+  padding: 6rpx 12rpx;
+  transform: rotate(6deg);
+  opacity: 0.7;
+  letter-spacing: 3rpx;
+}
+.h-t { font-size: 40rpx; letter-spacing: 2rpx; }
+.h-s { font-size: 21rpx; color: var(--text2); margin-top: 10rpx; letter-spacing: 1rpx; }
+
+.body {
+  margin: 0 32rpx;
+  padding: 34rpx 30rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, none);
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+.sec { margin-bottom: 34rpx; }
+.sec:last-child { margin-bottom: 6rpx; }
+.s-h { font-size: 27rpx; color: var(--stamp); letter-spacing: 1rpx; margin-bottom: 14rpx; }
+.s-p {
+  font-size: 23rpx;
+  color: var(--text);
+  line-height: 1.9;
+  margin-bottom: 12rpx;
+  text-align: justify;
+}
+
+.note {
+  text-align: center;
+  font-size: 18rpx;
+  color: var(--text2);
+  margin: 30rpx 40rpx 0;
+  line-height: 1.7;
+}
+
+.safe-bottom { height: 60rpx; }

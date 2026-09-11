@@ -1,0 +1,65 @@
+# ============================================================
+# Gitee Go 流水线示例（国内私有仓库免费、与云开发同网络环境更稳）
+# 位置：仓库根 .workflow/ci.yml（Gitee Go 以官方「构建编排」界面生成的 YAML 为准，
+#       本文件提供步骤蓝本；CODING/阿里云效同理，把步骤搬进对应流水线即可）
+#
+# 触发约定：
+#   push 到 develop/master -> 部署云函数 + 上传「体验版」（机器人编号2）
+#   推送 v*  标签          -> 在体验版基础上「提交审核」
+#   发布动作不进CI自动执行，审核通过后人工确认（或 AUTO_RELEASE=true 才自动release）
+#
+# 需要在流水线「环境变量/凭据」里配置（不要写进仓库）：
+#   WX_APPID / WX_APPSECRET / WX_PRIVATE_KEY(文件型凭据) /
+#   TCB_SECRET_ID / TCB_SECRET_KEY / TCB_ENV_ID
+# ============================================================
+name: youpiaoweizheng-cicd
+
+on:
+  push:
+    branches: [ master, develop ]
+    tags: [ 'v*' ]
+
+stages:
+  - stage: build-and-upload
+    name: 构建并上传体验版
+    steps:
+      - step: install-node
+        image: node:20
+        script: |
+          node -v
+          npm install
+          # 把文件型凭据里的上传密钥写到 secret/（目录已被 gitignore）
+          mkdir -p secret
+          echo "$WX_PRIVATE_KEY" > secret/private.wx42ef98dfb4ecab23.key
+          # 生成 .env
+          cat > .env <<EOF
+          WX_APPID=$WX_APPID
+          WX_APPSECRET=$WX_APPSECRET
+          WX_PRIVATE_KEY_PATH=./secret/private.wx42ef98dfb4ecab23.key
+          TCB_ENV_ID=$TCB_ENV_ID
+          TCB_SECRET_ID=$TCB_SECRET_ID
+          TCB_SECRET_KEY=$TCB_SECRET_KEY
+          CI_ROBOT=2
+          EOF
+
+      - step: deploy-cloudfunctions
+        name: 部署云函数
+        script: |
+          npm i -g @cloudbase/cli
+          node scripts/ci/deploy-fns.js
+
+      - step: upload-miniprogram
+        name: 上传小程序体验版
+        script: |
+          node scripts/ci/upload.js
+
+  - stage: submit-audit-on-tag
+    name: 打标签时提交审核
+    condition: ref.startswith('v')
+    steps:
+      - step: submit-audit
+        script: |
+          npm install
+          node scripts/ci/audit-submit.js
+    # 审核状态轮询建议用「定时构建」每30分钟跑一次 audit-status.js，
+    # 通过后企业微信通知；默认不自动 release，由负责人确认后执行 release.js

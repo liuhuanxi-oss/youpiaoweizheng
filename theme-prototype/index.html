@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有票为证 · 四主题视觉规范原型</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=ZCOOL+KuaiLe&display=swap">
+<style>
+/* ============ 主题变量：四套 ============ */
+:root{
+  --font-sans:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --font-play:"ZCOOL KuaiLe","Noto Sans SC",cursive;
+}
+/* 1 温馨手账 */
+body[data-theme="warm"]{
+  --bg:#FFF6EF; --card:#FFFFFF; --primary:#FF8FA3; --accent:#FFB26B;
+  --soft:#F7C8D0; --text:#5A4038; --text2:#9B8A82; --border:#F6D9CF;
+  --onprimary:#FFFFFF; --chip:#FFEFF3; --radius:22px; --shadow:0 10px 30px rgba(255,143,163,.18);
+  --deco:#FF8FA3;
+}
+/* 2 清爽自然 */
+body[data-theme="fresh"]{
+  --bg:#F3F7F4; --card:#FFFFFF; --primary:#4FB286; --accent:#2F7A5B;
+  --soft:#A8E6CF; --text:#24423A; --text2:#6E8A80; --border:#D8E8DF;
+  --onprimary:#FFFFFF; --chip:#E9F6F0; --radius:16px; --shadow:0 10px 28px rgba(79,178,134,.16);
+  --deco:#4FB286;
+}
+/* 3 趣味拼贴 */
+body[data-theme="collage"]{
+  --bg:#FBF3E2; --card:#FFFFFF; --primary:#5FB4E6; --accent:#FF7BAC;
+  --soft:#FFD166; --text:#223A5E; --text2:#6E809F; --border:#E8D9BC;
+  --onprimary:#FFFFFF; --chip:#FDEFF5; --radius:10px; --shadow:4px 4px 0 #223A5E;
+  --deco:#FF7BAC;
+  --playful:1;
+}
+/* 4 星光夜幕 */
+body[data-theme="night"]{
+  --bg:#0C1226; --card:#141B33; --primary:#E9C46A; --accent:#8FA0FF;
+  --soft:#F4E3B2; --text:#F2EFE6; --text2:#9AA3C7; --border:#2C3A66;
+  --onprimary:#221a08; --chip:#1E2748; --radius:14px; --shadow:0 12px 34px rgba(0,0,0,.5);
+  --deco:#E9C46A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);transition:background .4s,color .4s;min-height:100vh}
+
+/* ============ 顶栏：主题切换 ============ */
+.topbar{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  border-bottom:1px solid var(--border);padding:14px 22px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-weight:900;font-size:18px;letter-spacing:1px;white-space:nowrap}
+.brand small{display:block;font-weight:400;font-size:11px;color:var(--text2);letter-spacing:2px}
+.switch{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.seg{border:1.5px solid var(--border);background:var(--card);color:var(--text2);
+  padding:10px 16px;border-radius:999px;font-size:13px;cursor:pointer;transition:.25s;font-family:inherit;
+  min-height:44px}
+.seg:hover{border-color:var(--primary)}
+.seg.active{background:var(--primary);color:var(--onprimary);border-color:var(--primary);font-weight:700}
+
+/* ============ 主体布局 ============ */
+.wrap{max-width:1240px;margin:0 auto;padding:26px 22px 60px;display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:26px;align-items:start}
+@media(max-width:920px){.wrap{grid-template-columns:1fr}}
+
+/* ============ 规范卡 ============ */
+.spec{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;transition:.4s}
+.spec-head{padding:22px 26px 18px;display:flex;align-items:center;gap:18px;position:relative;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 14%,var(--card)),var(--card))}
+.avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);
+  box-shadow:0 6px 16px color-mix(in srgb,var(--primary) 35%,transparent);flex:none;background:var(--soft)}
+.spec-title h1{font-size:34px;font-weight:900;letter-spacing:2px;line-height:1.05}
+.spec-title .en{font-size:13px;color:var(--accent);letter-spacing:4px;margin-top:6px;font-weight:500}
+.spec-title .slogan{font-size:12px;color:var(--text2);margin-top:8px}
+
+.sec{padding:20px 26px;border-top:1px dashed var(--border)}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+.sec-num{width:24px;height:24px;border-radius:8px;background:var(--primary);color:var(--onprimary);
+  font-size:13px;font-weight:800;display:grid;place-items:center;flex:none}
+.sec-h h2{font-size:17px;font-weight:800}
+.sec-h .tip{font-size:11px;color:var(--text2);margin-left:auto}
+
+/* 色板 */
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.sw{text-align:center}
+.sw .dot{width:54px;height:54px;border-radius:14px;margin:0 auto 8px;border:1px solid var(--border);
+  box-shadow:inset 0 -10px 18px rgba(0,0,0,.06)}
+.sw .name{font-size:12px;font-weight:600}
+.sw .hex{font-size:11px;color:var(--text2);margin-top:2px;font-family:ui-monospace,Menlo,monospace}
+
+/* 字体层级 */
+.type-sample{border-left:3px solid var(--primary);padding:4px 0 4px 16px;margin-bottom:14px}
+.type-main{font-size:40px;font-weight:900;letter-spacing:2px;line-height:1.1}
+.type-sub{font-size:20px;font-weight:500;margin-top:10px;opacity:.9}
+.type-body{font-size:14px;color:var(--text2);margin-top:10px}
+.type-list{display:grid;gap:9px;font-size:12.5px;margin-top:4px}
+.type-list b{font-weight:700}
+.type-list span{color:var(--text2)}
+
+/* 装饰元素 */
+.deco-item{display:flex;gap:14px;align-items:center;padding:11px 0;border-bottom:1px dotted var(--border)}
+.deco-item:last-child{border-bottom:0}
+.deco-ic{width:56px;height:56px;flex:none;border-radius:12px;background:var(--chip);
+  display:grid;place-items:center}
+.deco-ic svg{width:38px;height:38px}
+.deco-item .dn{font-size:13.5px;font-weight:700}
+.deco-item .dd{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.5}
+
+/* ============ 小程序预览 ============ */
+.phone{position:sticky;top:86px;width:100%;max-width:340px;margin:0 auto}
+.frame{background:#000;border-radius:46px;padding:12px;box-shadow:var(--shadow)}
+.screen{background:var(--bg);border-radius:36px;overflow:hidden;height:680px;position:relative;
+  display:flex;flex-direction:column;transition:.4s}
+.notch{height:26px;display:flex;align-items:center;justify-content:center;gap:6px}
+.notch::after{content:"";width:90px;height:18px;background:#000;border-radius:12px;opacity:.85}
+.nav{padding:8px 18px 14px;display:flex;align-items:center;gap:10px}
+.nav img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)}
+.nav .t{font-weight:900;font-size:17px;letter-spacing:1px}
+.nav .t small{display:block;font-size:10px;color:var(--text2);font-weight:400;letter-spacing:1px}
+.hero{margin:0 16px 12px;padding:16px;border-radius:var(--radius);
+  background:linear-gradient(135deg,var(--primary),var(--accent));color:var(--onprimary)}
+.hero .h-t{font-size:15px;font-weight:800}
+.hero .h-s{font-size:11px;opacity:.92;margin-top:5px}
+.ticket-list{flex:1;overflow:auto;padding:0 16px;display:flex;flex-direction:column;gap:12px}
+.tk{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:13px;
+  display:flex;gap:12px;align-items:center;box-shadow:0 4px 12px rgba(0,0,0,.05)}
+.tk .stub{width:46px;height:56px;border-radius:8px;flex:none;background:var(--soft);
+  display:grid;place-items:center;color:var(--primary)}
+.tk .stub svg{width:26px;height:26px}
+.tk .info{flex:1;min-width:0}
+.tk .ti{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk .meta{font-size:11px;color:var(--text2);margin-top:4px}
+.tk .tag{font-size:10px;background:var(--chip);color:var(--primary);padding:2px 8px;border-radius:999px}
+.tabbar{display:flex;border-top:1px solid var(--border);background:var(--card)}
+.tab{flex:1;text-align:center;padding:9px 0 12px;font-size:11px;color:var(--text2)}
+.tab.on{color:var(--primary);font-weight:700}
+.tab svg{width:20px;height:20px;display:block;margin:0 auto 3px}
+.screen-note{position:absolute;inset:auto 0 0 0;height:6px}
+
+@media(max-width:920px){.phone{position:relative;top:0}.wrap{gap:20px}}
+</style>
+</head>
+<body data-theme="warm">
+
+<!-- ===== 顶栏：四主题一键切换 ===== -->
+<header class="topbar">
+  <div class="brand">有票为证<small>票根视觉规范 · 交互原型</small></div>
+  <nav class="switch" id="switch">
+    <button class="seg active" data-t="warm">温馨手账</button>
+    <button class="seg" data-t="fresh">清爽自然</button>
+    <button class="seg" data-t="collage">趣味拼贴</button>
+    <button class="seg" data-t="night">星光夜幕</button>
+  </nav>
+</header>
+
+<main class="wrap">
+  <!-- ===== 左：规范卡 ===== -->
+  <section class="spec">
+    <div class="spec-head">
+      <img class="avatar" src="assets/ip.png" alt="有票为证 IP形象">
+      <div class="spec-title">
+        <h1 id="tName">暖粉治愈</h1>
+        <div class="en" id="tEn">WARM HEALING</div>
+        <div class="slogan">每一张票，都是回得去的时光</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-num">1</span><h2>配色方案</h2><span class="tip" id="cTip">6 种品牌色</span></div>
+      <div class="swatches" id="swatches"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-num">2</span><h2>字体层级</h2><span class="tip">层级清晰 · 阅读舒适</span></div>
+      <div class="type-sample">
+        <div class="type-main" id="tMain">有票为证</div>
+        <div class="type-sub" id="tSub">每一张票，都是回得去的时光</div>
+        <div class="type-body">正文 14px · 注释 12px</div>
+      </div>
+      <div class="type-list" id="typeList"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-num">3</span><h2>图形装饰元素</h2><span class="tip">4 项核心装饰</span></div>
+      <div id="decoList"></div>
+    </div>
+  </section>
+
+  <!-- ===== 右：小程序预览 ===== -->
+  <section class="phone">
+    <div class="frame">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="nav">
+          <img src="assets/ip.png" alt="IP">
+          <div class="t">有票为证<small id="navTheme">温馨手账 · 票根墙</small></div>
+        </div>
+        <div class="hero">
+          <div class="h-t" id="heroT">今年已珍藏 12 张票根</div>
+          <div class="h-s" id="heroS">把演出、电影、旅途，都收进时光档案</div>
+        </div>
+        <div class="ticket-list" id="ticketList"></div>
+        <div class="tabbar">
+          <div class="tab on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l2-5h14l2 5M3 9v10a1 1 0 001 1h16a1 1 0 001-1V9M3 9h18"/></svg>
+            票根
+          </div>
+          <div class="tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            回忆
+          </div>
+          <div class="tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>
+            我的
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============ 四套规范数据 ============ */
+const THEMES = {
+  warm:{
+    name:'暖粉治愈', en:'WARM HEALING', nav:'温馨手账 · 票根墙',
+    heroT:'今年已珍藏 12 张票根', heroS:'把演出、电影、旅途，都收进时光档案',
+    colors:[
+      ['主色','#FF8FA3'],['背景','#FFF6EF'],['强调','#FFB26B'],
+      ['辅助','#F7C8D0'],['文字','#5A4038'],['描边','#F6D9CF']
+    ],
+    types:[
+      ['主标题','思源黑体 · 粗体 / 加粗','约 48–72px'],
+      ['副标题','思源黑体 · 常规 / 中等','约 24–32px'],
+      ['正文/注释','思源黑体 · 常规 / 轻 / 细','约 14–12px']
+    ],
+    play:false,
+    decos:[
+      {n:'圆角卡片', d:'柔和的圆角与轻微纸张质感，像一张温暖的小票。',
+       ic:'<rect x="4" y="7" width="28" height="18" rx="5" fill="var(--soft)"/><path d="M10 12h16M10 16h10" stroke="var(--deco)" stroke-width="1.6" stroke-linecap="round"/>'},
+      {n:'手绘贴纸', d:'手绘线条与涂鸦元素，增添治愈和生活气息。',
+       ic:'<path d="M8 18c-3-2-3-6 0-8 2-2 4 0 4 2 0-2 2-4 4-2 3 2 3 6 0 8l-4 4z" fill="var(--deco)" opacity=".85"/><path d="M20 6l3-3M21 4h2v2" stroke="var(--deco)" stroke-width="1.4" stroke-linecap="round"/>'},
+      {n:'拍立得白边', d:'白边框框带来纪念感，突出旅行与回忆的氛围。',
+       ic:'<rect x="6" y="5" width="20" height="24" rx="2" fill="#fff" stroke="var(--border)"/><rect x="9" y="8" width="14" height="11" rx="1" fill="var(--soft)"/><circle cx="16" cy="13" r="2.5" fill="var(--deco)"/>'},
+      {n:'细点背景', d:'柔和的粉色点阵作为背景纹理，增加层次与温柔感。',
+       ic:'<g fill="var(--soft)"><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="24" cy="8" r="1.6"/><circle cx="12" cy="16" r="1.6"/><circle cx="20" cy="16" r="1.6"/><circle cx="8" cy="24" r="1.6"/><circle cx="16" cy="24" r="1.6"/><circle cx="24" cy="24" r="1.6"/></g>'}
+    ],
+    tickets:[
+      ['演唱会 · 夏日限定','2026.08.12 深圳湾 · 看台12排','演出'],
+      ['电影 · 宇宙编辑部','2026.05.01 CGV影城 · 6号厅','电影'],
+      ['高铁 · 深圳北→长沙南','2026.07.20 G818 · 05车12A','交通']
+    ]
+  },
+  fresh:{
+    name:'清新自然', en:'FRESH NATURE', nav:'清爽自然 · 票根墙',
+    heroT:'本月新增 5 张自然系回忆', heroS:'叶片、胶片与旅途，一页页生长',
+    colors:[
+      ['主色','#4FB286'],['背景','#F3F7F4'],['强调','#2F7A5B'],
+      ['辅助','#A8E6CF'],['文字','#24423A'],['描边','#D8E8DF']
+    ],
+    types:[
+      ['主标题','思源黑体 · Bold','36px'],
+      ['副标题','思源黑体 · Medium','20px'],
+      ['正文/注释','思源黑体 · Regular','14px / 12px']
+    ],
+    play:false,
+    decos:[
+      {n:'叶形 chip', d:'轻盈的叶片造型，传递自然与生机。',
+       ic:'<path d="M6 18C6 9 14 5 22 5c0 9-5 16-13 16-2 0-3-1-3-3z" fill="var(--soft)"/><path d="M8 20C12 14 16 10 21 6" stroke="var(--deco)" stroke-width="1.6" stroke-linecap="round" fill="none"/>'},
+      {n:'胶片齿孔', d:'复古胶片的齿孔元素，承载旅途与回忆。',
+       ic:'<rect x="4" y="10" width="28" height="12" rx="2" fill="var(--soft)"/><g fill="var(--deco)"><rect x="7" y="12" width="3" height="2" rx=".6"/><rect x="13" y="12" width="3" height="2" rx=".6"/><rect x="19" y="12" width="3" height="2" rx=".6"/><rect x="25" y="12" width="3" height="2" rx=".6"/><rect x="7" y="17" width="3" height="2" rx=".6"/><rect x="13" y="17" width="3" height="2" rx=".6"/><rect x="19" y="17" width="3" height="2" rx=".6"/><rect x="25" y="17" width="3" height="2" rx=".6"/></g>'},
+      {n:'发丝细线', d:'自然的手绘线条，增加灵动与温度感。',
+       ic:'<path d="M5 20c5-8 9 6 14-2s6 2 8-1" stroke="var(--deco)" stroke-width="1.6" fill="none" stroke-linecap="round"/>'},
+      {n:'叶脉纹理', d:'真实的叶脉肌理，突出自然细腻的质感。',
+       ic:'<path d="M6 22C6 12 14 6 24 6c0 12-7 18-18 16z" fill="var(--soft)"/><path d="M8 20C14 14 18 10 22 8M12 18v-6M16 15v-5" stroke="var(--deco)" stroke-width="1.2" fill="none" stroke-linecap="round"/>'}
+    ],
+    tickets:[
+      ['Livehouse · 春野','2026.04.18 B10现场 · 站区','演出'],
+      ['电影 · 岁月神偷','2026.03.05 百老汇 · 2号厅','电影'],
+      ['机票 · 深圳→昆明','2026.06.09 CZ3456 · 经济舱','交通']
+    ]
+  },
+  collage:{
+    name:'活力拼贴', en:'VIBRANT COLLAGE', nav:'趣味拼贴 · 票根墙',
+    heroT:'拼贴你的 8 段冒险', heroS:'胶带、贴纸与照片，手账般展开',
+    colors:[
+      ['主色','#5FB4E6'],['背景','#FBF3E2'],['强调','#FF7BAC'],
+      ['辅助','#FFD166'],['文字','#223A5E'],['描边','#E8D9BC']
+    ],
+    types:[
+      ['中文主标题','站酷小薇 LOGO 体（加粗）','约 48–64px'],
+      ['中文副标题','站酷小薇手写体（常规）','约 24–32px'],
+      ['中文正文/注释','苹方 / 思源黑体（常规）','14px / 12px']
+    ],
+    play:true,
+    decos:[
+      {n:'胶带固定角', d:'撕边手账胶带，营造拼贴的手工感与层次感。',
+       ic:'<rect x="5" y="6" width="20" height="8" rx="1.5" fill="var(--soft)" opacity=".9"/><path d="M7 18h20M7 22h14" stroke="var(--deco)" stroke-width="1.6" stroke-dasharray="3 2"/>'},
+      {n:'路标箭头', d:'指引方向与探索感，呼应旅行与出发的主题。',
+       ic:'<path d="M6 10h18l-4-4M24 10l-4 4M6 18h14l-3.5-3.5M20 18l-3.5 3.5" stroke="var(--deco)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'},
+      {n:'虚线不规则边', d:'手绘风格的虚线边框，增加活泼与趣味性。',
+       ic:'<rect x="6" y="7" width="22" height="18" rx="4" fill="none" stroke="var(--primary)" stroke-width="1.6" stroke-dasharray="4 3"/>'},
+      {n:'方格纸纹', d:'复古笔记本质感的格子纹理，增强拼贴与记录氛围。',
+       ic:'<rect x="6" y="6" width="22" height="20" rx="2" fill="#fff" stroke="var(--border)"/><g stroke="var(--border)" stroke-width=".8"><path d="M6 12h22M6 18h22M13 6v20M19 6v20"/></g>'}
+    ],
+    tickets:[
+      ['音乐节 · 芒果台','2026.09.02 大梅沙 · A区','演出'],
+      ['电影 · 青春游记','2026.08.15 万达影城 · 9号厅','电影'],
+      ['大巴 · 深圳→广州','2026.05.26 粤运 · 08:30','交通']
+    ]
+  },
+  night:{
+    name:'夜航星野', en:'NIGHT VOYAGE', nav:'星光夜幕 · 票根墙',
+    heroT:'在星空下封存 20 个夜晚', heroS:'星光、星座与月光，照亮每段旅程',
+    colors:[
+      ['主色','#E9C46A'],['背景','#0C1226'],['强调','#8FA0FF'],
+      ['辅助','#F4E3B2'],['文字','#F2EFE6'],['描边','#2C3A66']
+    ],
+    types:[
+      ['主标题','思源黑体 · Bold','36px'],
+      ['副标题','思源黑体 · Medium','20px'],
+      ['正文/注释','思源黑体 · Regular','14px / 12px']
+    ],
+    play:false,
+    decos:[
+      {n:'星点幕布', d:'点缀夜空的星光，营造神秘梦幻的氛围。',
+       ic:'<g fill="var(--primary)"><circle cx="8" cy="8" r="1.4"/><circle cx="18" cy="6" r="1.8"/><circle cx="26" cy="12" r="1.3"/><circle cx="12" cy="18" r="1.6"/><circle cx="24" cy="22" r="1.4"/><path d="M14 12l1.2 2.4 2.6.4-1.9 1.8.5 2.6-2.4-1.3-2.4 1.3.5-2.6-1.9-1.8 2.6-.4z"/></g>'},
+      {n:'星座连线', d:'连接星光的轨迹，象征旅程与相遇。',
+       ic:'<circle cx="7" cy="9" r="2" fill="var(--accent)"/><circle cx="17" cy="15" r="2" fill="var(--primary)"/><circle cx="26" cy="8" r="2" fill="var(--accent)"/><path d="M8.5 10l7 4M18.5 14l6-5" stroke="var(--accent)" stroke-width="1.2" opacity=".7"/>'},
+      {n:'齿孔金边', d:'复古票券的齿孔元素，强化旅行与收藏感。',
+       ic:'<rect x="5" y="11" width="26" height="9" rx="2" fill="none" stroke="var(--primary)" stroke-width="1.6"/><g fill="var(--primary)"><rect x="8" y="14" width="2.4" height="3" rx=".5"/><rect x="14" y="14" width="2.4" height="3" rx=".5"/><rect x="20" y="14" width="2.4" height="3" rx=".5"/><rect x="25" y="14" width="2.4" height="3" rx=".5"/></g>'},
+      {n:'月相圆点', d:'月光的循环意象，寓意时间与回忆。',
+       ic:'<g fill="none" stroke="var(--accent)" stroke-width="1.5"><circle cx="8" cy="16" r="4"/><path d="M8 12a4 4 0 010 8z" fill="var(--accent)" stroke="none"/><circle cx="17" cy="16" r="4"/><circle cx="26" cy="16" r="4"/></g>'}
+    ],
+    tickets:[
+      ['演唱会 · 星夜场','2026.07.30 大运中心 · 内场','演出'],
+      ['电影 · 星际漫游','2026.06.21 寰亚影城 · IMAX','电影'],
+      ['航班 · 深圳→成都','2026.05.11 CA4302 · 夜航','交通']
+    ]
+  }
+};
+
+const PLANE_IC='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1L13 21v-1.5L11.5 18v-4.5z"/></svg>';
+
+function render(key){
+  const t=THEMES[key];
+  document.body.dataset.theme=key;
+  document.querySelectorAll('.seg').forEach(b=>b.classList.toggle('active',b.dataset.t===key));
+  document.getElementById('tName').textContent=t.name;
+  document.getElementById('tEn').textContent=t.en;
+  document.getElementById('navTheme').textContent=t.nav;
+  document.getElementById('heroT').textContent=t.heroT;
+  document.getElementById('heroS').textContent=t.heroS;
+  document.getElementById('cTip').textContent='6 种品牌色';
+  const usePlay=t.play;
+  document.getElementById('tMain').style.fontFamily=usePlay?'var(--font-play)':'';
+  document.getElementById('tSub').style.fontFamily=usePlay?'var(--font-play)':'';
+
+  // 色板
+  document.getElementById('swatches').innerHTML=t.colors.map(c=>
+    `<div class="sw"><div class="dot" style="background:${c[1]}"></div>
+     <div class="name">${c[0]}</div><div class="hex">${c[1]}</div></div>`).join('');
+  // 字体层级
+  document.getElementById('typeList').innerHTML=t.types.map(x=>
+    `<div><b>${x[0]}</b>　${x[1]}<br><span>${x[2]}</span></div>`).join('');
+  // 装饰
+  document.getElementById('decoList').innerHTML=t.decos.map(d=>
+    `<div class="deco-item"><div class="deco-ic"><svg viewBox="0 0 36 36">${d.ic}</svg></div>
+     <div><div class="dn">${d.n}</div><div class="dd">${d.d}</div></div></div>`).join('');
+  // 票根列表
+  document.getElementById('ticketList').innerHTML=t.tickets.map(k=>
+    `<div class="tk"><div class="stub">${PLANE_IC}</div>
+     <div class="info"><div class="ti">${k[0]}</div><div class="meta">${k[1]}</div></div>
+     <span class="tag">${k[2]}</span></div>`).join('');
+}
+
+document.getElementById('switch').addEventListener('click',e=>{
+  const b=e.target.closest('.seg'); if(b) render(b.dataset.t);
+});
+render('warm');
+</script>
+</body>
+</html>

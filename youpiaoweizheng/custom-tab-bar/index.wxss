@@ -1,0 +1,218 @@
+/* custom-tab-bar/index.wxss —— v6.2 主题跟随 + 中央凸起 + 号
+   自定义组件独立渲染树，无法继承 app.wxss 挂在 page 上的 CSS 变量，
+   故此处按 .theme-warm / .theme-blue / .theme-dream 重新声明一份令牌
+   （色值与 app.wxss 严格一致，改色时两处同步）。 */
+/* ================================================================
+   v6.5 六主题 TabBar 令牌（独立渲染树，需重新声明一份，色值与 app.wxss 一致）
+   paper 纸感杂志 / glass 柔和玻璃 / collage 手账拼贴
+   film 胶片电影（深色）/ literary 清新文艺 / minimal 极简留白
+   ================================================================ */
+.theme-paper {
+  --bg: #F5F0E6; --card: #F5F0E6;
+  --primary: #2B2420;   /* 选中态：墨黑 */
+  --accent: #C26B5E;
+  --soft: #E9E2D4;
+  --text: #2B2420;
+  --text2: rgba(43, 36, 32, 0.4);
+  --border: #E2D9C7;
+  --on-primary: #F5F0E6;
+  --chip: #EFE8DA;
+  --peach: #2B2420;
+  --tabbar-bg: rgba(245, 240, 230, 0.92);
+}
+.theme-glass {
+  --bg: #FAF5EE; --card: #FAF5EE;
+  --primary: #D9A0A6;
+  --accent: #F4C6B4;
+  --soft: #F6DFA8;
+  --text: #5A4D42;
+  --text2: rgba(107, 91, 80, 0.4);
+  --border: #F0E7DC;
+  --on-primary: #FFFFFF;
+  --chip: #F6EFE6;
+  --peach: #D9A0A6;
+  --tabbar-bg: rgba(250, 245, 238, 0.78);
+}
+.theme-collage {
+  --bg: #FAF5EE; --card: #FAF5EE;
+  --primary: #D9A0A6;
+  --accent: #F6DFA8;
+  --soft: #FBF3D9;
+  --text: #5A4D42;
+  --text2: rgba(107, 91, 80, 0.4);
+  --border: #EFE5D8;
+  --on-primary: #FFFFFF;
+  --chip: #FBF3D9;
+  --peach: #D9A0A6;
+  --tabbar-bg: rgba(250, 245, 238, 0.92);
+}
+.theme-film {
+  --bg: #1F1A17; --card: #241E1A;
+  --primary: #C26B5E;   /* 选中态：邮政红 */
+  --accent: #F6DFA8;
+  --soft: #3A302A;
+  --text: #EDE3D6;
+  --text2: rgba(237, 227, 214, 0.42);
+  --border: rgba(246, 223, 168, 0.22);
+  --on-primary: #FFFFFF;
+  --chip: #332B26;
+  --peach: #C26B5E;
+  --tabbar-bg: rgba(36, 30, 26, 0.9);
+}
+.theme-literary {
+  --bg: #FAF5EE; --card: #FFFFFF;
+  --primary: #A9C3A6;
+  --accent: #F4C6B4;
+  --soft: #E8F0E6;
+  --text: #5A4D42;
+  --text2: rgba(107, 91, 80, 0.4);
+  --border: #E6EFE4;
+  --on-primary: #FFFFFF;
+  --chip: #EDF4EB;
+  --peach: #A9C3A6;
+  --tabbar-bg: rgba(255, 255, 255, 0.9);
+}
+.theme-minimal {
+  --bg: #FFFFFF; --card: #FFFFFF;
+  --primary: #1A1A1A;
+  --accent: #D9A0A6;
+  --soft: #F5F5F5;
+  --text: #1A1A1A;
+  --text2: rgba(26, 26, 26, 0.42);
+  --border: #EDEDED;
+  --on-primary: #FFFFFF;
+  --chip: #F5F5F5;
+  --peach: #1A1A1A;
+  --tabbar-bg: rgba(255, 255, 255, 0.95);
+}
+
+/* —— 栏体（6.4.0 规范图：毛玻璃白浮动圆角栏，非通栏贴底） —— */
+.bar {
+  position: relative;
+  margin: 0 18rpx;
+  height: 112rpx;
+  border-radius: 26rpx 26rpx 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--tabbar-bg, rgba(255, 255, 255, 0.86));
+  backdrop-filter: blur(16rpx);
+  border-top: 1rpx solid var(--border, rgba(255, 255, 255, 0.65));
+  box-shadow: 0 -8rpx 28rpx rgba(0, 0, 0, 0.10);
+}
+.bar::before {
+  content: '';
+  position: absolute;
+  top: 10rpx;
+  left: 48rpx;
+  right: 48rpx;
+  border-top: 2rpx dotted var(--border);
+  opacity: 0.9;
+}
+
+.row { display: flex; align-items: center; height: 100%; }
+
+.item {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  height: 100%;
+  color: var(--text2);
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.item-hover { transform: scale(0.92); opacity: 0.8; }
+.item .ico {
+  width: 44rpx; height: 44rpx;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.item .ico svg { width: 44rpx; height: 44rpx; }
+.item .txt {
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: var(--text2);
+}
+/* 选中态：主色图标 + 主色文字 + 图标下方小圆点（规范图口径） */
+.item.on { color: var(--primary); }
+.item.on .ico { transform: translateY(-4rpx) scale(1.06); }
+.item.on .txt { color: var(--primary); font-weight: 700; }
+.item.on::after {
+  content: '';
+  position: absolute;
+  bottom: 10rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* —— 中央凸起相机钮（规范图：直径 56pt=112rpx、凸起 12pt=24rpx、灰玫粉实底白描线相机） ——
+   v6.6.0 动效2：按下 0.94/100ms，抬起 250ms 弹性回冲 + box-shadow 呼吸实感 */
+.fab {
+  position: absolute;
+  left: 50%;
+  top: -26rpx;
+  transform: translateX(-50%);
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(217, 160, 166, 0.55);
+  border: 6rpx solid rgba(255, 255, 255, 0.92);
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: fab-breath 2.6s ease-in-out 1s infinite;
+  z-index: 2;
+}
+@keyframes fab-breath {
+  0%, 100% { box-shadow: 0 8rpx 24rpx rgba(217, 160, 166, 0.55); }
+  50% { box-shadow: 0 10rpx 30rpx rgba(217, 160, 166, 0.68); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab { animation: none; transition: box-shadow 150ms ease-out; }
+}
+/* 白色描线相机（CSS 绘制，零 svg 依赖） */
+.fab-cam {
+  width: 46rpx;
+  height: 34rpx;
+  border: 4rpx solid #FFFFFF;
+  border-radius: 9rpx;
+  position: relative;
+}
+.fab-cam::before {
+  content: '';
+  position: absolute;
+  top: -10rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18rpx;
+  height: 6rpx;
+  background: #FFFFFF;
+  border-radius: 4rpx 4rpx 0 0;
+}
+.fab-cam::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14rpx;
+  height: 14rpx;
+  border: 4rpx solid #FFFFFF;
+  border-radius: 50%;
+}
+.fab-hover {
+  /* v6.6.0 动效2：按下 0.94/100ms + 阴影收紧；注意保留 translateX(-50%) 定位 */
+  transform: translateX(-50%) scale(0.94);
+  box-shadow: 0 4rpx 12rpx rgba(217, 160, 166, 0.45);
+  transition: transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 100ms ease-out;
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab-hover { transform: translateX(-50%); }
+}

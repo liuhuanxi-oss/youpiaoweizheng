@@ -1,0 +1,142 @@
+<!-- pages/me/me.wxml —— v6.0 我的（用户信息卡 + 数据统计 + 主题/次数包/功能列表） -->
+<scroll-view class="tk-page theme-{{theme}} me-page" scroll-y enhanced show-scrollbar="{{false}}">
+
+  <!-- 顶部 hero：渐变 + 头像 + 昵称 + Lv 徽章 + 收藏天数 -->
+  <view class="me-hero">
+    <view class="me-bg"></view>
+    <view class="me-row">
+      <button class="me-avatar-btn pressable" hover-class="press-item-hover" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" aria-label="选择头像">
+        <image wx:if="{{profile.avatar}}" class="me-avatar" src="{{profile.avatar}}" mode="aspectFill" />
+        <image wx:else class="me-avatar" src="/images/brand-logo.png" mode="aspectFill" />
+      </button>
+      <view class="me-info">
+        <view class="me-nick-row">
+          <input
+            id="nickInput"
+            type="nickname"
+            class="me-nick serif"
+            placeholder="点击设置昵称"
+            placeholder-class="me-nick-ph"
+            value="{{profile.nickname}}"
+            focus="{{nickFocus}}"
+            maxlength="24"
+            bindinput="onNickInput"
+            bindfocus="onNickFocus"
+            bindblur="onNickBlur"
+            bindconfirm="onNickBlur"
+            aria-label="昵称输入框"
+          />
+          <text class="me-lv">Lv.{{profile.level || 1}}</text>
+          <!-- 4.22.0 兜底胶囊：原生 input 偶尔机型点击不响应时，胶囊编程聚焦（catchtap 防冒泡） -->
+          <view class="me-nick-go pressable" wx:if="{{!profile.nickname}}" catchtap="onNickAssist" hover-class="press-item-hover" aria-role="button" aria-label="设置昵称">设置昵称</view>
+        </view>
+        <view class="me-sub">收藏时光 {{profile.collectDays || 0}} 天 · {{profile.signature ? '已署名' : '尚未署名'}}</view>
+      </view>
+    </view>
+    <view class="me-stat-row">
+      <view class="me-stat">
+        <text class="me-stat-n">{{stats.total}}</text>
+        <text class="me-stat-k">张</text>
+        <text class="me-stat-l">票根</text>
+      </view>
+      <view class="me-stat">
+        <text class="me-stat-n">{{stats.cities}}</text>
+        <text class="me-stat-k">座</text>
+        <text class="me-stat-l">城市</text>
+      </view>
+      <view class="me-stat">
+        <text class="me-stat-n">{{stats.shows}}</text>
+        <text class="me-stat-k">场</text>
+        <text class="me-stat-l">演出</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 外观主题（v6.2：入口卡 → 独立选择页 pages/theme，含三卡对比 + 色板 + 字体 + 装饰） -->
+  <view class="me-card">
+    <view class="me-section-title">外观主题</view>
+    <view class="me-theme-entry pressable" hover-class="press-item-hover" bindtap="goTheme" aria-role="button" aria-label="切换外观主题，当前 {{curThemeName}}">
+      <view class="me-theme-pv" style="background: {{curTheme.bg}};">
+        <view class="me-theme-pv-card" style="background: {{curTheme.card}};">
+          <view class="me-theme-pv-bar" style="background: {{curTheme.primary}};"></view>
+          <view class="me-theme-pv-bar thin" style="background: {{curTheme.text}};"></view>
+        </view>
+      </view>
+      <view class="me-theme-body">
+        <view class="me-theme-name">{{curTheme.name}}<text class="me-theme-desc" style="margin-left:12rpx;">· {{curTheme.tagline}}</text></view>
+        <view class="me-theme-desc">{{curTheme.desc}}</view>
+        <view class="me-theme-dots">
+          <view class="me-theme-dot" wx:for="{{themeDots}}" wx:key="key" style="background: {{item.primary}}; opacity: {{item.key === theme ? 1 : 0.35}};"></view>
+        </view>
+      </view>
+      <text class="me-theme-go">›</text>
+    </view>
+  </view>
+
+  <!-- 次数包 / VIP -->
+  <view class="me-card" wx:if="{{quotaLeftNum >= 0 || profile.vip}}">
+    <view class="me-section-title">免费额度</view>
+    <view class="me-quota">
+      <view class="me-quota-big">{{quotaLeftNum >= 0 ? quotaLeftNum : '—'}}</view>
+      <view class="me-quota-cap">本月剩余 AI 重绘（次）</view>
+      <view class="me-quota-bar">
+        <view class="me-quota-fill" style="width: {{quotaLeftNum >= 0 ? (quotaLeftNum / 3 * 100) : 0}}%;"></view>
+      </view>
+      <view class="me-quota-label">{{quotaLabel}}</view>
+    </view>
+  </view>
+
+  <!-- 功能列表 -->
+  <view class="me-card">
+    <view class="me-section-title">功能</view>
+    <view class="me-list">
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goCollection" aria-role="button" aria-label="收藏夹">
+        <text class="me-list-ico">⭐</text>
+        <text class="me-list-name">我的收藏夹</text>
+        <text class="me-list-go">›</text>
+      </view>
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goMap" aria-role="button" aria-label="时光地图">
+        <text class="me-list-ico">🗺</text>
+        <text class="me-list-name">时光地图</text>
+        <text class="me-list-go">›</text>
+      </view>
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goAnnual" aria-role="button" aria-label="数据统计">
+        <text class="me-list-ico">📅</text>
+        <text class="me-list-name">数据统计</text>
+        <text class="me-list-go">›</text>
+      </view>
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goRecycle" aria-role="button" aria-label="回收站">
+        <text class="me-list-ico">🗑</text>
+        <text class="me-list-name">回收站</text>
+        <text class="me-list-go">›</text>
+      </view>
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goBadges" aria-label="查看勋章">
+        <text class="me-list-ico">🏅</text>
+        <text class="me-list-name">我的勋章</text>
+        <text class="me-list-go">›</text>
+      </view>
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goPrivacy" aria-label="隐私设置">
+        <text class="me-list-ico">🔒</text>
+        <text class="me-list-name">隐私设置</text>
+        <text class="me-list-go">›</text>
+      </view>
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goProtocol" aria-label="用户协议">
+        <text class="me-list-ico">📜</text>
+        <text class="me-list-name">用户协议与隐私</text>
+        <text class="me-list-go">›</text>
+      </view>
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goSetting" aria-label="设置">
+        <text class="me-list-ico">⚙️</text>
+        <text class="me-list-name">设置</text>
+        <text class="me-list-go">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="me-icp" bindtap="copyIcp" aria-role="button" aria-label="复制ICP备案号">粤ICP备20010271号-11X</view>
+  <view class="me-foot">有票为证 v6.0 · 时光不回头，票根存温柔</view>
+  <view class="tk-safe-bottom"></view>
+</scroll-view>
+
+<!-- M5 隐私授权弹窗（me 页 chooseAvatar/nickname 走官方授权弹层） -->
+<privacy-sheet />

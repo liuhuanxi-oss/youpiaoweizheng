@@ -1,0 +1,101 @@
+<view class="page theme-{{theme}} fade-up">
+
+
+  <!-- 4.10.1 重装饰层：纸面噪点（全主题）/ C 水彩晕染头 -->
+  <view class="grain"></view>
+  <!-- ===== M4.5 骨架屏（>300ms 才显示） ===== -->
+  <view class="sk" wx:if="{{skeleton}}">
+    <view class="sk-cover skeleton-bone"></view>
+    <view class="sk-big skeleton-bone"></view>
+    <view class="sk-card skeleton-bone"></view>
+    <view class="sk-card skeleton-bone"></view>
+  </view>
+
+  <view class="fade-in" wx:elif="{{!error}}">
+
+    <!-- ===== 封面 ===== -->
+    <view class="cover">
+      <view class="stamp serif">时光报告</view>
+      <view class="pair">
+        <view class="avatar a1 serif">{{meChar}}</view>
+        <view class="link serif">∞</view>
+        <view class="avatar a2 serif">{{partnerChar}}</view>
+      </view>
+      <view class="names serif">{{myName}} & {{partnerName}}</view>
+      <view class="span" wx:if="{{span}}">{{span}}</view>
+      <view class="demo-tag" wx:if="{{demo}}">演示数据</view>
+    </view>
+
+    <!-- ===== 大数字 ===== -->
+    <view class="big">
+      <view class="bn"><animated-number value="{{total}}" /><text class="bu">张</text></view>
+      <view class="bl">一起收藏的票根</view>
+    </view>
+
+    <!-- ===== 类型分布 ===== -->
+    <view class="card sec" wx:if="{{bars.length}}">
+      <view class="s-t serif">你们都在看什么</view>
+      <view class="bar-row" wx:for="{{bars}}" wx:key="key">
+        <text class="bar-name">{{item.name}}</text>
+        <view class="bar-track"><view class="bar-fill {{item.key}}" style="width: {{item.pct}}%"></view></view>
+        <text class="bar-n">{{item.n}}</text>
+      </view>
+    </view>
+
+    <!-- ===== 城市 ===== -->
+    <view class="card sec" wx:if="{{cityTop.length}}">
+      <view class="s-t serif">走过的城市</view>
+      <view class="city-row" wx:for="{{cityTop}}" wx:key="name">
+        <text class="c-rank serif">{{index + 1}}</text>
+        <text class="c-name">{{item.name}}</text>
+        <text class="c-n">{{item.n}} 张票根</text>
+      </view>
+      <view class="c-more" wx:if="{{cityMore}}">还有 {{cityMore}} 座城，在足迹地图里看连线</view>
+    </view>
+
+    <!-- ===== 里程 + 同场 ===== -->
+    <view class="card sec duo" wx:if="{{total}}">
+      <view class="d-item">
+        <view class="d-n"><animated-number value="{{km}}" /><text class="d-u">km</text></view>
+        <view class="d-k">票根连成的旅程</view>
+      </view>
+      <view class="d-divider"></view>
+      <view class="d-item">
+        <view class="d-n"><animated-number value="{{together}}" /><text class="d-u">场</text></view>
+        <view class="d-k">你们都收过的场次</view>
+      </view>
+    </view>
+
+    <!-- ===== 最早 / 最近 ===== -->
+    <view class="card sec" wx:if="{{first}}">
+      <view class="s-t serif">故事的两端</view>
+      <view class="edge">
+        <text class="e-tag">最早的一张</text>
+        <view class="e-main">
+          <view class="e-title serif">{{first.title}}</view>
+          <view class="e-date">{{first.date}}</view>
+        </view>
+      </view>
+      <view class="edge" wx:if="{{last && last.id !== first.id}}">
+        <text class="e-tag e-new">最近的一张</text>
+        <view class="e-main">
+          <view class="e-title serif">{{last.title}}</view>
+          <view class="e-date">{{last.date}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="foot serif">{{signature ? '—— ' + signature + ' · 时光有票为证 ——' : '—— 时光有票为证 ——'}}</view>
+  </view>
+
+  <!-- 错误态 -->
+  <view class="fade-in" wx:else>
+    <view class="empty card">
+      <view class="e-icon">🔗</view>
+      <view class="e-t serif">{{error}}</view>
+      <view class="e-s">绑定后，你们的故事会写在这里</view>
+    </view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

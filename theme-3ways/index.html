@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有票为证 · 三主题视觉规范原型</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=ZCOOL+KuaiLe&display=swap">
+<style>
+:root{--font-sans:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--font-round:"ZCOOL KuaiLe","Noto Sans SC",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:#F6F4F1;color:#2b2b33;min-height:100vh}
+
+/* ===== 预览用主题变量（手机内随切换变）===== */
+body[data-theme="warm"]{--bg:#FBF2EC;--card:#fff;--primary:#F26D8D;--accent:#F4A26B;--soft:#FBDCE3;--text:#4A3F3A;--text2:#9C8B84;--border:#F0E0D8;--onprimary:#fff;--chip:#FDE8EE;--radius:20px}
+body[data-theme="blue"]{--bg:#F3F9FE;--card:#fff;--primary:#4FA8E8;--accent:#F2558B;--soft:#CFE8F7;--text:#2C3E50;--text2:#7A8CA3;--border:#DDE9F2;--onprimary:#fff;--chip:#E7F3FC;--radius:18px}
+body[data-theme="dream"]{--bg:#FFFFFF;--card:#fff;--primary:#A97FE0;--accent:#F45B8E;--soft:#F3D9EC;--text:#4A4A66;--text2:#8E8EA8;--border:#EDE6F2;--onprimary:#fff;--chip:#F6ECFA;--radius:22px}
+
+/* ===== 顶栏 ===== */
+.topbar{position:sticky;top:0;z-index:20;background:#fffdfb;box-shadow:0 2px 12px rgba(0,0,0,.05);padding:14px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-weight:900;font-size:18px}.brand small{display:block;font-weight:400;font-size:11px;color:#999;letter-spacing:2px}
+.switch{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.seg{border:1.5px solid #e3ddd6;background:#fff;color:#666;padding:10px 18px;border-radius:999px;font-size:13px;cursor:pointer;min-height:44px;font-family:inherit;transition:.2s}
+.seg:hover{border-color:var(--pc,#F26D8D)}
+.seg.active{color:#fff;font-weight:700}
+.seg[data-t="warm"].active{background:#F26D8D;border-color:#F26D8D}
+.seg[data-t="blue"].active{background:#4FA8E8;border-color:#4FA8E8}
+.seg[data-t="dream"].active{background:#A97FE0;border-color:#A97FE0}
+
+/* ===== 三张规范卡 ===== */
+.grid{max-width:1280px;margin:26px auto;padding:0 22px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start}
+@media(max-width:1080px){.grid{grid-template-columns:1fr;max-width:560px}}
+.spec{border-radius:24px;overflow:hidden;border:1px solid #eee;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.06)}
+.spec-head{padding:20px;display:flex;align-items:center;gap:14px}
+.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:none;background:#eee}
+.spec-head h2{font-size:23px;font-weight:900;letter-spacing:1px;line-height:1.1}
+.spec-head .en{font-size:11px;letter-spacing:3px;margin-top:5px;font-weight:500}
+.spec-head .line{width:100%;height:3px;border-radius:3px;margin-top:10px}
+.sec{padding:16px 20px;border-top:1px dashed #ececec}
+.sec-t{font-size:12px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.sec-t::before{content:"";width:14px;height:14px;border-radius:4px;display:inline-block}
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sw{text-align:center}.sw .dot{width:44px;height:44px;border-radius:12px;margin:0 auto 6px;border:1px solid rgba(0,0,0,.06)}
+.sw .nm{font-size:10.5px;font-weight:600}.sw .hx{font-size:9.5px;color:#999;font-family:ui-monospace,monospace}
+.type-demo{border-left:3px solid;padding:2px 0 2px 12px;margin-bottom:10px}
+.type-main{font-size:30px;font-weight:900;letter-spacing:1px}
+.type-sub{font-size:15px;margin-top:7px;opacity:.85}
+.type-meta{font-size:11px;color:#999;margin-top:8px}
+.deco-item{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dotted #eee}
+.deco-item:last-child{border:0}
+.deco-ic{width:42px;height:42px;flex:none;border-radius:10px;display:grid;place-items:center}
+.deco-ic svg{width:30px;height:30px}
+.deco-item .dn{font-size:12px;font-weight:700}.deco-item .dd{font-size:10.5px;color:#999;margin-top:2px;line-height:1.4}
+
+/* ===== 手机预览 ===== */
+.preview{max-width:1280px;margin:30px auto;padding:0 22px}
+.preview-h{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.preview-h::before{content:"";width:5px;height:18px;border-radius:3px;background:var(--primary)}
+.phone{width:320px;margin:0 auto}
+.frame{background:#111;border-radius:44px;padding:10px;box-shadow:0 18px 50px rgba(0,0,0,.18)}
+.screen{background:var(--bg);border-radius:36px;height:640px;overflow:hidden;display:flex;flex-direction:column;transition:.35s;position:relative}
+.notch{height:24px;display:grid;place-items:center}.notch::after{content:"";width:80px;height:16px;background:#000;border-radius:10px;opacity:.85}
+.nav{padding:6px 16px 12px;display:flex;align-items:center;gap:9px}
+.nav img{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)}
+.nav .t{font-weight:900;font-size:16px}.nav .t small{display:block;font-size:9.5px;color:var(--text2);font-weight:400}
+.hero{margin:0 16px 12px;padding:14px;border-radius:var(--radius);color:#fff;position:relative;overflow:hidden}
+.hero .ht{font-size:14px;font-weight:800}.hero .hs{font-size:10.5px;opacity:.92;margin-top:4px}
+.quick{display:flex;gap:8px;padding:0 16px 12px}
+.qbtn{flex:1;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:9px 4px}
+.qbtn .qi{width:30px;height:30px;margin:0 auto 4px;border-radius:9px;display:grid;place-items:center;color:#fff}
+.qbtn .qi svg{width:17px;height:17px}.qbtn .qt{font-size:10.5px;color:var(--text)}
+.list{flex:1;overflow:auto;padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.cat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:11px;display:flex;align-items:center;gap:11px}
+.cat .cic{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff}
+.cat .cic svg{width:24px;height:24px}
+.cat .ci{flex:1}.cat .cn{font-size:13px;font-weight:700}.cat .cm{font-size:10.5px;color:var(--text2);margin-top:3px}
+.cat .cnt{font-size:11px;color:var(--text2)}
+.tabbar{display:flex;border-top:1px solid var(--border);background:var(--card)}
+.tab{flex:1;text-align:center;padding:8px 0 11px;font-size:10.5px;color:var(--text2)}
+.tab.on{color:var(--primary);font-weight:700}.tab svg{width:19px;height:19px;margin:0 auto 2px;display:block}
+</style>
+</head>
+<body data-theme="warm">
+
+<header class="topbar">
+  <div class="brand">有票为证<small>三主题视觉规范 · 交互原型</small></div>
+  <nav class="switch" id="switch">
+    <button class="seg active" data-t="warm">暖光治愈</button>
+    <button class="seg" data-t="blue">晴空旅行</button>
+    <button class="seg" data-t="dream">马卡龙梦</button>
+  </nav>
+</header>
+
+<!-- 三张规范卡并行 -->
+<main class="grid" id="cards"></main>
+
+<!-- 主预览：随切换换肤 -->
+<section class="preview">
+  <div class="preview-h">小程序界面实时预览（点上方按钮换肤）</div>
+  <div class="phone">
+    <div class="frame">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="nav">
+          <img src="assets/ip.png" alt="IP">
+          <div class="t" id="pvTitle">有票为证<small id="pvSub">暖光治愈 · 我的票夹</small></div>
+        </div>
+        <div class="hero" id="pvHero">
+          <div class="ht" id="pvHeroT">把故事，都藏进票根里</div>
+          <div class="hs" id="pvHeroS">拍照识别，一键保存每段旅程</div>
+        </div>
+        <div class="quick">
+          <div class="qbtn"><div class="qi" style="background:var(--primary)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div><div class="qt">拍照</div></div>
+          <div class="qbtn"><div class="qi" style="background:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg></div><div class="qt">分类</div></div>
+          <div class="qbtn"><div class="qi" style="background:var(--soft);color:var(--text)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.5-9-9c-1.5-3.5 1-7 4.5-7 2 0 3.5 1 4.5 2.5C12 6 13.5 5 15.5 5c3.5 0 6 3.5 4.5 7-2 4.5-8 9-8 9z"/></svg></div><div class="qt">珍藏</div></div>
+        </div>
+        <div class="list" id="pvList"></div>
+        <div class="tabbar">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l9-7 9 7v10a1 1 0 01-1 1H4a1 1 0 01-1-1z"/></svg>票夹</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>回忆</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+const THEMES = {
+  warm:{
+    name:'暖光治愈', en:'WARM SUNNY', grad:'linear-gradient(135deg,#F26D8D,#F4A26B)', line:'#F26D8D', chip:'#FDE8EE',
+    bg:'#FBF2EC',primary:'#F26D8D',accent:'#F4A26B',soft:'#FBDCE3',text:'#4A3F3A',text2:'#9C8B84',border:'#F0E0D8',
+    colors:[['背景','#FBF2EC'],['主色','#F26D8D'],['强调','#F4A26B'],['辅助','#FBDCE3'],['文字','#4A3F3A'],['描边','#F0E0D8']],
+    typeFont:'',
+    heroT:'把故事，都藏进票根里', heroS:'窗边日光下，每张票都暖暖的',
+    cats:[
+      {n:'交通出行',m:'地铁 / 高铁 / 机票',c:'#8FD0E8',cnt:'32 张'},
+      {n:'演出现场',m:'演唱会 / Livehouse',c:'#F7B3C4',cnt:'28 张'},
+      {n:'电影时光',m:'大银幕里的回忆',c:'#F7E0A8',cnt:'18 张'},
+      {n:'旅行足迹',m:'去过的远方',c:'#B8E4CC',cnt:'24 张'}
+    ],
+    decos:[
+      {n:'3D 软云',d:'蓬松云朵漂浮于首页天空，营造治愈日光感。',c:'#E8F4FB',ic:'<ellipse cx="12" cy="18" rx="9" ry="5" fill="#fff"/><circle cx="8" cy="13" r="4" fill="#fff"/><circle cx="15" cy="11" r="5" fill="#fff"/>'},
+      {n:'小飞机涂鸦',d:'纸飞机斜穿天空，呼应出行与远方。',c:'#FBDCE3',ic:'<path d="M4 14l20-8-7 18-3-7z" fill="#F26D8D"/><path d="M14 17l6-11" stroke="#fff" stroke-width="1.4"/>'},
+      {n:'爱心+手绘下划线',d:'手写波浪线与爱心，点缀标题与文案。',c:'#FDE8EE',ic:'<path d="M4 20c4-6 8 6 12 0s5 2 6 0" stroke="#F26D8D" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M20 6c-1.6-1.8-4 .3-2 2l2 2 2-2c2-1.7-.4-3.8-2-2z" fill="#F26D8D"/>'},
+      {n:'暖光斑/齿孔',d:'票根齿孔与暖色光晕，强化实物收藏感。',c:'#FFF0E6',ic:'<rect x="5" y="11" width="26" height="9" rx="2" fill="none" stroke="#F4A26B" stroke-width="1.5"/><g fill="#F4A26B"><circle cx="9" cy="15.5" r="1.3"/><circle cx="14" cy="15.5" r="1.3"/><circle cx="19" cy="15.5" r="1.3"/><circle cx="24" cy="15.5" r="1.3"/></g>'}
+    ]
+  },
+  blue:{
+    name:'晴空旅行', en:'CLEAR SKY', grad:'linear-gradient(135deg,#4FA8E8,#F2558B)', line:'#4FA8E8', chip:'#E7F3FC',
+    bg:'#F3F9FE',primary:'#4FA8E8',accent:'#F2558B',soft:'#CFE8F7',text:'#2C3E50',text2:'#7A8CA3',border:'#DDE9F2',
+    colors:[['背景','#F3F9FE'],['主色','#4FA8E8'],['强调','#F2558B'],['辅助','#CFE8F7'],['文字','#2C3E50'],['描边','#DDE9F2']],
+    typeFont:'',
+    heroT:'每一张票，都回得去的时光', heroS:'小小的票根，装下大大的世界',
+    cats:[
+      {n:'演唱会',m:'现场沸腾的夜',c:'#F2558B',cnt:'26 张'},
+      {n:'电影',m:'胶片里的故事',c:'#F6C453',cnt:'19 张'},
+      {n:'旅行',m:'城市与远方',c:'#4ECDC4',cnt:'23 张'},
+      {n:'交通',m:'出发与抵达',c:'#4FA8E8',cnt:'30 张'}
+    ],
+    decos:[
+      {n:'纸飞机',d:'折纸飞机沿航线飞行，点明旅行主题。',c:'#CFE8F7',ic:'<path d="M4 12l20-7-8 18-3-8z" fill="#4FA8E8"/><path d="M13 15l7-10" stroke="#fff" stroke-width="1.4"/>'},
+      {n:'木质路牌',d:'多向路标（去看演唱会/去旅行），探索感强。',c:'#EFE7D8',ic:'<path d="M12 6v22" stroke="#B89968" stroke-width="2"/><rect x="5" y="6" width="14" height="6" rx="1.5" fill="#4FA8E8"/><rect x="9" y="14" width="14" height="6" rx="1.5" fill="#F2558B"/>'},
+      {n:'手绘波浪+爱心',d:'轻松手绘线条与爱心，点缀留白。',c:'#E7F3FC',ic:'<path d="M4 20c4-6 8 6 12 0s5 2 6 0" stroke="#F2558B" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M21 5c-1.5-1.7-3.8.3-2 2l2 2 2-2c1.8-1.7-.5-3.7-2-2z" fill="#F2558B"/>'},
+      {n:'城市天际线线描',d:'浅蓝线描城市轮廓，作为背景轻装饰。',c:'#EAF4FC',ic:'<path d="M4 24V14h4v10M10 24V8h5v16M17 24v-9h4v9" stroke="#4FA8E8" stroke-width="1.5" fill="none"/><path d="M12.5 8V5M12.5 5h2" stroke="#4FA8E8" stroke-width="1.3"/>'}
+    ]
+  },
+  dream:{
+    name:'马卡龙梦', en:'MACAROON DREAM', grad:'linear-gradient(135deg,#A97FE0,#F45B8E)', line:'#A97FE0', chip:'#F6ECFA',
+    bg:'#FFFFFF',primary:'#A97FE0',accent:'#F45B8E',soft:'#F3D9EC',text:'#4A4A66',text2:'#8E8EA8',border:'#EDE6F2',
+    colors:[['背景','#FFFFFF'],['主色','#A97FE0'],['强调','#F45B8E'],['辅助','#F3D9EC'],['文字','#4A4A66'],['描边','#EDE6F2']],
+    typeFont:"var(--font-round)",
+    heroT:'Hi，旅途收藏家！', heroS:'不只是票根，更是生活的证据',
+    cats:[
+      {n:'全部票根',m:'32 张时光',c:'#A97FE0',cnt:'32'},
+      {n:'城市足迹',m:'走过 12 城',c:'#8ED0F0',cnt:'12'},
+      {n:'演出现场',m:'8 个夜晚',c:'#F45B8E',cnt:'8'},
+      {n:'影院时光',m:'6 部电影',c:'#FCE3A8',cnt:'6'}
+    ],
+    decos:[
+      {n:'撕边票根IP',d:'票根造型笑脸IP，一半白一半粉，强记忆点。',c:'#F6ECFA',ic:'<path d="M9 5h18v6a3 3 0 000 6v6H9a3 3 0 000-6V11a3 3 0 000-6z" fill="#fff" stroke="#A97FE0" stroke-width="1.4"/><circle cx="15" cy="14" r="1.4" fill="#4A4A66"/><circle cx="21" cy="14" r="1.4" fill="#4A4A66"/><path d="M15.5 18c1 1 3 1 4 0" stroke="#F45B8E" stroke-width="1.3" fill="none" stroke-linecap="round"/>'},
+      {n:'笑脸涂鸦',d:'手绘笑脸与"好记忆"涂鸦，轻松生活感。',c:'#FCE3A8',ic:'<circle cx="18" cy="18" r="10" fill="#FCE3A8"/><circle cx="14.5" cy="15.5" r="1.2" fill="#4A4A66"/><circle cx="21.5" cy="15.5" r="1.2" fill="#4A4A66"/><path d="M14.5 19.5c2 2.5 5 2.5 7 0" stroke="#4A4A66" stroke-width="1.3" fill="none" stroke-linecap="round"/>'},
+      {n:'手绘波浪下划线',d:'粉色手绘线划过标题，俏皮活泼。',c:'#F3D9EC',ic:'<path d="M4 20c3-7 7 6 11 0s6 5 9-1" stroke="#F45B8E" stroke-width="1.8" fill="none" stroke-linecap="round"/>'},
+      {n:'蓝天白云/马卡龙点',d:'顶部蓝天白云与马卡龙色圆点，梦幻治愈。',c:'#E3F2FD',ic:'<ellipse cx="18" cy="13" rx="9" ry="4.5" fill="#fff"/><circle cx="13" cy="9" r="3.5" fill="#fff"/><circle cx="21" cy="8" r="4" fill="#fff"/><circle cx="8" cy="20" r="1.5" fill="#F45B8E"/><circle cx="12" cy="22" r="1.5" fill="#A97FE0"/>'}
+    ]
+  }
+};
+const icPlane='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1L13 21v-1.5L11.5 18v-4.5z"/></svg>';
+
+// 渲染三张规范卡
+document.getElementById('cards').innerHTML = Object.values(THEMES).map(t=>`
+  <article class="spec">
+    <div class="spec-head" style="background:${t.chip}">
+      <img class="avatar" src="assets/ip.png" alt="IP" style="border:3px solid ${t.line}">
+      <div>
+        <h2 style="color:${t.text}">${t.name}</h2>
+        <div class="en" style="color:${t.accent}">${t.en}</div>
+        <div class="line" style="background:${t.grad}"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-t" style="color:${t.line}"><span style="background:${t.line}"></span>配色方案 · 十六进制</div>
+      <div class="swatches">${t.colors.map(c=>`<div class="sw"><div class="dot" style="background:${c[1]}"></div><div class="nm">${c[0]}</div><div class="hx">${c[1]}</div></div>`).join('')}</div>
+    </div>
+    <div class="sec">
+      <div class="sec-t" style="color:${t.line}"><span style="background:${t.line}"></span>字体层级</div>
+      <div class="type-demo" style="border-color:${t.primary};color:${t.text};font-family:${t.typeFont||'inherit'}">
+        <div class="type-main">有票为证</div>
+        <div class="type-sub">每一张票，都是回得去的时光</div>
+        <div class="type-meta">主标题 粗圆体 30–40px · 副标题 16–20px · 正文 14px · 注释 12px</div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-t" style="color:${t.line}"><span style="background:${t.line}"></span>核心图形装饰元素</div>
+      ${t.decos.map(d=>`<div class="deco-item"><div class="deco-ic" style="background:${d.c}"><svg viewBox="0 0 36 36">${d.ic}</svg></div><div><div class="dn">${d.n}</div><div class="dd">${d.d}</div></div></div>`).join('')}
+    </div>
+  </article>`).join('');
+
+// 切换预览
+function apply(key){
+  const t=THEMES[key];
+  document.body.dataset.theme=key;
+  document.querySelectorAll('.seg').forEach(b=>b.classList.toggle('active',b.dataset.t===key));
+  document.getElementById('pvTitle').innerHTML=`有票为证<small>${t.name} · 我的票夹</small>`;
+  document.getElementById('pvHeroT').textContent=t.heroT;
+  document.getElementById('pvHeroS').textContent=t.heroS;
+  document.getElementById('pvHero').style.background=t.grad;
+  document.getElementById('pvList').innerHTML=t.cats.map(c=>`
+    <div class="cat"><div class="cic" style="background:${c.c}">${icPlane}</div>
+    <div class="ci"><div class="cn">${c.n}</div><div class="cm">${c.m}</div></div>
+    <div class="cnt">${c.cnt}</div></div>`).join('');
+}
+document.getElementById('switch').addEventListener('click',e=>{const b=e.target.closest('.seg');if(b)apply(b.dataset.t)});
+apply('warm');
+</script>
+</body>
+</html>

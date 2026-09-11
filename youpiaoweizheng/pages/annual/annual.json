@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "我的时光年报",
+  "usingComponents": {
+    "animated-number": "/components/animated-number/index",
+    "privacy-sheet": "/components/privacy-sheet/index"
+  }
+}

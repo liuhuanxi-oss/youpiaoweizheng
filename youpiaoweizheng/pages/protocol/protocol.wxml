@@ -1,0 +1,18 @@
+<view class="page theme-{{theme}} fade-up" wx:if="{{doc}}">
+  <view class="head">
+    <view class="stamp serif">有票为证</view>
+    <view class="h-t serif">{{doc.title}}</view>
+    <view class="h-s">运营主体：{{doc.owner}}</view>
+    <view class="h-s">生效日期：{{doc.updated}}</view>
+  </view>
+
+  <view class="card body">
+    <view class="sec" wx:for="{{doc.sections}}" wx:key="h">
+      <view class="s-h serif">{{item.h}}</view>
+      <view class="s-p" wx:for="{{item.ps}}" wx:for-item="p" wx:key="*this">{{p}}</view>
+    </view>
+  </view>
+
+  <view class="note">© 2026 {{doc.owner}} · 有票为证</view>
+  <view class="safe-bottom"></view>
+</view>

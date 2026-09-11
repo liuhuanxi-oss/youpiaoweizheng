@@ -1,0 +1,194 @@
+<!-- pages/theme/theme.js 伴生：六主题选择页
+     六张统一版式卡片：顶部 IP 头像 → 主题名 → 6 色色板（含 hex）
+                     → 字体层级样例 → 4 个装饰元素 SVG
+     点卡片 = 即时预览；底部「应用此主题」= 落库。
+     装饰 SVG 均内联，fill/stroke 直接写 var(--xxx)，随主题换色。 -->
+<view class="tk-page theme-{{preview}}">
+
+  <!-- ===== 页头 ===== -->
+  <view class="tk-hero th-head">
+    <view class="tk-h1 th-title">外观主题</view>
+    <view class="tk-h2 th-sub">每一张票，都是回得去的时光</view>
+    <view class="th-hint">点选卡片即时预览 · 确认后保存</view>
+  </view>
+
+  <!-- ===== 六张主题卡 ===== -->
+  <view class="th-list">
+    <view
+      wx:for="{{themes}}"
+      wx:key="key"
+      class="th-card tk-card {{preview === item.key ? 'on' : ''}}"
+      hover-class="th-card-hover"
+      data-key="{{item.key}}"
+      bindtap="onPick"
+      aria-role="button"
+      aria-label="主题 {{item.name}}{{preview === item.key ? '，预览中' : ''}}"
+    >
+
+      <!-- ① 顶部 IP 头像（六套一致形象，仅换背景色 / 光） -->
+      <view class="th-ip" style="background: {{item.bg}};">
+        <view class="th-ip-glow" style="background: {{item.soft}};"></view>
+        <svg class="th-ip-svg" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+          <!-- 渔夫帽 -->
+          <ellipse cx="40" cy="27" rx="26" ry="8" style="fill: var(--primary);" opacity="0.92"/>
+          <path d="M24 27 Q24 12 40 12 Q56 12 56 27 Z" style="fill: var(--accent);"/>
+          <!-- 卷发 -->
+          <circle cx="27" cy="37" r="7" style="fill: var(--text);" opacity="0.86"/>
+          <circle cx="53" cy="37" r="7" style="fill: var(--text);" opacity="0.86"/>
+          <!-- 脸 -->
+          <ellipse cx="40" cy="43" rx="18" ry="17" fill="#FFE0C8"/>
+          <!-- 眼睛 -->
+          <circle cx="33" cy="42" r="2.6" style="fill: var(--text);"/>
+          <circle cx="47" cy="42" r="2.6" style="fill: var(--text);"/>
+          <!-- 腮红 -->
+          <ellipse cx="28" cy="49" rx="4" ry="2.4" style="fill: var(--primary);" opacity="0.34"/>
+          <ellipse cx="52" cy="49" rx="4" ry="2.4" style="fill: var(--primary);" opacity="0.34"/>
+          <!-- 嘴 -->
+          <path d="M36 51 Q40 55 44 51" fill="none" style="stroke: var(--accent);" stroke-width="2" stroke-linecap="round"/>
+          <!-- 白卫衣 -->
+          <path d="M22 68 Q22 58 40 58 Q58 58 58 68 Z" fill="#FFFFFF"/>
+        </svg>
+        <view class="th-ip-name" style="color: {{item.text}};">{{item.name}}</view>
+      </view>
+
+      <!-- ② 主题名 + 气质 -->
+      <view class="th-name-row">
+        <text class="tk-h2 th-name" style="color: {{item.primary}};">{{item.name}}</text>
+        <text class="th-check" wx:if="{{preview === item.key}}" style="background: {{item.primary}};">✓</text>
+      </view>
+      <view class="tk-cap th-tagline">{{item.tagline}}</view>
+      <view class="tk-body th-desc">{{item.desc}}</view>
+
+      <!-- ③ 6 色色板（含 hex） -->
+      <view class="th-swatch-title tk-cap">色板</view>
+      <view class="th-swatches">
+        <view class="th-sw" wx:for="{{item.swatches}}" wx:for-item="sw" wx:key="hex">
+          <view class="th-sw-dot" style="background: {{sw.hex}};"></view>
+          <text class="th-sw-name">{{sw.name}}</text>
+          <text class="th-sw-hex">{{sw.hex}}</text>
+        </view>
+      </view>
+
+      <!-- ④ 字体层级样例（六卡统一版式） -->
+      <view class="th-swatch-title tk-cap">字体层级</view>
+      <view class="th-type">
+        <view class="th-type-row" wx:for="{{typeScale}}" wx:for-item="ts" wx:key="cls">
+          <text class="th-type-label">{{ts.label}}</text>
+          <text class="th-type-sample {{ts.cls}}" style="color: {{item.text}};">{{ts.sample}}</text>
+          <text class="th-type-spec">{{ts.spec}}</text>
+        </view>
+      </view>
+
+      <!-- ⑤ 4 个装饰元素 SVG（读变量换色，6 套主题各自一组） -->
+      <view class="th-decos">
+        <view class="th-deco" wx:for="{{item.decos}}" wx:for-item="d" wx:key="*this">
+          <!-- paper 纸感杂志 -->
+          <svg wx:if="{{d === 'postmark'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="22" r="17" fill="none" style="stroke: var(--accent);" stroke-width="1.6" stroke-dasharray="3 3"/>
+            <circle cx="32" cy="22" r="11" fill="none" style="stroke: var(--accent);" stroke-width="1"/>
+            <path d="M25 22 h14" style="stroke: var(--accent);" stroke-width="1.4"/>
+          </svg>
+          <svg wx:elif="{{d === 'perf'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="12" width="48" height="20" rx="3" style="fill: var(--soft);"/>
+            <circle cx="8" cy="18" r="2.6" style="fill: var(--bg);"/><circle cx="8" cy="26" r="2.6" style="fill: var(--bg);"/>
+            <circle cx="56" cy="18" r="2.6" style="fill: var(--bg);"/><circle cx="56" cy="26" r="2.6" style="fill: var(--bg);"/>
+            <path d="M20 22 H44" style="stroke: var(--accent);" stroke-width="1.6" stroke-dasharray="4 4"/>
+          </svg>
+          <svg wx:elif="{{d === 'rule'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 18 H58" style="stroke: var(--primary);" stroke-width="2.6"/>
+            <path d="M6 26 H58" style="stroke: var(--primary);" stroke-width="1.2"/>
+          </svg>
+          <svg wx:elif="{{d === 'stamp'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="16" y="6" width="32" height="32" rx="2" style="fill: var(--soft);" stroke="var(--primary)" stroke-width="1.4" stroke-dasharray="2 2"/>
+            <circle cx="32" cy="22" r="7" fill="none" style="stroke: var(--accent);" stroke-width="1.6"/>
+          </svg>
+
+          <!-- glass 柔和玻璃 -->
+          <svg wx:elif="{{d === 'blob'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="24" cy="20" rx="18" ry="13" style="fill: var(--primary);" opacity="0.5"/>
+            <ellipse cx="44" cy="28" rx="14" ry="11" style="fill: var(--soft);" opacity="0.7"/>
+          </svg>
+          <svg wx:elif="{{d === 'glass'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="8" width="36" height="28" rx="8" fill="rgba(255,255,255,.5)" stroke="rgba(255,255,255,.8)" stroke-width="1.4"/>
+            <path d="M20 30 Q32 12 44 30" fill="none" style="stroke: var(--primary);" stroke-width="1.8" opacity="0.7"/>
+          </svg>
+
+          <!-- collage 手账拼贴 -->
+          <svg wx:elif="{{d === 'tape'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="18" width="48" height="10" style="fill: var(--accent);" opacity="0.75" transform="rotate(-3 32 23)"/>
+            <rect x="8" y="18" width="48" height="10" fill="none" stroke="rgba(107,91,80,.18)" stroke-width="0.8" transform="rotate(-3 32 23)"/>
+          </svg>
+          <svg wx:elif="{{d === 'sticky'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="8" width="36" height="30" rx="3" style="fill: var(--soft);" transform="rotate(-2 32 23)"/>
+            <path d="M20 18 H44 M20 24 H44 M20 30 H36" style="stroke: var(--text2);" stroke-width="1.2" opacity="0.6"/>
+          </svg>
+          <svg wx:elif="{{d === 'doodle'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 30 Q22 10 32 22 T52 16" fill="none" style="stroke: var(--primary);" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="50" cy="12" r="2.4" style="fill: var(--accent);"/>
+          </svg>
+
+          <!-- film 胶片电影 -->
+          <svg wx:elif="{{d === 'filmperf'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="14" width="52" height="16" style="fill: var(--soft);"/>
+            <rect x="10" y="17" width="4" height="4" style="fill: var(--bg);"/><rect x="10" y="23" width="4" height="4" style="fill: var(--bg);"/>
+            <rect x="50" y="17" width="4" height="4" style="fill: var(--bg);"/><rect x="50" y="23" width="4" height="4" style="fill: var(--bg);"/>
+            <rect x="20" y="18" width="24" height="8" style="fill: var(--accent);" opacity="0.6"/>
+          </svg>
+          <svg wx:elif="{{d === 'timecode'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="16" width="44" height="14" rx="3" fill="rgba(0,0,0,.35)" stroke="var(--accent)" stroke-width="1.2"/>
+            <path d="M18 23 h6 M28 23 h6 M38 23 h6" style="stroke: var(--accent);" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <svg wx:elif="{{d === 'glow'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="22" r="16" style="fill: var(--accent);" opacity="0.22"/>
+            <circle cx="32" cy="22" r="9" style="fill: var(--accent);" opacity="0.4"/>
+          </svg>
+
+          <!-- literary 清新文艺 -->
+          <svg wx:elif="{{d === 'watercolor'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="22" cy="22" r="14" style="fill: var(--primary);" opacity="0.4"/>
+            <circle cx="42" cy="20" r="11" style="fill: var(--accent);" opacity="0.45"/>
+          </svg>
+          <svg wx:elif="{{d === 'leaf'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 8 Q46 16 42 32 Q34 40 22 36 Q16 22 32 8 Z" style="fill: var(--primary);" opacity="0.6"/>
+            <path d="M32 10 Q30 24 24 34" fill="none" style="stroke: var(--bg);" stroke-width="1.4"/>
+          </svg>
+
+          <!-- minimal 极简留白 -->
+          <svg wx:elif="{{d === 'line'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 22 H56" style="stroke: var(--text);" stroke-width="1.6"/>
+          </svg>
+          <svg wx:elif="{{d === 'dot'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="22" r="6" style="fill: var(--accent);"/>
+          </svg>
+          <svg wx:elif="{{d === 'frame'}}" viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+            <rect x="12" y="10" width="40" height="24" fill="none" style="stroke: var(--text);" stroke-width="1.4"/>
+          </svg>
+
+          <!-- 共用：wave 波纹 / dots 圆点 -->
+          <svg wx:elif="{{d === 'wave'}}" viewBox="0 0 64 20" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 14 Q10 4 18 14 T34 14 T50 14 T62 12" fill="none" style="stroke: var(--primary);" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <svg wx:elif="{{d === 'dots'}}" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="14" r="5" style="fill: var(--primary);" opacity="0.7"/>
+            <circle cx="26" cy="26" r="6" style="fill: var(--accent);" opacity="0.8"/>
+            <circle cx="42" cy="12" r="4.5" style="fill: var(--primary);" opacity="0.5"/>
+            <circle cx="54" cy="26" r="6" style="fill: var(--accent);" opacity="0.6"/>
+          </svg>
+
+          <text class="th-deco-label">{{decoLabels[d]}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="tk-safe-bottom"></view>
+  <view class="th-safe"></view>
+</view>
+
+<!-- ===== 底部操作条（固定）：还原 / 应用 ===== -->
+<view class="th-bar theme-{{preview}}">
+  <view class="th-bar-reset tk-pill" wx:if="{{preview !== theme}}" bindtap="onReset" hover-class="press-hover" aria-role="button" aria-label="放弃预览">还原</view>
+  <view class="tk-btn th-bar-apply {{preview === theme ? 'is-cur' : ''}}" bindtap="onApply" hover-class="tk-btn-hover" aria-role="button" aria-label="应用此主题">
+    {{preview === theme ? '当前已应用' : '应用此主题'}}
+  </view>
+</view>

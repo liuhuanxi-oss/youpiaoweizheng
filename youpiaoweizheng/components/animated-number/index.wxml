@@ -1,0 +1,2 @@
+<!-- components/animated-number/index.wxml -->
+<text class="an">{{display}}</text>

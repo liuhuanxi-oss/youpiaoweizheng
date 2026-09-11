@@ -1,0 +1,659 @@
+# CHANGELOG · 有票为证
+
+> 给人和 AI 看的版本史。当前线上版本见 README.md 顶部。
+> 历史条目中的「拾光票根/拾光」为更名前旧称，属版本史叙述，保留不改。
+
+## 6.3.0 — 三主题系统落地 + 首页 3D IP 化（2026-09-10）
+
+- **v6.2 三主题系统（warm 暖光治愈 / blue 清晨海边 / dream 星云梦境）**：app.wxss 落地三套语义令牌（`--primary/--bg/--card/--soft/--hero-top/--hero-mid/--cat-*` 等），`utils/theme.js` 提供 getTheme/setTheme（storage 持久化 + 兼容旧体系），新增 `pages/theme` 主题选择页（三卡预览 + 即点即换），首页/票夹/票详情/我的全量变量化（齿孔票根 tk-ticket、大圆角、柔和投影），custom-tab-bar 主题跟随（组件内自声明令牌，不依赖外部作用域）
+- **v6.3 首页 IP 化五项改造**：① 主视觉从 CSS 绘制的男孩/柯基/行李箱**整体替换为 3D IP 位图 `assets/ip.png`**（从品牌视觉稿 rembg 抠图提取：戴小熊渔夫帽男孩怀抱粉色 TICKET 票根 + 灰白猫 + 相机背包，603×720 透明底）② 顶部铃铛 🔔 下线，替换为品牌 logo + 「有票为证」标题区 ③ slogan「时光不回头，票根存温柔。」保留 ④ 四快捷入口更名重绑：**票夹本📙/分类🗂 → goAlbum（switchTab）、地图足迹🗺 → goMap、回忆日历📅 → goMemoryBox（每日翻牌弹层）**，各带实时数量角标（N 张/N 类/N 城/N 天）⑤ 场景氛围按品牌视觉稿还原：`hm-sky` 三主题渐变天空 + 3 朵白云 + 左右绿植 + 暖光 radial + 地面软阴影，**禁纯色块**
+- **修复**：home.js `goAlbum` 重复定义（旧精简版无埋点无震动会覆盖完整版）——删除尾部旧定义，保留 vibrate + track 埋点版本（四入口与「更多」按钮共用）
+- **验证**：全量回归 **15 套件 504/504 全绿**（test-6.0.0 主视觉断言改为 ip.png+云/植/光 且断言旧 CSS 角色类零残留；test-4.22.0 四入口断言同步）；`node --check` 通过；wxss 括号 76/76；chromium 真实 wxss 还原三主题渲染对比图目检通过（warm/blue/dream 下 IP/云/植/光/logo 全部正常）；包体积 ≈1.1MB ≤ 2MB 上限
+- **真机回归建议**：扫码进首页应见 3D IP 场景（男孩+猫）与渐变天空；右上角**无**铃铛、品牌位是 logo+标题；四入口数字与真实数据一致；「我的→外观主题」切换 warm/blue/dream 后首页天空与 tabBar 应同步换色
+
+## 6.0.1 — v6 治愈系重构 · 启动页与 tabBar 渲染修复（2026-09-10）
+
+- **BUG 1｜v6 页面「看不见」**：app.json `pages` 首项仍为 `pages/wall/wall`，导致启动页停留在旧纸感首页——v6 的 home/album/discover 虽已注册但**没有任何入口可达**，用户扫码后观感上「5.1.0 和 6.0.0 没变化」。修复：`pages[0]` 改为 `pages/home/home`，并把 4 个 tab 页排到数组最前（首页/票夹/发现/我的），wall 及历史页保留在后
+- **BUG 2｜底部菜单栏消失**：custom-tab-bar 是自定义组件，**拥有独立渲染树，不继承 app.wxss 中挂在 `page` 选择器上的 CSS 变量**——组件内所有 `var(--v6-*)` 全部解析失败，`.bar` 背景/边框/阴影与 `.item` 文字色、`.fab` 渐变背景均失效，视觉上表现为菜单栏「不见了」。修复：在 `custom-tab-bar/index.wxss` 顶部**以组件根类 `.bar` 重新声明一份完整 v6 令牌**（与 app.wxss 同源），组件渲染不再依赖外部作用域
+- **主视觉插画升级**：首页 `v6-character-emoji`（🧒🐶🧳 emoji 占位）替换为**纯 CSS 绘制的治愈系场景**——小男孩（棕发/腮红/微笑/粉色上衣/手臂）+ 柯基（垂耳/圆眼/三角鼻/吐舌）+ 紫色行李箱（提手/白色条纹），配地面椭圆软阴影与背景光晕。设计侧交付 3D 插画 SVG/PNG 后整体替换为 image 组件即可
+- **新增回归守卫（3 条）**：① 启动页必须为 `pages/home/home`（防「改了页面没改入口」复发）② custom-tab-bar 必须自带 v6 令牌声明（防「组件内变量失效」复发）③ 主视觉插画断言改为校验男孩/柯基/行李箱三类 CSS 结构
+- **验证**：test-6.0.0.js 扩至 43 用例全绿；全量回归 **15 套 509/509 全绿**（4.17.0 → 6.0.0）；并用真实 app.wxss + home.wxss 在 chromium 中还原首页与 tabBar 渲染，确认渐变卡/圆角/阴影/插画/CSS 变量全部生效
+- **真机回归建议**：扫码后**应在首页**（顶部「有票有证」+ Slogan 胶囊 + 男孩柯基插画 + 渐变 CTA + 4 功能），**底部应有 4 tab + 中央粉色渐变 FAB**；再依次进票夹/发现/我的确认 tabBar 选中态跟随
+
+## 6.0.0 — v6 治愈系视觉重构（3D 插画风 · 新 Slogan · 4 tabBar 重构）（2026-09-09）
+
+- **背景**：按用户提供的多张《有票为证》原型图进行整体视觉重构——3D 治愈系插画风（暖米黄/淡紫/粉/蓝渐变）、大圆角 16-24px、diffuse 柔和阴影；新全局 Slogan「**时光不回头，票根存温柔。**」替代原「每一张票，都是回得去的时光」
+- **设计系统双轨**：app.wxss **新增** `--v6-*` 治愈系令牌（暖色基底/冷色辅助/粉/紫强强调/圆角/3 档 diffuse 阴影/6 类渐变/字体），旧 `--paper/--ink/--accent` 纸感令牌保留——detail/card/art/annual 等深色 Canvas 页面继续用旧令牌不被破坏
+- **4 tabBar 重构**：app.json tabBar 改 4 项「**首页 / 票夹 / 发现 / 我的**」（原 3 项「票根/回忆/我的」），custom-tab-bar 同步重写——4 tab emoji 图标 + 中间粉色/紫色渐变 FAB（所有 tab 页可见，核心上传入口）
+- **首页（home，新）**：slogan 核心展示位（v6-slogan-row 渐变胶囊）+ 3D 角色插画占位区（CSS 渐变 + emoji + 装饰 sparkle，TODO 设计提供 SVG/PNG）+ 渐变 CTA 大卡「📷 记录新票根」+ 4 功能入口（扫一扫/手动添加/足迹地图/**回忆盲盒**）+ 今日时光签 + 近期 3 张票根缩略
+- **票夹（album，从 wall 迁移）**：v6 票夹视觉——搜索框 + 横向分类 Tabs（全部/交通/演出/电影/旅行）+ 列表卡片（左 emoji 缩略/中信息/右日期）+ 那年今日·时光机 + 三分支空态；业务代码 100% 沿用 wall 全套（listTickets/分组/筛选/那年今日/空态/分享/广告位/整理模式），仅 wxml/wxss 视觉重写，路由 `pages/wall/wall` → `pages/album/album`
+- **发现（discover，改造）**：3D 城市地图占位（CSS 渐变 + 城市 pin 散落 + 飞机装饰）+ 统计行（足迹点亮 N 城市 / 累计 M 张 / 完整地图入口）+ 时间轴按月分组（展开/收起）
+- **我的（me，v6 改造）**：渐变 hero 卡（头像 + 昵称输入 + Lv 徽章 + 收藏天数）+ 4 大数据展示（票根/城市/演出）+ 主题缩略图（v6-me-theme 替代旧 pv-row）+ 次数包卡（quotaLeftNum + 渐变描边）+ 功能列表（收藏夹/时光地图/数据统计/回收站/勋章/隐私/协议/设置）
+- **scan（双模式改造）**：empty 态顶部新增 5 分类 Tab（v6-scan-tabs：交通/演出/景点/电影/其他）+ 模式切换 pill（📷 拍照识别 / ✍️ 手动输入）；手动模式点「开始填写」直接跳 done 空表单（v6Type 作为默认类型）
+- **核心合规保留**：me 页 nickname input **保留 `id="nickInput"`**（4.22.0 BUG 修复防回归：selectComponent 对原生 input 无效，靠编程聚焦唤起键盘）+ 兜底胶囊 **catchtap="onNickAssist"**（catchtap 防冒泡）+ 隐私弹窗 `<privacy-sheet />`（chooseAvatar/nickname 走官方授权弹层）+ ICP 备案号「粤ICP备20010271号-11X」+ `copyIcp`（4.22.2 工信部合规）
+- **3D 插画资源待生产期补全**：首页/票夹/发现/我的的 3D 角色/城市/物品插画当前以「CSS 渐变 + emoji」占位（标注 `<!-- TODO: 设计提供 SVG/PNG 资源 -->`），不影响交互与功能；视觉一致性已通过 design tokens 锁定
+- **v6 设计简化（与历史业务的功能取舍，已写入测试断言）**：me 页 buyPack/vipNotify/sig-why/删除权 onSigClear 等旧业务被 v6 列表「设置」「数据统计」「回收站」统一收纳；quotaLeftNum 大字 + v6 渐变描边替代旧金描边；nickname 业务（avatar/refreshProfile）100% 保留
+- **验证**：新增 test-6.0.0.js 40 用例（设计令牌/tabBar/home/album/discover/me/scan/业务完整性），全量回归 **504/504 全绿**（14 套历史 + v6.0 40）；修复过程中修测试资产 4 处过期断言（4.20.0 / 4.22.0 / 5.1.0 主题预览类名同步 v6）
+- **真机回归建议**：扫码进首页看 slogan + 4 功能 + 近期票根；进票夹看搜索+分类+列表+空态；进发现看地图+时间轴；进我的看 hero 卡+主题切换+功能列表；点中央 FAB 上传一张票；scan 顶部 5 分类 + 手动模式
+- **备注**：3D 插画素材（角色/城市/物品）生产期由设计提供独立 SVG/PNG 资源替换 emoji 占位；其余前端实现完整，**UI 框架 100% 就绪**
+
+## 5.1.0 — v5.0 更新版方案验收补全 + 提审加分项（C1/C2 合规对齐 / E2 上传进度 / W1 搜一搜 / L2 邀请文案 + G1 年报 / S3 模板 / D1 / D2 / V4）（2026-09-09）
+
+- **背景**：基于《有票为证v5.0最终迭代方案（2026-09-09 更新版，1788938）》执行——较上版新增 7.x 合规/体验/裂变维度；本轮按确认范围完成 **P0 验收新增 5 项 + 提审加分项全做**
+- **P0 · C1 隐私指引对齐（核查结论：已对齐）**：全库复核隐私接口调用点（chooseMedia×scan / saveImageToPhotosAlbum×card/art/annual / chooseAvatar+nickname×me），与 4.22.2 申报口径一致（摄像头/选中的照片或视频/相册仅写入/昵称头像）；**无位置调用**（申报移除正确）；annual 新页仅复用已申报项，后台**无需新增申报**；annual 补挂品牌化隐私弹窗 `<privacy-sheet />` 与 card/art/scan 一致
+- **P0 · C2 权限按需（核查结论：现状已满足）**：相册读=点上传才 chooseMedia；相册写=点保存才触发；昵称头像=me 页自愿设置；位置零调用——无「一进来就要授权」路径
+- **P0 · E2 上传中状态**：scan 上传/识别流程补**阶段化进度条**（照片已就绪→上传压缩 20%→OCR 认字 55%→AI 理解票面 85%），渐变进度条 + 阶段小字，不再干等
+- **P0 · W1 搜一搜（代码侧已具备 + 后台指引）**：交付《v5.1-合规核查C1C2与搜一搜指引W1.md》——名称不建议改（品牌资产），简介/服务搜索关键词建议随首次提审一并提交
+- **P0 · L2 双人邀请文案**：duo 未绑定态邀请按钮改双行「把这本收藏册发给 TA / 点开分享卡片即可绑定」；分享标题情感化「我把咱俩看过的时光收成了收藏册，给你留了位置」+ 分享图换品牌 logo
+- **加分项 · G1 年度时光报告（决策1「现在就做」）**：新增 `pages/annual/annual`——端上聚合（总票数/票钱/城市/演出场次/最早/最近/最贵）→ **1080×1920 9:16 竖版 Canvas 长图**（纸感 + 四宫格 + 时光深处三张特别票 + 署名尾款 + S2 水印）→ 存相册/分享带图；入口：首页金刚区「❖ 时光年报」（有票根才显示）；0 票空态/失败重试齐备
+- **加分项 · S3 分享文案 3 模板**：card 分享区加「文艺/晒票/邀约」三个可选分享按钮（各自 open-type=share + data-tpl），onShareAppMessage 按模板出票名文案，默认分享保留
+- **加分项 · D1 原图放大**：detail 照片点击全屏预览（previewImage 双指缩放）+ 右下放大徽标；纸票占位不可点
+- **加分项 · D2 AI 文案打字机**：detail AI 纪念文案 30ms/字逐字显示 + 光标闪烁；换一句/离开页面清计时器不串台
+- **加分项 · V4 主题切换预览**：me 页三主题从纯色块升级为**迷你票根墙预览卡**（底色 + 两枚小票卡 + 强调色指纹圆点），点击即切换
+- **加分项 · V2 票根卡微阴影（核查结论：现状已满足）**：ticket-card 已有三主题 `--card-shadow` 立体投影，无需重复叠加
+- **验证**：新增 test-5.1.0.js 21 用例 + test-annual-layout.js 16 用例（mock canvas 断言 4 种数据形态年报绘制不越界、水印/署名/指标齐），全量回归 **464/464 全绿**（12 套历史 + v5.0 18 + v5.1 21 + 年报布局 16）
+- **真机回归建议**：上传一张票看进度条推进；duo 邀请分享卡片标题；detail 点照片放大 + 换文案看打字机；card 三个分享模板按钮；me 主题缩略图切换；首页金刚区进年报 → 保存/分享 9:16 长图
+- **提审提醒**：后台按对照表重报隐私指引（位置已删、4 项动词短句说明）+ 按 W1 指引补简介/服务搜索关键词
+
+## 5.0.0 — v5.0 最终迭代 · P0 全集（V1 空态重设计 / S1 小红书竖版 / S2 品牌水印 / A1 飞行动效）（2026-09-09）
+
+- **范围**：按《有票为证v5.0最终迭代方案》实施 P0 全集（用户确认）；P1/P2 全部进《v5.x 后续优化建议清单》待评估，未实施
+- **V1 · 新用户空态重设计**：wall 页空态拆三分支（搜索无果 / **0 票根新用户** / 该类没有票根）——0 票根时展示手绘空白收藏册插画（虚线封面 + 和纸胶带 + 品牌字 + 票根虚位占位「第一张票根，放在这里」），文案「上传第一张票根，开启你的时光档案」+ 醒目上传按钮；此前纯 0 票根走「这一类还没有票根」文案语义错位；theme-b 深色主题同步适配
+- **S1 · 小红书竖版海报**：card 页新增「📕 存图发小红书」——主画布截图后经离屏画布（`wx.createOffscreenCanvas`）装裱成 **1080×1440 标准 3:4 竖版**（contain 完整呈现不裁切，纸色/墨色底随卡片风格适配，poster 深底出收藏册质感），带埋点 `poster_save.xhs=1`；`onShareAppMessage` 补 `imageUrl`（画布导出 promise，失败降级默认截图）
+- **S2 · 海报品牌水印**：art 时光版画右下角补「@有票为证 · 你的时光档案馆」（22px 褐灰小字，此前转发出去是裸图）；小红书导出图同款水印（深浅底随风格配色）；**card 四风格主图保留原有「有票为证 · 让时光有迹可循」落款不重复叠加**（双重品牌字打架，S2 语义已由落款覆盖）
+- **A1 · 上传成功飞行动效**：scan 保存成功盖章动效之上叠加「票根飞入收藏册」——0.48s 起飞 + 760ms 缩小下坠微旋飞向票根墙（`fly-home` 关键帧），总时长 1.24s 正好衔接既有 1.25s 返回时序，节奏不变；手填无图不飞（不空框）
+- **F1 · 延迟授权核查**：现状已满足——收票流程（云函数静默 openid + chooseMedia 微信规定隐私弹层）无任何强制授权前置，无需改动
+- **F3 · 首次免费 AI 重绘**：现状已满足——4.21.0 已上线「每月免费 3 幅 + 激励视频补幅」，首免 1 幅被完整覆盖，无需改动
+- **验证**：新增 test-5.0.0.js 18 用例（V1×6 / S1×6 / S2×3 / A1×3），全量回归 **427/427 全绿**（含 test-4.17.0 ~ test-4.22.5 全部历史套件）；顺带修复 3 处历史测试过期断言（4.19.0 额度用尽改断言 paywall 组件、cover→contain 跟随 4.22.3、4.19.1 fallback 移除跟随 4.22.5，4.17.0 mock 链补 4.21.0 track 依赖）——均为测试资产维护，业务代码零改动
+- **真机回归建议**：新用户首进首页（空册插画 + 上传按钮）；上传第一张票（盖章+飞行动效）；card 页「存图发小红书」（3:4 + 右下水印）；art 页存图（右下水印）；四主题下空态与水印配色
+
+## 4.22.5 — 代码BUG审查 12 项整改（P0×3 / P1×5 / P2×3；⑪ 报告自述可接受不改）（2026-09-09）
+
+- **背景**：基于《代码BUG审查报告-v4.22.4》逐条定位修复，全程不动业务功能；回归 **209/209 全绿**（147+40+22 新守卫）
+- **P0**：①card 分享落地移除「未命中 fallback 自己第一张票」——好友点开分享卡不再看到错票，落 notFound 空态（同场角标/文案不再错位）；②duo「双人卡片」改传最近共同票根 id（stats.recent[0]），无共同票跳完整时间线——此前依赖被删的 fallback 会显示自己的票；③`weekday` 加守卫（空/非 YYYY-MM-DD/Invalid → 空串），杜绝「周undefined」与残缺日期补全误导
+- **P1**：④图版编号展示位 clamp≥1（storage 异常/首次中断不再「Plate No.00」）；⑤票价编辑先 trim——纯空格 `Number(' ')=0` 不再被误存「0」；⑥支付轮询 8→15 次（≈12s→22s），微信发货推送高峰不焦虑，超窗仍由云函数幂等发货兜底；⑦wall `adsNativeId` data 预置空串（首次渲染不再 undefined）；⑧ai.js 函数内重复 require 提模块顶部（weather.js 无依赖、无循环风险）
+- **P2**：⑨`goTimeline`（实跳 detail）改名 `goRecentDetail`（js+wxml 同步无残留）；⑩me 页 `onNickInput` 不可达的 `_savedNick` 初始化移除（快照统一由 onNickFocus 负责）；⑫wall T5 引导 storage 读写加内存镜像 `t5ReadAsk/t5WriteAsk`（读写双写、镜像与 storage 永不失配）；⑪云模式前端排序——报告自述「200 条限制下无影响、未来优化」，不改
+- **验证**：新增 test-bugfix-4.22.5.js 22 用例（11 条静态特征断言 + weekday/票价纯逻辑行为断言），全量 **209 用例全绿**；纯前端，上传开发版本 4.22.5
+- **真机回归建议**：分享卡给好友点开（空态）；双人空间「双人卡片」（带最近共同票）；异常日期票根卡面；图版首幅编号；支付正常购买
+
+## 4.22.4 — 修复：纪念卡片页画布整块空白（canvas 初始化与取票时序竞争）（2026-09-09）
+
+- **缺陷**：card 页风格胶囊/按钮都在，但卡片预览区整块空白（深色主题下为一整块黑）——**canvas 挂在 `wx:if="{{t}}"` 下，onReady 与异步取票存在竞争**：取票慢（云函数冷启动/弱网）时 onReady 先跑、t 还是 null → canvas 节点未挂载 → 旧逻辑 warn 后 return 且**再无重试**；票到货后无人补初始化，画布永远空白。取票快（本地缓存）则正常，故偶发难复现
+- **修复**：canvas 初始化改为**幂等自愈**——抽 `_ensureCanvas()`（已初始化直接返回；拿不到节点 200ms 重试，最多 10 次）；三个入口全部接入：onReady / onLoad 票到货 setData 回调 / draw() 任意入口（风格切换、署名回包）未初始化时先自愈再绘
+- **验证**：全量回归 **187/187 全绿**；纯前端，重新上传开发版本 4.22.4 提审
+- **备注**：与 4.22.3（art 页导出裁切）为两个独立缺陷，本版同时包含
+
+## 4.22.3 — 修复：时光版画「存入相册」导出图裁切（cover→contain 完整装裱）（2026-09-09）
+
+- **缺陷**：art 页预览完整、存入相册后版画左右被裁（主票切半、副券消失）——`_compose()` 用 **cover（Math.max）**把横版 AI 图铺满 1080×1440 竖版画布，超出部分被裁；预览走 image 组件完整显示，两条链路构图不一致
+- **修复**：cover → **contain（Math.min）完整装裱**——先铺纸色底（#F4EFE6 装裱语义），图完整居中、视觉重心略上移（dy clamp 保证任何图比例不出界），藏品签落底部留白区不再遮挡票面；标题截断 12→14 字减少「…」出现
+- **验证**：四种图比例（3:2 / 16:9 / 3:4 同比例 / 方图）构图数学全过（图完整、签不越界）；全量回归 **187/187 全绿**
+- **部署**：纯前端，重新上传开发版本 4.22.3 提审
+
+## 4.22.2 — 隐私审核驳回整改 + ICP 备案号挂载（2026-09-09）
+
+- **背景**：ICP 备案通过（粤ICP备20010271号-11X）；《用户隐私保护指引》审核驳回，5 项被点名「说明内容不符合接口使用场景」——其中**「位置信息」为多报**（代码零位置 API，无 getLocation/无 requiredPrivateInfos），其余 4 项说明格式与微信官方期望不符（官方社区 2025-2026 口径：**动词开头短句、直接对应接口动作**，如「保存图片」「拍摄上传图片」）
+- **后台整改（运营侧操作，见《隐私指引重新提审对照表-20260909.md》）**：位置信息整项删除；昵称头像/照片视频/摄像头/相册仅写入 4 项说明按官方句式重写（如「上传票根图片，用于识别生成数字收藏册」「保存小程序生成的纪念卡片与版画图片」）；填写三禁——禁读取语义、禁跨接口目的语、禁长段落
+- **ICP 备案号挂载（代码侧，纯前端）**：wall 首页底部 + me 页合规区底部新增 icp-row 页脚注（粤ICP备20010271号-11X，点击复制——小程序内无法直跳工信部站点）；protocol.js 隐私协议与用户协议「联系方式」补备案号——未挂备案号的代码版本提审必挂，先行闭环
+- **验证**：+1 断言（wall/me 备案挂载 + copyIcp），全量回归 **187/187 全绿**（147 + 40）
+- **提审顺序**：先过隐私指引审核 → 再提 4.22.2 代码版本 → 通过后发布（隐私接口权限随发布生效）
+
+## 4.22.1 — 首页视觉质感升级：品牌头放大 + 线框图标 + 深墨画廊牌 + 主题氛围晕染（2026-09-08）
+
+- **背景**：4.22.0 真机验收通过后用户反馈「首页设计的还是不够美观大气」——本轮**不加新模块，专做质感**（克制路线：模块骨架已对，差的是材质与细节），回归 **186/186 全绿**
+- **品牌头放大 + 时令签**：brand-name 44→**54rpx**（字距 7rpx）、印章 stamp 76rpx 圆角 20；右上角新增 **brand-meta 时令签**（bm-date 实时「N月N日 · 周N」+ bm-sub「时光收藏册」金字字距 5）——头图从一行小字升格为有日期感的册扉
+- **金刚区图标升级**：字符图标 → **feather 线框 SVG mask**（相机/心/地图钉/画框，data-uri + background-color 控色），纸感底 80rpx + 1.5rpx 细边替代扁平色块；theme-b 深色下图标提亮（#E8906A/#F08FA6/#8FB8CC/#D9B36A）
+- **双格卡改版**：左「时光小记」改**大字数据排版**（dc-num 58rpx 衬线 accent +「张 · 本月收进」单位跟随）；右侧运营位从金渐变促销牌改**深墨画廊牌**——165deg 墨色渐变 + 金色 radial 压角 + border-left 金线 + ◈ 金色水印压角 + 金描边「去画画 ›」pill；文案改「时光美术馆 / 把一张票，变成画 / 去画画 ›」（从叫卖语气变美术馆语气）
+- **主题氛围晕染**：A/B 主题顶部 wash-layer radial 晕染（A 暖橘 / B 霓虹紫粉，380rpx 高 z-index 0 不挡内容）——首屏不再从纯色硬起
+- **验证**：+4 断言（品牌头/时令签、SVG mask ×4、画廊牌深墨渐变、A/B 晕染）+ 2 处断言随语义同步（dc-line1→dc-line2、去美术馆›→去画画›），全量 **186 用例全绿**（147 + 39）
+- **部署说明**：纯前端改动（wall 三件套），**无需重新部署云函数**
+
+## 4.22.0 — 虚拟商品即时到账 + me 页授权修复 + 首页模块化升级（2026-09-08）
+
+- **背景**：三项开发需求——①次数包购买流程优化（虚拟商品模式，去物流等待，支付即到账 + 异常兜底）；②me 页头像/昵称多次点击无法拉起授权（缺陷排查修复 + 官方头像昵称填写能力确认）；③首页视觉与交互升级（模块化 + 动效 + 性能兼顾）。回归 **182/182 全绿**（147 旧 + 35 新），云函数已部署
+- **① 次数包虚拟商品化（即时到账三件套）**：
+  - **payConfirm action（主动确认即发货）**：收银台 success 后前端立即调用，服务端当场查微信侧真实状态（query_order，绝不轻信前端「已支付」声明），paid → 立即发货 → 次数入账。把「被动等发货推送」改成「秒级主动确认」，无任何物流/等待语义；delivered 幂等短路（重复确认不重复发货、不再查单）
+  - **掉单自愈**：quotaGet 读额度时顺带对账本人滞留 created 单（下单>60s 且距上次对账 ≥10s 限频，最多 3 单）——支付成功但前端断链/推送延迟的「掉单」，用户下次进入 art/me 页即静默补发到账，无需手动操作
+  - **超时关单**：微信侧明确未支付 + 下单超 15 分钟 → 订单标 expired（不留无限滞留垃圾单）；查单失败/异常一律 pending 回前端轮询兜底（推送最终幂等补发，双保险）
+- **② me 页头像/昵称修复**：**根因**——me 页是全项目唯一漏挂 privacy-sheet 的隐私能力页（chooseAvatar/nickname 受《用户隐私保护指引》管控，无自定义授权弹层时真机反复点击无响应；另 MP 后台需申报「微信头像/昵称」两收集项）；**修复**——me.json 注册 + 挂载 privacy-sheet，open-type 触发时走官方 agreePrivacyAuthorization 授权弹层，同意后能力正常拉起；顺带修 `onNickAssist` 失效兜底（原生 input 无 selectComponent/focus()，改绑 `focus="{{nickFocus}}"` 属性编程聚焦，聚焦/失焦复位可重复触发）；type=nickname 键盘上方「使用微信昵称」一键填入在隐私同意后自然出现（可手动输入/粘贴）；头像按钮补按压反馈
+- **③ 首页 wall 模块化升级**：品牌头压缩留白让首屏给内容；新增**金刚区**（扫一扫收藏/双人空间/足迹地图/时光美术馆 4 入口纸卡，错峰上升入场，美术馆入口有票才显示）；新增**时光小记·美术馆双格卡**（左=数据内容展示「本月 N 张 · 已攒 N 张 · 点亮 N 城 · 最早来自 YYYY」，右=美术馆运营位 CTA 把票变成画 → art 页，衔接次数包转化）；骨架屏扩充对齐新模块（金刚区×4/搜索条/双格卡）；下拉弹性 refresher 与票卡 stagger 保留；theme-b 深色主题变量补强；整理/搜索/广告位（index===1）逻辑零改动
+- **验证**：+35 断言（payConfirm 路由·只信微信侧·幂等短路·15min 关单·pending 兜底·掉单自愈行为级·quotaGet 限频·refunded 对账 / me 隐私挂载·focus 兜底 / 金刚区·双格卡·骨架·动效·主题），全量 **182 用例全绿**；云函数已部署（packSize 见部署日志）
+- **真机验收路径**：次数包购买 → 秒级到账（不再「确认到账中」长等）；杀进程重进 art/me → 掉单自愈到账；me 页首次点头像/昵称 → 隐私弹层 → 同意后键盘上方「使用微信昵称」可用
+
+## 4.21.0 — 变现层 UI 改造：流量主广告基建 + 品牌化付费墙 + 额度可视化（2026-09-08）
+
+- **背景**：UI 全面审查（正常毒舌版 😈）结论——设计系统 9 分、变现基建 0 分：全项目零广告位、付费关键时刻用系统弹窗、额度是隐形资产、me 页「即将上线」死卡占黄金位。本轮按 P0→P1→P2 全部落地，回归 **147/147 全绿**
+- **P0 · 广告基建（utils/ads.js 新建）**：三个广告位（art 激励视频 / detail 底部 Banner / wall 流内原生模板）ID 集中配置、默认空串——**未配置 = UI 全降级零入侵**，流量主开通后 MP 后台建广告位回填 ID 即生效；激励视频 promise 化封装（showRewarded 一律 resolve 不 throw，onClose 判 isEnded 防中途退出白拿奖励）；广告位统一「纸卡容器 + 眉题『时光 · 赞助内容』」装裱——theme-b 深色主题下平台白底广告呈现为画框而非裸贴补丁
+- **P0 · art 品牌化付费墙**：额度耗尽不再用 wx.showModal 系统弹窗——改 bottom-sheet 品牌化弹层（时光版画预览 + 双轨出路：「次数包 ¥6/10 幅」橘描边主动作 +「▶ 看一段视频免费补 1 幅」流量主动作，双守卫 rewardReady && rewardLeft>0，广告位未配置/当日达限自动隐藏）；演示模式保留轻提示
+- **P0 · 额度可视化**：art 页免费额度升级为 3 格印章格（空心=可用/实心=已用）+ 次数包余量徽标；me 页次数包卡余量大字直读（44rpx 衬线金数字）——额度先被看见，才被珍惜
+- **P0 · 激励视频奖励入账（云函数 artRewardGrant action）**：看完视频 → paid +1 并入次数池（consume/refund/quotaView 零改动，扣减顺序免费→付费不变）；防刷三道闸——单用户单日 3 次上限（prefs type=ad_reward 计数器）、OPENID 归属（getWXContext 注入不可伪造）、check 预检模式（付费墙展示余次只读不扣不奖）；流量主开通后可升级微信服务端激励回调（带签名）
+- **P1 · me 页商业位收敛**：「时光会员·即将上线」死卡 → 「上线提醒我」活卡（未配置订阅模板先记录意向+埋点 vip_notify_tap，配置后走 requestSubscribeMessage；意向名单=上线当天的推送触点）；次数包卡升格为金描边商品卡（me 页商业化位收敛为 1 主）；about 弹层版本号改 wx.getAccountInfoSync 动态读取（修掉硬编码「版本 4.20.3」过期 bug）
+- **验证**：+14 断言（ads 降级守卫/付费墙结构/双页广告位守卫/死卡移除/版本号动态化/artRewardGrant 预检·入账·限额·隔离行为用例），全量回归 **147 用例全绿**；云函数已部署
+- **开通流量主 checklist**：MP 后台开通流量主 → 建 3 个广告位（激励视频/Banner/原生模板）→ utils/ads.js 回填三个 ID → 订阅消息模板（上线提醒）回填 VIP_SUB_TMPL_ID → 真机验证激励视频发奖与日限额
+
+## 4.20.5 — 合规审计加固：art 页隐私弹窗补齐 + 管理 action 密令 + 天气服务披露（2026-09-07）
+
+- **背景**：用户已在 MP 后台更新《用户隐私保护指引》→ 触发全面隐私合规与上线就绪性排查（七面：采集/存储/传输/展示/配置权限/脱敏/测试覆盖），发现 3 个风险点当场修复闭环，回归 **130/130 全绿**
+- **P1 · art 页隐私弹窗补齐**：票根博物志「存入相册」（saveImageToPhotosAlbum）未挂 privacy-sheet——用户从该页保存只能收到平台默认弹窗，与 scan/card 品牌化弹窗不统一；art.json 注册 + art.wxml 挂载，**隐私弹窗三页齐全**
+- **P2 · goodsImgSetup 密令加固**：4.20.0 遗留管理 action（道具图上传，HTTP API 通道）原无鉴权——加 opsToken 校验（=config.pay_secret.appKey，与 opsCleanup 同密令），遗留管理入口收敛最小暴露面；测试补「无 token 拒绝」行为用例
+- **P2 · Open-Meteo 披露**：隐私协议补天气服务披露（按票面城市静态坐标查询，仅传城市坐标与日期，不含身份信息/实时位置）——协议与实际数据流完全对齐
+- **排查结论（七面全过）**：①采集——6 类收集点与指引逐项对应，位置/剪贴板/麦克风等零调用（指引不声明=正确）；②存储——本地 storage 全为偏好键，署名云端可一键删除，前端零 sessionKey；③传输——前端零直连，云函数出网仅微信官方/腾讯位置/Open-Meteo 三来源全 HTTPS；④展示——分享卡不带身份信息，他人票仅行内展开；⑤权限——全 action `_openid` 归属过滤（duoStats `_.in([me,partner])`），管理 action 密令全覆盖；⑥脱敏——埋点 tid 后 6 位/60 字截断、异常上报 600 字截断+5 条节流、云函数零敏感日志；⑦测试——核心链路 100% 自动化断言
+- **平台侧确认项（无代码改动）**：config 集合权限锁死（pay_secret 防泄漏）· 云存储私有读 · 指引生效状态 · 消息推送指向 · 真机九步+支付一单 · opsCleanup 清残留
+- **验证**：+3 合规断言 +1 拒绝分支用例，全量回归 **130 用例全绿**；交付《隐私合规与上线就绪排查报告-4.20.5.md》
+- **opsAudit 只读巡检（同日追加，opsCleanup 配套验收工具）**：只查不删——返回各集合计数（tickets/couples/prefs 六 type）+ config 就绪状态（offerId 掩码、appKey 永不回显），用于「清理前看残留 → cleanup → 清理后验全 0」三步验收闭环；同 opsToken 密令；测试补 mock `where().count()` 支持 + 3 条用例（无效 token 拒绝/计数与掩码结构/只读不删），回归 **133 用例全绿**；云函数已部署
+
+## 4.20.4 — 上线前终验：默认头像去假数据 + opsCleanup 数据清理 + 隐私口径同步（2026-09-07）
+
+- **背景**：上线前五项终验（清测试数据 / 隐私指引核对 / 真机验收 / me 页假数据 / 支付联调）——其中两项可直接代码闭环（假数据、清理工具），其余交付可执行清单
+- **me 页假数据双层处置**：①硬编码层——me.wxml 头像兜底字「浪」（「流浪唱片」的可见残影）替换为品牌 logo 默认头像 `brand-logo.png`，未设置署名时不再显示任何假数据（昵称位保持「点击设置昵称」引导 placeholder）；②云端残留层——真机测试设置的昵称「流浪唱片」在云端 `prefs type='user_profile'`，由新 opsCleanup 清除（me 页「清除署名资料」入口亦可随时手动删）
+- **opsCleanup 数据清理 action（云函数，已部署 packSize 30778）**：上线前把库清回「真实、干净」——`tickets`（测试票根）· `couples`（测试绑定）· `prefs` 六类（pay_order 测试订单 / auth_session 测试会话 / user_profile 测试署名 / art_quota 测试额度 / art_job 生图任务 / wxacode_poster 码缓存）；**保留 config（支付凭证）与 prefs 其余类型**；防滥用：opsToken 必须匹配 config.pay_secret.appKey（不引入新凭据）；幂等可复跑（第二遍全 0 即净）；触发：开发者工具 → 云函数云端测试 `{"action":"opsCleanup","opsToken":"<appKey>"}`。说明：微信侧 xpay 订单记录无法由此清除（沙箱订单不影响现网）
+- **隐私口径同步（协议页）**：隐私协议中 4.20.0 旧表述「授权登录资料…用于个人资料展示及后续官方活动展示」更新为 4.20.3 署名口径（纯可选设置 · 卡片落款/年报尾款/我的页展示 · 「我的-清除署名资料」一键删除 · 不影响核心功能）——与后台《用户隐私保护指引》填写口径一致，避免审核问询
+- **盘点结论（隐私面干净）**：前端零位置 API（足迹=票面城市静态坐标，无需位置授权/requiredPrivateInfos）；`__usePrivacyCheck__` 已开启；相机用途已声明；privacy-sheet 走官方 `onNeedPrivacyAuthorization` 标准姿势；收集面共 6 类（照片/相机/相册写入/头像/昵称/订单）
+- **主包体积**：888 KB（上限 2MB，余量充足）
+- **验证**：新增 4 条断言（默认头像无「浪」+ opsCleanup 落位/防滥用/清理范围），全量回归 **126 用例全绿**；交付《上线前终验清单-4.20.4.md》（隐私指引逐项填写表 + 真机九步验收 + 支付六关与联调步骤）
+
+## 4.20.3 — 署名口径落地：授权改「设置」+ 用途做实 + 删除权（2026-09-07）
+
+- **背景**：授权功能全量评估结论（grep 证实昵称头像零核心业务依赖——分享卡片、Canvas 卡面、年度报告均未引用，处于「收集了但没用上」状态）→ 五条优化建议全部落地：所有权语言、按需触发、用途做实、删除权（PIPL）、红线断言。定位从「授权收集」转为「用户主动提供的可选署名」
+- **① 语言改造（me 页）**：placeholder「点击设置昵称」、胶囊「设置昵称」（aria-label 同步）——从「授权」这一权限感措辞改为「设置」这一所有权措辞；**价值前置**：未设置署名时显示 `.sig-why` 提示「设置后，你的票根卡片与年度报告会带上你的署名」
+- **② 按需触发（card 页）**：save 成功后 1200ms 弹署名邀请 modal（`_sigHintShown` 一次会话一次，不打扰重复保存）——先让用户体验到卡片价值，再邀请署名，拒绝即不再问
+- **③ 用途做实（card Canvas + report）**：卡面三风格（classic/poster/daily）落款升级为「署名 · 有票为证 · 让时光有迹可循」（昵称超 10 字截断加「…」防溢出；journal 风格无落款行保持不变）；`_render` 分发 `sig` 第 8 参、独立绘制函数尾参透传；年度报告尾款 `—— 署名 · 时光有票为证 ——`；card onShow `_loadSignature()` 云端回显 + 署名变更即时重绘
+- **④ 删除权（PIPL 呼应）**：me 页「清除署名资料」入口（仅已设置时显示）→ modal 确认「将删除你的昵称与头像，票根数据不受影响」→ `pay.clearProfile()` → 云函数 `profileClearAction`：删 `prefs` 集合 `type='user_profile'` 文档（**幂等**——文档不存在也算成功；**最小删除**——只动署名位，票根/额度/订单零波及）→ 本地 profile 清空 + toast
+- **⑤ 红线断言（测试护栏）**：buyArtPack 函数体静态断言 `!/nickname|avatar/`——支付链路永不引用署名资料，防止未来改动越界
+- **验证**：test-4.20.0 扩至 122 用例（新增：设置昵称语言、sig-why、onSigClear 全链路、clearProfile 云端 action 一次、profileClearAction 幂等 remove、卡面署名三函数、_sigHintShown 按需触发、报告署名、支付红线），全量回归 **122 用例全绿**
+- **范围**：前端 me/card/report 三页 + utils/pay.js（clearProfile）；云函数 saveTicket 新增 profileClearAction（需重新部署）
+
+## 4.20.2 — 支付错误码表校正：GOODS_PRICE_INVALID 精确指引（2026-09-07）
+
+- **背景**：真机（iOS）拉起支付报 `requestVirtualPayment:fail GOODS_PRICE_INVALID`。排查结论：代码侧 signData（offerId / buyQuantity=1 / goodsPrice=600 分 / 现网 env=0）与后台道具（ART_PACK_10 price=600、已发布）逐项核对无误，且能报价格类错误说明签名与登录层已被微信接受；该错误对应官方错误码 **-15013「goodsPrice 道具价格错误」**，而 iOS 现网支付另有 MP 后台独立前置——「苹果 IAP 支付」开关（**默认关闭**，开了约 10 分钟生效）与「小程序简称」配置，为当前最高嫌疑
+- **humanizePayErr 错误码表校正（前端 utils/pay.js + 云函数 pay.js 同源）**：旧映射与官方错误码表错位（旧 -15002 记成「道具未发布」实为订单号重复、-15003 记成「价格不一致」实为系统错误、价格错误实为 **-15013** 且缺失）——按官方 2026-09 错误码表全量重写（-15001~-15017）；**双层匹配**：errno 数字优先，errMsg 错误名兜底（GOODS_PRICE_INVALID / GOODS_NOT_EXIST / OUT_TRADE_NO / COIN_OR_PRODUCT… 部分基础库 fail 回调只有错误名没有 errno）；buyArtPack 调用处同步传入 errMsg；-15013 文案直接携带排障清单（OfferId 逐字符核对 / 现网道具价 / IAP 开关 / 小程序简称）
+- **iOS 现网支付前置清单**（MP 后台-虚拟支付-基础配置，官方文档 2026-09）：①「是否启用苹果 IAP 支付」开关开启（约 10 分钟生效）②小程序简称已配置（Apple IAP display name 要求，未配置无法开启 IAP）③现网 env=0（iOS 不支持沙箱）④金额 ≥1 元（¥6 ✓）⑤iOS 15+ / 微信 8.0.68+ / Apple ID 已绑付款方式
+- **验证**：111 用例全绿——新增 -15002 语义修正、-15014 发布未生效、GOODS_PRICE_INVALID errMsg 错误名兜底回归用例（正是本次真机报错形态）
+
+## 4.20.1 — 授权链路修复：昵称点击兜底 + 登录失败原因透传（2026-09-07）
+
+- **背景**：真机验收反馈两问题——①「授权昵称点击无反应」：`input type=nickname` 依赖键盘上方「使用微信昵称」快捷条，部分机型（iPhone 15 Pro Max 系列 / 安卓第三方输入法）存在已知的快捷条不显示或昵称面板无响应兼容问题，且隐式交互无引导；②「授权登录失败」报错笼统：`ensureSession` 只回 boolean，云函数返回的具体原因（登录服务尚未配置 / invalid code / 串号）到不了用户眼前，排障无门
+- **昵称交互加固（me 页）**：`bindinput` 实时同步（快捷条填充后未 blur 也不丢值）+ `bindfocus` 编辑态快照 `_savedNick`（blur 对比快照而非 data——bindinput 同步后原对比永不触发）+ 编辑中暂停 `refreshProfile` 云端回显覆盖；**「授权昵称」胶囊兜底**（`catchtap` 防冒泡 → `selectComponent('#nickInput').focus()` 主动唤起键盘，绕开原生热区兼容问题）+ focus 引导 hint「键盘上方点『使用微信昵称』一键填入」（输入/离开即撤）
+- **登录失败原因透传（auth.js + pay.js）**：`ensureSession` 返回结构化 `{ok, code, msg}`（NO_CODE / 服务端 code 直传 / NETWORK / LOGIN_FAIL），`buyArtPack` NEED_LOGIN 弹窗拼接服务端具体原因（如「登录校验失败：invalid code」）——配合 pay_secret 落库完成，此类配置错误用户可自检
+- **验证**：静态断言 3 条新增（id 锚点 / 胶囊兜底 / hint 显性化）+ 行为用例沿用（登录失败透传 / 快捷填充不丢值 / 编辑态回显保护）；全量回归 **108 用例全绿**
+
+## 4.20.0 — 授权登录 + 虚拟支付接入：图版次数包（2026-09-06）
+
+- **背景**：两条主线并轨——①用户拉新推广活动需要真实授权登录（昵称/头像展示），不可移除；②虚拟支付已在 mp 后台签约开通，需要打通「图版次数包」付费链路。登录与支付的咬合点：云开发免登录架构下 openid 天然就绪，但**支付签名 signature 需要 session_key**——wx.login code → 云函数 code2Session（AppSecret 服务端持有）→ session_key 只存服务端（`prefs type=auth_session`），前端绝不落盘
+- **① 云函数 pay.js（虚拟支付服务端模块，saveTicket 内）**：官方链路 2026-09 WebSearch 核对——`paySig = HMAC-SHA256(appKey, 'requestVirtualPayment&' + signData)`、`signature = HMAC-SHA256(sessionKey, signData)`；商品表 `ART_PACK_10`（¥600 分 / 10 幅，规避 iOS 现网最低金额坑）；code2Session HTTPS 5s 超时护栏；额度模型（免费优先扣、付费兜底、失败返还、跨月免费重置付费保留）；发货错误码人话化（-15002 道具未发布 10 分钟生效 / -15003 价格分单位 / -15011 沙箱未授权）
+- **② 云函数 6 个新 action（不新建云函数）**：`authLogin`（code→code2Session→**OPENID 一致性校验防串号**→session_key 落库）、`payCreate`（config 集合读凭证→session 7 天过期判定→双签名→订单入库）、`payQuery`（订单状态+额度视图）、`quotaGet`（权威额度）、`profileGet/profileSave`（user_profile，昵称过 secCheck，**只 patch 非空字段**——单独改头像不清昵称）；**main 入口顶部拦截发货推送** `Event === 'xpay_goods_deliver_notify'`（消息推送复用 saveTicket 入口，无 action 字段）
+- **③ 发货推送幂等**：订单已 delivered 直接回 `{ErrCode:0, ErrMsg:'ok(dup)'}`；ActualPrice 与后台道具价不符 → 不发货回 `ErrCode:-1`（订单标 price_mismatch 留痕）；推送先于订单可见（极端时序）→ 兜底落 delivered 记录防丢单；Quantity 按件数发货；异常回 `ErrCode:-2` 触发微信重试
+- **④ artRestyle 服务端额度**：fire 前服务端 `consumeQuota`（免费尽 + 无次数包 → 拒绝 `NO_QUOTA` + 返额度视图）；生成失败自动 `refundQuota`；**返还记账对称性修复**——返还必须回「上次消费扣的那个池」，用免费优先铁律反推（免费池未满=上次扣的免费），而不是看当前 paid>0（后者在「买过包+免费未用完」场景会把免费消费错退到付费池）
+- **⑤ 前端 utils/auth.js**：`ensureSession(force)`——本地 24h 新鲜度 + 并发去重；**铁律：wx.login 会刷新 session_key 使旧值失效，login 成功后必须立刻 authLogin 覆盖服务端**，两步绑死
+- **⑥ 前端 utils/pay.js**：`buyArtPack()` 完整链路——ensureSession → payCreate（NEED_LOGIN → force 重登重试一次；NO_CONFIG 给 config 集合配置指引）→ `wx.requestVirtualPayment`（mode=short_series_goods；cancel 静默不打扰）→ 轮询 payQuery 1.5s×8 确认到账（超窗 → pending 提示「稍后自动同步」，不吓用户）
+- **⑦ art 页云端额度**：onLoad quotaGet 刷新（云失败回退本地）；`start()` 删本地预扣——服务端 NO_QUOTA → `_offerBuy` 购买引导 modal（购买次数包 ¥6/10 幅）；fire 成功用返回的 quota 刷新显示；额度文案 quotaLabel 区分「免费 X/3」与「免费 X + 次数包 Y」
+- **⑧ me 页授权卡 + 次数包入口**：头像 `open-type=chooseAvatar`（临时路径→云存储 fileID 持久化）、昵称 `input type=nickname`（键盘快捷授权填充），blur/confirm 即保存；「图版次数包」卡（权威额度 + 购买按钮）；拉新推广所需的资料展示能力就位
+- **凭证管理（用户侧待办）**：云开发控制台 → 数据库 → `config` 集合 → 新建文档 `_id: pay_secret` `{ offerId, appKey, appSecret, env }`（mp 后台虚拟支付基本配置复制；env 0=现网 1=沙箱）；**绝不入代码仓库**
+- **验证**：66 组新用例全过（paySig/signature 可复算、authLogin 串号拒绝、NEED_LOGIN→force 重登重试、发货幂等 dup、价格不符不发货、推送先于订单兜底、额度免费优先/返还对称/跨月、profile patch 语义、前端取消静默/-15002/-15011 人话/pending）；全量回归 **266 用例全绿**（4.17.0 40 + 4.17.1 13 + 4.18.0 48 + 4.18.1 16 + 4.19.0 47〔适配云端记账语义〕+ 4.19.1 17 + 4.19.2 7 + 4.19.3 12 + 4.20.0 66）
+- **范围**：云函数重新部署（pay.js 新增 + index.js 改造 + 6 action）；前端 auth.js/pay.js 新增 + art 三件套 + me 三件套
+- **联调依赖（用户侧）**：config 凭证 → 道具发布（10 分钟生效）→ 消息推送订阅指向 saveTicket → 沙箱（Android 测试号，iOS 不支持）→ 现网；费率 Android 1% / iOS 20%
+- **交付审查加固（2026-09-07 复核后追加，未发布前完成）**：
+  - **P0 发货推送 openid 字段修正**：官方文档核对确认 `FromUserName` 在道具发货场景固定为**微信官方的 openid**，用户 openid 在 `event.OpenId` ——原实现取错字段会导致额度发到错误归属。修正为 `OpenId || FromUserName` 双取，并补缺失字段拒绝
+  - **发货归属校验（防串单）**：下单 attach 内嵌 openid，推送回带 `GoodsInfo.Attach` —— 不一致则拒发货并留 `attach_mismatch` 审计
+  - **异常订单审计留痕**：价格不符/归属不符且本地无订单时也落记录（微信重试 15 次都过不了的场景必须有排查线索）
+  - **前端订单异常终态显性化**：轮询遇到 `price_mismatch/attach_mismatch` 立即明确报错（原实现会误导为「稍后到账」）
+  - **avatar 入参校验**：profileSave 只接受 `cloud://<env>.<bucket>/` 格式 fileID，防任意字符串写展示位；修 me.wxml `{{packPrice}}`→`{{buyLabel}}` 字段不匹配（购买按钮价格渲染为空的真 bug）
+  - **合规文本**：隐私协议补「授权登录资料/支付订单信息」收集披露与 session_key 服务端持有说明；用户协议补「虚拟商品与付费」章节（交付/到账/退款口径）
+  - 验证：test-4.20.0 扩至 **71 用例**（OpenId 字段取值、attach mismatch、审计留痕、avatar 校验、终态报错），全量回归 **271 用例全绿**
+- **官方文档精读对照加固（2026-09-07 第二轮复核后追加，未发布前完成）**：逐条对照官方虚拟支付文档（developers.weixin.qq.com 虚拟支付页），补齐 3 个代码缺口 + 1 个配置改进——
+  - **① 查单对账兜底（关键缺口）**：官方推荐「发货推送分支 + 主动查单分支」至少实现一个、**两者结合更可靠**（success 回调可能丢失，原实现只有推送分支——推送一旦丢失，用户付了钱永远不到账）。pay.js 新增 `queryOrderOnWx`（`/xpay/query_order`：stable_token + `pay_sig=hmac(appKey, uri+'&'+body)` + `signature=hmac(sessionKey, body)` 上 URL query，**签名与请求必须同一 body 字符串**；`order.status` 枚举 2=已支付待发货 3=发货中 4=已发货 5=已退款 8=用户退款完成）；index.js `payQuery` 增加对账分支：本地订单仍 `created` 且下单超 60s、距上次对账 ≥10s（限频护栏）→ 查微信侧真实状态 → paid 补发货 / refunded 标记不发货 / 查单失败维持 created 只更新 lastCheckAt。抽出公共发货函数 `deliverOrder`（推送分支与对账分支共用，幂等，同时记录 quantity 供退款回退）
+  - **② 退款推送处理（xpay_refund_notify）**：原实现完全没有退款分支——`xpay_refund_notify` 事件掉进入库主流程返回 `{ok:false}`，微信视为应答失败最多重推 15 次、且退款不扣回已到账次数。新增 `payRefundAction`：按 `OpenId + MchOrderId`（=原 outTradeNo）找订单 → 置 `refunded`（refundFee 留痕）→ 已发货订单 `paid -= 单件幅数 × quantity` **下探 0 为止**（不产生负数欠账）；RetCode≠SUCCESS 忽略；无本地订单回执成功防重推 + 落 `refund_unknown_order` 审计；重复回执幂等 ok(dup)
+  - **③ iOS 退款问询应答（xpay_subscribe_ios_refund_query_notify）**：Apple 消费争议问询 3 秒内必须应答（超时=不确定，Apple 自行裁决），应答体是 `{result_code, result_info, evidence}` 格式（非 ErrCode）且 evidence 必填。新增 `payIosRefundQueryAction`：订单已发货 → 拦截 `result_code=1` 附发货证据；未发货/未知/查询异常 → 放过 `result_code=0`（宁可误放不可误拦用户资金）
+  - **④ 沙箱/现网双 AppKey + main 入口统一 xpay_* 路由**：官方确认沙箱（env=1）与现网（env=0）是**两把不同的 AppKey**——pay.js 新增 `pickAppKey(cfg, env)`（沙箱优先 appKeySandbox、缺省回退 appKey），payCreate 签 paySig 与 query_order 签名统一走它，pay_secret 配置 schema 扩为 `{ offerId, appKey, appKeySandbox, appSecret, env }`；main 入口改为 `/^xpay_/` 统一拦截分发（deliver/refund/ios 问询各自处理，complaint/wxpay_callback/未来新事件 → `{ErrCode:0, ErrMsg:'ignored'}` 收到即成功），彻底防掉进入库主流程被重推 15 次
+  - 验证：test-4.20.0 扩至 **96 用例**（pickAppKey 双 key、沙箱 paySig 复算、对账补发货/失败限频/退款标记/60s 触发、退款扣回下探 0/幂等/留痕/RetCode 忽略、iOS 问询两分支+evidence、事件路由 ignored、deliverOrder 公共发货静态断言），全量回归 **296 用例全绿**
+- **真机反馈修复：授权登录排障黑洞 + 昵称授权交互缺陷（2026-09-07 第三轮，纯前端 4 文件，云函数无改动）**：
+  - **授权登录失败原因透传（排障黑洞修复）**：原 `ensureSession` 只返回 `boolean`——云函数 authLogin 明明返回了结构化原因（`NO_CONFIG` 凭证缺失 / `WX_ERR` 微信侧错误如 40164 IP 白名单、40029 code 无效 / `OPENID_MISMATCH` 串号 / 网络异常），前端全部吞掉，用户端永远只见笼统「登录失败，请稍后重试」，排障无门。改为返回 `{ok, code, msg}`：wx.login 失败（LOGIN_FAIL）、无 code（NO_CODE）、云函数拒绝（透传 r.code/r.msg）、callFunction 异常（NETWORK + errMsg）全部结构化；`buyArtPack` 两处登录分支把具体原因拼进弹窗文案，真机一测即可定位根因
+  - **昵称「点击无反应」修复**：排查结论——事件绑定/装饰层（grain、wash-layer、theme-flash 均带 pointer-events:none）/bottom-sheet（wx:if 卸载）/渲染器（WebView 非 Skyline）全部无结构性 bug，真实缺陷有两个：①键盘「使用微信昵称」**快捷填充后不触发 blur** → 填了没保存（看起来没反应）；②`onShow` 的 `refreshProfile` 云端回显**与输入竞态**，输入中途切页回来内容被云端旧值覆盖。修复：input 增 `bindinput`（实时同步 data，快捷填充不丢）+ `bindfocus`（进入编辑态 `_nickEditing` + 快照已保存值 `_savedNick`），blur 改与快照对比（原与 data 对比——bindinput 同步后永不相等，会导致永不保存，此为连带真 bug），`refreshProfile` 编辑中跳过 profile 覆盖（额度照常刷新）
+  - 验证：test-4.20.0 扩至 **105 用例**（新增 6：登录失败透传 code+msg、buyArtPack 弹窗含服务端原因、昵称 bindinput/bindfocus、_savedNick/_nickEditing、编辑中防覆盖、ready.ok 结构化消费），全量回归 **305 用例全绿**
+  - **范围**：仅前端 utils/auth.js、utils/pay.js、pages/me/me.js、me.wxml；saveTicket 云函数 28869 版本不变无需重部署
+
+## 4.19.3 — 票根博物志调用链修复：empty 死路打通 + 相机权限声明 + 授权拒绝引导（2026-09-06）
+
+- **现象**：真机反馈「无法选择票根、无法打开相册、无法打开摄像头」。排查结论：票根博物志（art 页）设计上**不含相册/摄像头能力**——底本固定为已收藏票根的存档照片（云存储 fileID），正宗的照片入口只在收票页（scan）。三个症状同源：①empty 态（票根无照片）文案引导「先去补一张票根照片」但全 app 无补照片功能——死路；②art 页入口层级深（详情页 FAB 二级子钮），用户预期「选票根/选照片」无对应入口
+- **修复**：
+  - **art empty 态打通出路**：「📷 拍照 / 选票根照片」主按钮直达收票页（redirectTo 替换空态页），「返回详情」降为次按钮
+  - **scan.js chooseMedia fail 补「授权拒绝」档**（4.9.4 只有隐私未声明与透出原文两档）：auth deny/authorize/permission 系列 errMsg → 人话 modal「需要相机/相册权限」+ openSetting 一键去开
+  - **app.json 补 permission.scope.camera 用途声明**（拍摄票根照片…）——chooseMedia 拍照授权弹窗的品牌化描述
+- **验证**：12 组新用例全过（fail 四档路由：auth deny→openSetting / privacy 未声明→指引 / cancel 静默 / 未知透出；empty 出路；静态断言）；全量回归 188 用例全绿
+- **范围**：纯前端（art 三件套 + scan.js + app.json），云函数无需重新部署
+
+## 4.19.2 — 诊断增强：全局异常自动上报 + 真机白屏排查闭环（2026-09-06）
+
+- **背景**：4.19.0 真机持续反馈「纪念卡片页四个风格没显示」。代码层静态排查穷尽（wxml 结构/wxss 布局与配色/data 静态数组/privacy-sheet 组件/wxacode action/主题覆盖全部正常）——唯一在代码层成立的「整页不渲染」机制就是 4.19.1 已修的 t=null 白屏，但真机实况缺证据链
+- **① 全局异常自动上报（app.js）**：`App.onError` / `App.onUnhandledRejection` → 复用 4.17.0 埋点双通道（mp 后台自定义分析 `js_error`/`js_rejection` + 本地环形缓冲）。单会话节流上限 5 条防错误循环刷爆。**真机 JS 错误从此不再依赖用户开调试面板**——用户复现一次，后台直接拿堆栈
+- **② card 页 onReady 诊断日志**：canvas 节点初始化失败从静默 return 改为 console.warn 留痕
+- **验证**：7 组新用例全过（双钩子挂载/逐次上报/节流在 5 条/reason 上报/fresh require 隔离）；全量回归 181 用例（4.19.1 17 + 4.19.0 47 + 4.18.0 48 + 4.18.1 16 + 4.17.0 40 + 4.17.1 13）全绿
+- **范围**：纯前端（app.js + card.js 两行诊断），云函数无需重新部署
+
+## 4.19.1 — 热修：纪念卡片页空票白屏（「四个风格都没显示」的根因）（2026-09-06）
+
+- **现象**：真机进纪念卡片页，四个卡片风格胶囊全部消失（用户表述「卡片风格都没显示」）；页面实际为**整页未渲染**——海报、保存/换文案/分享按钮一并消失，只剩导航栏
+- **根因**：card.wxml 整页内容都挂在 `wx:if="{{t}}"` 下，而 card.js onLoad 是 `if (!t) return;` 静默返回——**票根未命中 = 整页白屏死透**。4.18.0 修 detail 空票白屏时同款问题漏了 card 页；且取票链路（`getTicket → doc 直查 → 回退 listTickets`）无 try/catch 包裹，上游任何一次 reject 都会让 onLoad 直接抛异常，连空态的机会都没有。命中场景：过期/异常 id、云库偶发超时、分享落地旧链路
+- **修复（三层）**：
+  - **card.js**：onLoad 取票链路整体 try/catch；t=null → `setData({ notFound: true })` 落空态（不再静默）；补 `goScan()`（redirectTo 扫描页，与 detail 4.18.0 空态同款）与 `goBack()`（navigateBack + 无页面栈 reLaunch wall 兜底）
+  - **card.wxml/wxss**：`wx:elif="{{notFound}}"` 空态分支——「这张时光券不在你的册子里」+ 去收第一张票 + 返回看看；深色底适配的浅色空态样式（与 card 页海报氛围一致）
+  - **store.js 白屏防火墙**：listTickets 云库失败兜底分支里的覆盖层调用（applySortOverrides/applyCaptionOverrides，读 storage JSON 可能因数据损坏抛错）再包一层 try——**兜底代码自身绝不能再抛**，最坏返回裸演示数据
+- **验证**：17 组新用例全过（wxml 分支/onLoad 三路径：命中、未命中空态、reject 不抛；空态动作；分享兜底；兜底防火墙静态断言）；全量回归 4.19.0（47/47）+ 4.18.0（48/48）+ 4.18.1（16/16）+ 4.17.0（40/40）+ 4.17.1（13/13）
+- **范围**：纯前端修复（card 三件套 + store.js），云函数无需重新部署
+
+## 4.19.0 — 票根博物志：艺术图版 MVP（2026-09-06）
+
+> 对应《票根博物志-艺术重绘功能方案》阶段一 MVP：一张票根，一幅藏品图版。
+
+- **① 云函数 artRestyle（saveTicket 新增 action，不新建云函数）**：`artRestyle.js` 接入云开发 AI+ 混元图生图（`hunyuan-image` / `HY-Image-v3.0-I2I-ToB`，revise 图生图）——票根照片为底本重绘 vintage 收藏版画。**五块式提示词**（STYLE/SUBJECT/SIMPLIFY/TEXT/NEGATIVE），TEXT 块明确 `Do not add any captions…`——**图归图、字归 Canvas**：中文标注让生图模型画乱码概率极高，画面全交模型，文字全部由前端精确叠加。生成结果 `res.data[0].url` 为 24h 临时链接，**必须转存云存储**（`art/art-*.png`）后回写 job 与票根 `artVersion`
+- **② 启动+轮询异步模式**：生图 10-60s，前端 callFunction 约 15s 必超时——artRestyle 建 job（`prefs` 集合 `type:'art_job'`）后**同步跑完生图**（前端断开云函数继续执行到完成回写）；前端每 4s 轮询 `artQuery` 拿状态。防重入：同票已有 running job 直接复用不重复生图。前端 `fire 超时兜底`：callFunction 超时后先查一次 job，running/done 则续轮询不误判失败
+- **③ 本地免费额度 + 藏品编号**：`sp_art_quota {ym, used}` 每自然月 3 幅免费（跨月自动重置）；fire 预扣、failed 返还、done 保持已扣；`sp_art_total` 全局藏品编号（Plate No.XX 两位补零，预占不回收）
+- **④ pages/art 四件套（第 12 页）**：六态状态机（loading/lost/empty/idle/running/done/failed）——无照片引导、演示票拦截（云库挂不上 job）、作画中晕染呼吸动画（10-60s 预期管理）、done 装裱框展示 + 底部藏品编号、failed 可重试；「存入相册」= Canvas 合成（AI 图 cover 铺满 1080×1440 + 左下米白藏品签三行：演出名/日期/`Plate No.XX · 有票为证藏`，与 card 页 Canvas 体系同源）→ 授权保存；「换一幅」重画也扣额度。埋点：`art_generate`（fire 成功）/ `art_save`（实际入册）
+- **⑤ detail FAB 扩容**：s3 图版子钮（`bottom:408rpx` + 级联 `delay:120ms`，40/80/120 递推），级联顺序 图版→分享→卡片
+- **云端**：saveTicket 重新部署 Active（含 artRestyle/artQuery + wx-server-sdk 升 `3.0.5-beta.1`——cloud.ai() 前提，remoteNpmInstall 云端装依赖）
+- **验证**：node --check 全过；**47 组新用例全过**（注册/入口/FAB 几何/云函数链路/额度三扣一还一跨月/编号预占/start 拦截四态/轮询 done-failed-超时/超时兜底/onLoad 四恢复/分享落地）；回归 4.18.0（48/48）+ 4.18.1（16/16）全过
+- **用户侧动作（重要）**：① 云开发控制台把 saveTicket **超时改 ≥120s**（生图 10-60s，此前 20s 不够）② 控制台「AI+」确认混元图生图模型已开通、生图资源包充足（未开通时 job 返回友好失败文案）③ 真机验收：详情页 FAB→图版→生成→保存全链路 + 提示词效果人工评审（真实票根照片）
+
+## 4.18.1 — 场馆级足迹定位 + 天气超时热修（2026-09-06）
+
+- **① 场馆级定位（4.18.0 精度升级）**：真机反馈足迹 pin 偏离场馆（城市中心距奥体约 8-10km）。新增 `saveTicket/geocode.js`——腾讯位置服务 place search，`keyword=场馆名 + boundary=region(城市)` 防同名串城，命中即精化到 POI 坐标；**城市字典降级为兜底**（geocode 失败/未配 key → 落回城市中心，链路永不断）。入库带 `geoSource` 字段（`venue`/`city`）标记坐标来源；`backfillGeo` 回填条件升级为 `geoSource != 'venue'`——已回填城市中心的存量票再次触发 action 即整体升级场馆级。**key 留空时通道整体禁用**，行为与 4.18.0 完全一致
+- **② 天气超时热修（4.18.0 部署后真机发现）**：P0 修复让天气存档首次真实执行（以前 geo 恒 null 从不触发），暴露 `weather.js` 的 `https.get` 无超时——境外 Open-Meteo 挂起时拖爆云函数 3 秒默认超时（-504003「保存失败」）。加 4 秒强制放弃护栏；配套要求云函数超时配置 3s→20s（控制台手动，CI 无此 API）
+- **验证**：16 组新用例全过（通道禁用不发请求/POI 命中/URL 拼装/status≠0 降级/无结果降级/网络错误静默/超时注册）；回归 4.18.0（48/48）+ 4.17.1（13/13）
+- **云端**：saveTicket 部署两次（天气热修 + 场馆级）；geocode 走 https API 无需 config.json 权限声明
+- **用户侧动作**：lbs.qq.com 申请 WebServiceAPI key → 填入 geocode.js 重新部署 → 触发 `{"action":"backfillGeo"}` 升级存量票坐标
+
+## 4.18.0 — 体检修复批次：P0 geo 断链根治 + P1 兜底体验 + P2 加固（2026-09-06）
+
+> 对应《有票为证-体检报告》问题清单。高优先级（P0）实际修复并部署；中/低优先级一并落地。
+
+- **① P0 geo 断链根治（本次最重要的修复）**：体检发现 map.js 注释宣称的「城市字典自动配对」**从未实现**——OCR/手填只有城市文本、扫描不传定位 → 云函数 `t.geo` 恒 null → 连锁失效：足迹地图空转、b12 勋章不可达成、报告里程恒 0、**天气记忆永不显示**（mock 自带 geo 所以演示期零感知）。修复分三层：
+  - **`cloudfunctions/saveTicket/citydict.js`（新建 91 城）**：`[名称, 纬度, 经度, 拼音]` GCJ-02 城市中心静态字典；`norm()` 剥行政后缀+去空格+转小写；`lookupCity()` 四级匹配 = 精确名 → 别名（帝都/江城/魔都等 15 个）→ 拼音 → 包含匹配（长 key 优先防误配）；查不到诚实返回 null，绝不阻塞入库。纯静态换算，与隐私协议「不收集定位授权」口径一致
+  - **入库配对**：saveTicket 主流程在 geo 规范化之后、天气取档之前接 `lookupCity(t.city)`——新票入库即带坐标，天气当场取档生效
+  - **`backfillGeo` action（存量回填）**：`where({_openid, geo: null, city 非空}).limit(200)` 逐票配对更新；只回填坐标不回填天气（逐票 HTTP 历史取档有云函数超时风险，天气从新票生效）。多次调用直到 filled=0
+- **② P1 云故障兜底横幅**：store 新增 `_listFallback/_listTruncated` 模块标志 + `listFlags()` 导出；wall 品牌区下新增 net-bar——云库读取失败兜底成演示数据时亮「网络开小差了 · 点我重试」（可点触发 refresh）；票数触 200 上限时亮「当前显示最近的 200 张」；成功读取自动清横幅。此前兜底静默发生，用户把演示票当真票毫无提示
+- **③ P1 分享落地 + 空态**：detail `onShareAppMessage` path 从固定 `/pages/wall/wall` 改为 `?id=` 直达详情（本人点开自己的分享卡回详情）；好友打开因云库「仅创建者可读写」读不到 → notFound 空态「这张时光券不在你的册子里」+「去收第一张票」按钮（redirectTo 扫描页）——把死胡同变成拉新转化位；onLoad 空票不再只 toast
+- **④ P1 getTicket 直查**：云模式优先 `doc(id).get()` 单票直查（分享落地/跳转场景不再全量拉 200 条再 find）；直查异常回退全量链路，行为与旧版一致
+- **⑤ P2 加固**：recognizeTicket 加 fileID 白名单（`^cloud://[\w-]+\.[^/]+\//`，防伪造 fileID 触发异常下载）；演示模式 `readDeleted()` 从 filter 内每票重读 storage 外提为单次（N 次 IO → 1 次）；隐私协议补「产品运行分析」匿名埋点披露条款（与 4.17.0 六事件实际行为对齐）
+- **云端**：saveTicket（citydict + 入库配对 + backfillGeo）与 recognizeTicket（白名单）**均已重新部署 Active ✅**
+- **验证**：全部改动文件 node --check 通过；**48 组用例全过**（citydict 四级匹配 13 项：武汉系全形态/别名/拼音/未知 null/91 城坐标范围；store 标志位与直查回退 8 项；wall 横幅四态；detail 空态与分享 path；静态断言）；回归 4.17.0（40/40）+ 4.17.1（13/13）全过
+- **真机验收提示**：老票根上线后首次进我的页可触发 `backfillGeo` 回填（或云开发控制台云函数测试 `{"action":"backfillGeo"}`）→ 足迹地图/勋章/里程立即恢复；断网冷启动 → wall 顶部出现琥珀色横幅可点重试；把票根分享给另一个微信号 → 好友打开见「不在你的册子里」空态
+- **遗留用户侧动作**：mp 后台「统计分析 → 自定义分析」需配置 4.17.0 六事件才能看板出数；A/B 样本量按周观察
+
+## 4.17.1 — 修复：海报渲染被小程序码加载阻塞（2026-09-06）
+
+- **现象**：4.17.0 真机进纪念卡片页，海报长时间空白（用户感知为「卡片风格没有显示」——风格胶囊随 `wx:if="{{t}}"` 结构正常，但整页视觉焦点画布不出图）
+- **根因**：4.17.0 把 draw() 改成 `Promise.all([照片, 码])`——**云模式下码图要走 `wxacode` 云函数调用，冷启动可达十几秒**，期间 Promise.all 不 settle、画布零绘制。4.16.0 只等照片所以从未暴露；属于「兜底设计正确、但兜底前应先交付主内容」的时序设计缺陷
+- **修复（两段式绘制）**：照片就绪**立即渲染**无码海报（恢复 4.16.0 秒出体验）；码图独立加载，就绪且本次绘制未被风格切换过期 → **自动补画带码版**（用户视角：海报先出、码随后浮现）。`_qrDrawn` 口径跟随最终帧（补画后保存即记带码）
+- **顺手加固**：`_ensureQR` 增加 `_qrPend` 进行中请求复用——连点风格切换不再重复发起云函数调用；过期绘制 token 拦截逻辑覆盖补画路径
+- **验证**：JS 语法通过；**13 组时序用例 node 实测全过**（首渲染 <30ms 不卡云函数 / 补画带码 / _qrDrawn 口径切换 / 缓存后零云调用 / _qrPend 复用 / 过期 token 拦截）
+- **改动范围**：pages/card/card.js（draw 重构 + _render 抽取 + _ensureQR 复用），无云端/数据层改动，**云函数无需重新部署**
+
+## 4.17.0 — 拉新机制批次：埋点六事件 + 海报带码 + T5 引导 + 时光同谋（2026-09-06）
+
+> 对应《有票为证-拉新方案》M1/M2/T5 三件落地件；T1 订阅消息（模板未申领、发送链路不存在）与 M3 那年今日分享图明确移出本批——不造空头支票，不塞半成品。
+
+- **① 埋点六事件（增长地基）**：新建 `utils/track.js`——双通道（`wx.reportEvent` 官方自定义分析 + `sp_track_events` 本地环形缓冲 500 条），值自动转 string/number，全程 try-catch **埋点绝不阻塞业务**。接线：`scene_source`（app.js 冷/热启动场景值，cold 区分）/ `first_save`（scan 保存成功且本地无标记，本地口径换设备会重置）/ `poster_save`（card 保存成功，带 style + 实际是否带码）/ `share_click`（detail 分享 + duo 邀请分享）/ `invite_bind`（duo 输码 via=code + bind 分享卡 via=card）/ `t5_guide_view·click`
+- **② M1 海报带码（分享物料升级）**：saveTicket 新增 `wxacode` action——`cloud.openapi.wxacode.getUnlimited({scene:'b=poster'})` → 云存储 → **prefs 集合全局缓存 fileID**（码与用户无关、永久有效，任何人生成一次全员复用）；card 页 **A/B 分组 80% 带码 / 20% 不带码做对照**（`sp_poster_ab` 本地持久化，演示模式强制不带）；`_ensureQR` 复用 `_ensurePhoto` 的 cloud:// 加载模式，与照片 **Promise.all 并行**，码失败静默（海报照常出）；四风格右下角白底圆角衬 + 88px 画幅（76px 码体），classic/poster/daily 品牌文案右对齐让位至 438、journal 居中文案天然不冲突
+- **③ T5「我的小程序」软引导（复访基座）**：wall 品牌头部下虚线纸片条——**克制三原则**：票根 ≥2 才问；最多问 2 次、间隔 ≥7 天（`sp_t5_asked` 频控）；点「去添加」后 `n=99` 永不再问。点「去添加」弹右上角 ⋯ 菜单两步指引（T5 无「添加到我的小程序」API，只能引导条 + showModal 指路）
+- **④ M2 时光同谋（第 13 枚勋章）**：mock badges 追加 `b13 🤝 时光同谋`——判定 = 发起过双人邀请分享（`sp_invite_sent`）或已绑定（绑定必然发起过）；duo 邀请文案更新为「这本时光收藏册给你留了个位置，来一起翻那些一起看过的日子」（收卡人视角，修正初稿的视角错位）；me.wxml 折叠态硬编码「12 枚」同步改动态
+- **云端**：saveTicket 新增 `wxacode` action + config.json 声明 `wxacode.getUnlimited` 权限——**已重新部署 ✅**（getUnlimited 默认 release 码：上线后扫码直达；上线前体验版扫 release 码提示版本不存在，属预期）
+- **验证**：11 文件 JS 语法通过；**40 组逻辑用例 node 实测全过**（track 环形缓冲/类型转换/dump、computeBadges 13 枚判定、drawQR 让位计算 540/438、A/B 占比 80%±3pp、T5 频控六态、云函数路由/权限声明、六事件接线完整性）；顺手抓出测试脚本自身 drawImage 参数下标误判（[3]/[4] 非实现问题）
+- **改动范围**：utils/track.js（新建 46 行）、app.js（场景值 +8）、pages/card（A/B + _ensureQR + drawQR 四风格画码 +70）、pages/wall（T5 引导条 +52）、pages/me（13 枚勋章 +7）、utils/mock（b13）、pages/scan/detail/duo/bind（埋点接线 +12）、cloudfunctions/saveTicket（wxacode action +44）
+- **真机验收提示**：云模式生成海报 → 右下角出现小程序码 → 保存相册 → 扫码应直达首页；me 页勋章墙滑到最右见「时光同谋」；wall 顶引导条出现两次后不再打扰；云开发控制台确认 `prefs` 出现 `type:'wxacode_poster'` 记录
+- **增长口径提示**：上线满 1 周后取数——`scene_source` 按 scene 分组看入口结构；`invite_bind/invite 分享` 比 = K 因子转化率；带码组 vs 不带码组的扫码回流（scene=1047/1011 计数）即 A/B 结论
+
+## 4.16.0 — 跨月组间排序：月份章节拖拽（2026-09-09）
+
+- **产品方案**：整理模式扩展为「组内 + 组间」两级整理——票卡拖拽调组内顺序（4.14.0），**月头把手拖拽调章节顺序**（拖「⠿ 把手」，整组 = 月份标题 + 全部票卡作为整体跟手移动、其他组让位、松手落位）。触点天然分离（卡片 vs 月头把手），两种手势零冲突；继续沿用「整理实体票册」心智：章节即月签
+- **前端实现**：`.group` 容器级 transform（组内卡片 transform 嵌套叠加互不干扰）——拖动组跟手（16ms 节流 + light 振动 + 月份标题染品牌色），被交换组 ±组步长让位（200ms var(--ease-smooth)，列表节点不动）；组步长 = 相邻组 top 实测差（含组间距，末组 self.height+26 兜底）；`_measureCards` 同批 selectorQuery 扩测 `.group` rects
+- **数据层**：组序独立于票级 sortAt——`sp_group_order`（演示模式）/ `prefs` 集合（云模式，`{_openid, type:'groupOrder', labels}` upsert）存「拖拽后的全量月份 label 快照」；应用规则：**快照内组保持相对序，快照后新增月份组按默认日期序置顶融入**（不打乱已整理相对序 + 符合「新的在上」心智）；组序与组内 sortAt 正交（重排 months 引用，组内 list 不动）
+- **云端**：saveTicket 新增 `reorderGroups` / `getGroupOrder` 两个 action（ensureCollection('prefs')，labels ≤60 项 × ≤24 字符校验；读取失败返回空数组不阻塞首页）——**saveTicket 已重新部署 ✅**
+- **顺手修复（4.14.0 隐藏边界）**：筛选/搜索态下进入整理模式会只对可见子集写 sortAt，与未写入票混排后破坏组内序——enterReorder 现强制回到「全部票根」再整理（模式内搜索/筛选本就隐藏，UI 无感）
+- **验证**：4 文件 JS 语法 + WXML 闭合通过；组序排序应用（默认序/快照序/新组置顶/多新组降序）、组间 splice、让位计算、clamp 边界、组内组间正交共 **12 组逻辑用例 node 实测通过**
+- **改动范围**：pages/wall（组间手势编排 + 组序应用 +75 行）、utils/store（LS_GROUP + reorderGroups/getGroupOrder +38 行）、cloudfunctions/saveTicket（两个 action +45 行）、wall.wxml（把手/组容器 +21 行）、wall.wxss（+35 行）
+- **真机验收提示**：整理模式拖月头把手换章节位次 → 完成退出 → 重进顺序保持；云模式验证后到云开发控制台确认 `prefs` 集合自动创建
+
+## 4.15.0 — 周年票根打开彩蛋（2026-09-09）
+
+- **触发**：打开的票根恰逢票面日期 N 周年（今天=月-日 且年份差>0）——判断复用 4.11.0 的 `utils/date.js annivYears()`，与 AI 文案周年语气同源；云/演示双模式通吃（只看票面 date 字段）
+- **彩蛋**：详情页照片区上方——14 片品牌色纸屑（朱砂/烫金/抹茶/蜜桃/霓虹紫，1/3 圆点形其余长条，随机落点 + 错峰 0–500ms）散落 2s；「N 周年」品牌印（实心印面 + 虚线外环 + 纸签「值得纪念的日子」）以 4.13.0 盖章同款弹性曲线砸下（-8° 手盖歪斜感），配 medium 振动；3.2s 自动收起
+- **常驻小签**：彩蛋收起后照片区右上留「今天 N 周年 ✦」纸签（与类型角标同构），离开页面自然消失
+- **不打扰原则**：彩蛋层 `pointer-events:none` 全程不挡操作；onUnload 清理定时器；非周年打开与原页面完全一致（零渲染差异）
+- **改动范围**：pages/detail 三件套（js +22 行、wxml +21 行、wxss +107 行），无云函数/数据层改动
+- **验证**：JS 语法 / WXML 闭合通过；annivYears 九组用例（周年/非周年/脏数据）node 实测 9/9 通过
+- **真机验收提示**：自然触发需真票恰逢周年；开发期可临时把手机系统日期调到某张票的周年日验证
+
+## 4.14.0 — 票卡拖拽排序：整理模式（2026-09-09）
+
+- **产品方案**：wall 页筛选行尾新增「⠿ 整理」入口 → 进入整理模式（模式条：拖动说明 + 完成按钮；搜索/筛选隐藏、页面滚动与下拉刷新禁用）→ 按住票卡纵向拖动，**组内**重排 → 完成退出。选「整理模式」而非长按拖拽：长按已被照片预览占用、与左滑手势同触点，模式化零冲突且符合「整理实体票册」心智
+- **前端实现**：ticket-card 新增 reorder/lifted/offset 三属性——拖动卡 transform 跟手（16ms 节流 + 6px 位移阈值 + 轻振动）+ scale(1.04) 浮起（tilt 归零）；被交换卡以 ±步长 transform 让位（200ms var(--ease-smooth)），列表节点不重排、setData 量最小；跨位判定 = dy/步长取整（步长 = 拖动卡实测高 + 13px 间距，进入模式时 selectorQuery 全量测量缓存）
+- **数据层**：票新增 `sortAt` 字段——`byOrder = sortAt 降序优先，byDate 兜底`；拖完**整组全量**写 sortAt（base+len-i 严格有序，重拖自然覆盖）；未动过的组保持纯日期序
+- **持久化**：云模式走 saveTicket 新增 `reorder` action（ensureCollection + _openid 归属校验，逐条 update 上限 200）——**saveTicket 已重新部署 ✅**；演示模式走本地覆盖表 `sp_sort_overrides`，listTickets 输出前 merge（mock/local 票一致生效）
+- **验证**：4 文件 JS 语法 + 2 个 WXML 闭合通过；交换/让位/sortAt 序/日期兜底/混合组（新票归已排序组尾）五组逻辑用例 node 实测通过
+- **改动范围**：cloudfunctions/saveTicket（reorderAction +35 行）、utils/store（byOrder/reorderGroup/覆盖表 +52 行）、components/ticket-card（三属性 + 手势分流 + 样式 +30 行）、pages/wall（整理模式编排 +105 行）
+
+## 4.13.1 — BUG 修复：隐私授权 button 协议（2026-09-09）
+
+- **现象**：开发者工具/真机点「拍摄票根/从相册选一张」报 `chooseMedia:fail privacy permission is not authorized or buttonId is wrong`，相机与相册全挂
+- **根因**：`app.json __usePrivacyCheck__: true` 下隐私接口需先过授权，privacy-sheet 弹窗本身正常，但「同意并继续」是普通 `bindtap` button——微信规定 agree 必须由 `open-type="agreePrivacyAuthorization"` 的 button 触发（平台用 buttonId 校验合法性），普通按钮的 `resolve({event:'agree'})` 被判无效授权，chooseMedia 继续执行即 fail。报错文案里的 "buttonId is wrong" 即指此
+- **修复**：同意按钮改为官方协议写法——`id="agree-btn"` + `open-type="agreePrivacyAuthorization"` + `bindagreeprivacyauthorization`，resolve 时携带 `buttonId`；拒绝/遮罩关闭逻辑不变
+- **影响范围**：scan 拍照/选图（核心录入）、card 保存海报到相册（saveImageToPhotosAlbum 同链路）——修复后一并恢复
+- **改动范围**：`components/privacy-sheet/` wxml（button 属性）+ js（agree → onAgreePrivacy）
+- **验证注意**：开发者工具需「清缓存 → 清除授权数据」后重测；若修复后仍报 privacy not authorized，则需到公众平台检查《用户隐私保护指引》是否声明「摄像头/选中的照片或视频」类型
+
+## 4.13.0 — 品牌盖章动效（2026-09-09）
+
+- **保存成功「证」印砸下**（scan）：票根入库成功瞬间，全屏纸色磨砂层上品牌印章（实心橘面 + 虚线环 + 白「证」，与定稿标识同构）以 620ms 弹性曲线砸下落定（-8° 手盖章歪斜感），配 medium 振动落在落章瞬间；替代原 success toast（避免双反馈打架），驻留至 1250ms 返回首页
+- **微交互储备盘点结论（已有实现确认，不重复造轮子）**：report 页数字滚动 `animated-number` 组件已实现且精良（easeOutCubic + 时长随目标值分档 + 33ms 节流推送 + 主题节奏）；骨架屏 300ms 延迟模式已覆盖全部 5 个数据页
+- **改动范围**：scan.wxml（盖章层 9 行）、scan.wxss（overlay+keyframes 74 行）、scan.js（成功流程 3 行变更 + data 1 字段）
+- **验证**：JS 语法/WXML 闭合/stamped 事件链交叉校验通过；动效双帧截图验证（250ms 下落中间态 / 800ms 落定态）
+
+## 4.12.1 — 交互精修：无障碍 + 加载体验 + 空态直达（2026-09-09）
+
+> 触发：@ui-roast 五维交互审查（悬停点击反馈 / 过渡时序 / 加载空态 / 键盘可访问性 / 双端适配）
+
+- **照片加载体验**：detail 页票根大图加 `bindload` 淡入（240ms opacity，解码完成前保持纸底，消除加载跳变）+ `binderror` 失败兜底（自动落回纸票样式分支，坏图不再白块）
+- **无障碍标注补全**：全项目 aria-label 从 1 处补到 11 处——tab-bar 4 个 tab（aria-role="tab"+当前态朗读）与「+」钮、detail FAB 主/子钮、detail/card 风格胶囊（含「已选中」状态朗读）、wall 搜索清除钮、detail 票根照片（aria-role="img"）
+- **空态直达**：timeline 空态改整卡可点（pressable + press-item-hover，bindtap goScan 直达录入页），与 wall 空态交互同构；文案尾加「→」可点暗示
+- **过渡显式化**：detail 风格胶囊 `transition: all` → color/background-color/border-color 显式三属性，消除无关属性被过渡的隐患
+- **审查结论（不改项）**：pv 视差已有 32ms 节流+0.01 阈值（实现良好）；防重锁完整（scan saving/card exporting/duo codeBusy + showLoading mask 全覆盖）；骨架屏 5 页覆盖；振动反馈语义分级合理；PC 端依赖 env() 与 hover-class 原生支持已达标
+
+## 4.12.0 — 交互打磨：动效统一 + 按压反馈全覆盖（2026-09-09）
+
+- **动效曲线 token 化**：app.wxss 新增两族缓动变量——`--ease-spring`（弹性：弹出/印章落定）、`--ease-smooth`（平滑：进场/弹层/展开），替换散落各页的硬编码 cubic-bezier（app fade-up、detail FAB 主/子钮、me 关于区展开、scan 印章动画共 7 处），后续调性只需改变量
+- **FAB 级联弹出**：detail 页子钮展开时自下而上依次冒出（s1 +40ms / s2 +80ms，computedStyle 实测命中），收起零延迟利落归位；子钮新增按压反馈（fab-sub-press scale 0.94，特异性压过展开态 scale(1)）
+- **按压反馈盲区补全**：scan 页 9 个表单行（editField）+ 2 个照片预览框、card 页风格标签 chips 补 pressable/press-item-hover——全项目可点元素反馈覆盖率 100%（bindtap 与反馈类一一对应，FAB 蒙层等语义性无反馈元素除外）
+- **桌面端（PC 微信）**：pressable 与 FAB 元素补 `cursor: pointer` 手型光标；PC 端小程序为手机比例窗口 + hover-class 原生支持，无需额外布局适配
+- **视觉层次盘点结论**：阴影已体系化（--shadow-rgb 主导，暗色氛围大模糊阴影属合理特例），不做全量改动，token 供后续新代码使用
+
+## 4.11.2 — 真机 BUG 修复：分享 FAB 变形（2026-09-09）
+
+- **根因**：detail 页分享钮用 `<button open-type="share">` 直接当视觉壳，微信真机 button UA（display:block / min-width / 内边距等，与开发者工具不一致）穿透项目复位——现有复位仅覆盖 margin/padding/line-height/::after，导致 112rpx 圆钮在真机上被撑成横向椭圆（真机截图：白色变形块压在「城市」行右侧；同组的 view 卡片钮正常，证明基础样式无误）
+- **修复**：视觉壳改由 view 承担（与卡片钮同构），button 降级为全覆盖透明热区（`opacity:0 + max-width/height:100% + 父级 overflow:hidden`），`open-type="share"` 分享能力保留；对任意 UA 版本免疫，基础库升级不再影响视觉
+- **验证**：恶劣 UA 注入双场景对比——修复前结构复现变形，修复后结构保持正圆（fab-fix-verify）
+- **改动范围**：`pages/detail/detail.wxml`（s2 结构 3 行）、`pages/detail/detail.wxss`（复位块替换为热区样式）
+
+## 4.11.1 — 品牌标识定稿接入（2026-09-09）
+
+- **品牌标识定稿**：经五轮迭代（三轮设计 + 外部生成通道验证 + ui-roast 审查收敛），定稿「圆形印章 + 白『证』 + 票据角标 + 有票为证字样」方案（用户拍板）。P0 字形 bug 修复经验沉淀：中文衬线字形验证必须用 Noto Sans CJK SC 基线
+- **关于弹层换标**：me 页关于弹层原「有票」渐变文字方章（ab-stamp/ab-name）替换为定稿标识图 `images/brand-logo.png`（320px 量化压缩 30KB，平均通道误差 0.31），版本行随更 4.11.1
+- **海报邮戳对齐**：card.js `drawPostmark` 由「虚线双环 + 『有 票』文字」重画为定稿印章形态——虚线外环 + 实心印面 + 奶白衬线「证」，四风格海报同源生效
+- **头像规格产出**：`头像-144.png`（公众平台上传规格）随定稿交付；备案重提材料就绪
+
+## 4.11.0 — PRD 差距功能补齐 + V3 图标试点（2026-09-05）
+
+- **AI 文案 3 风格**：详情页可选「克制白描 / 感性抒情 / 幽默俏皮」（utils/ai.js `CAPTION_STYLES`，风格 hint 注入 prompt），选择本地记忆（`sp_cap_style`），生成卡重写同源；按钮改「↻ 按当前风格换一句」
+- **周年语气**：utils/date.js 新增 `annivYears()`——票面日期恰为今天且年份差 >0 时，AI 文案自动带 N 周年纪念语气（详情页生成与卡面重写同源传入）
+- **同场印记增强**：生成卡四风格模板新增「✦ 同场 N 人共同收藏」角标（N≥2 才画）；me 页新增「同场印记」开关（opt-out），退出后票根入库 `eventKey` 置空不再参与同场计数（store/saveTicket 协同，偏好字段不落库）；协议页「信息的使用」补充同场印记说明
+- **票根墙搜索**：首页新增搜索框（票名/场馆/城市/座位/备注，大小写不敏感包含匹配、250ms 节流），与类型筛选叠加生效；空态区分「搜索无结果 / 该类还没有票根」双文案
+- **品牌残留终扫修复**：card.js Canvas 海报 5 处「拾 光 / S H I G U A N G」→「有 票 / Y O U P I A O」（字内空格写法逃过常规 grep，已用 `拾\s*光|shiguang` 正则终扫归零）
+- **V3 图标单点试点**：重建 `components/svg-icon/`（28 图标 path 数据自 4.10.7 恢复；image 直出 encodeURIComponent SVG data-uri，stroke 按主题 token 上色，弃用 CSS mask）；仅 detail 页 AI 文案区试点，**真机验证通过后再评估全量替换**（4.10.6 未验先铺的教训）
+
+## 4.10.8 — 更名收尾 + 死代码清理（2026-09-05）
+
+- **隐私保护指引审核通过 ✅**（M5 合规卡点解除，可正式推进提审/发布）
+- 更名收尾（补 4.10.7 遗漏）：`project.config.json` 应用描述「拾光票根→有票为证」、`projectname`「shiguang-piaogen→youpiaoweizheng」；工程目录更名 `shiguang-piaogen/ → youpiaoweizheng/`（miniprogram-ci 脚本路径已同步）；`pages/me/me.wxss` 注释「拾光勋章→时光勋章」；CHANGELOG 文档头同步
+- 死代码清理：删除 `components/icon/`（4.10.6 停用的 mask+data-uri svg 组件，全项目无引用）；清理两处 `04f76d…` 空目录
+- 全量体检（《07-有票为证-小程序全面体检报告.html》）：24 JSON / 28 JS 语法、17 目录事件绑定交叉校验、WXML 闭合、图片资源引用 —— 全部通过，无功能性遗留
+- CI 复验：miniprogram-ci 编译 66 文件通过，出真机预览二维码 `4.10.8-真机验收二维码.png`（改名后出码链路 OK）；交付包 `有票为证-4.10.8.zip`（122 文件，无 icon 残留/旧名路径）
+
+## 4.10.7 — 产品更名「有票为证」（2026-09-05）
+
+- 背景：备案被驳回——「拾光」已被注册为商标，原「拾光票根」有侵权风险，产品名更改为「有票为证」（用户拍板）
+- 变更：代码内全部产品文案「拾光票根→有票为证」；营销短语「下拉/松手拾光→翻册」；卡面/分享落款 slogan 收尾「让时光有迹可循」（避免与品牌名同屏重复）；首页/关于品牌章字「拾光→有票」；「拾光勋章→时光勋章」「拾光报告→时光报告」；协议/分享/标题同步
+- 文档同步：README 顶部记更名说明、PRD/交接/V2 设计文档正文同步，《04-有票为证-视觉设计系统V2.md》文件更名
+- Logo 与品牌全案设计稿待评审（《05-有票为证-品牌设计.html》）
+
+## 4.10.6 — 图标系统回退 emoji（mask 真机兼容失败）（2026-09-05）
+
+- 真机验收发现：`-webkit-mask: url(data:image/svg+xml)` 在真机 webview 未渲染，svg-icon 全部退化为实心方块（background currentColor 回退）——**前期未真机验证即铺开 29 个图标的工程失误**
+- 处置：全项目 svg-icon 引用回退为对应 emoji（勋章 12 枚、摘要、地图入口、城市胶囊、拍摄按钮、左滑、FAB、空态、隐私锁、时间线/报告空态）；mock 勋章 icon 字段恢复 emoji；json 注册与适配 wxss 全部还原
+- 教训入库：微信小程序 webview 对 mask+data-uri svg 无兼容性保证；svg-icon 组件保留于 components/icon/ 但**停用**，V3 换「每主题渲染独立 SVG base64 + image」或 iconfont（描边转轮廓）方案再启
+
+## 4.10.5 — 图标系统收尾（低频图标位清零）（2026-09-05）
+
+- 隐私弹层 🔐→lock；详情演示票签/“票根不存在”🎫→ticket、FAB 分享 ↑→share / 卡片 🎴→album
+- 足迹地图城市胶囊 📍→pin（flex 行内）、空态 🗺️→map-folded
+- 时间线/报告空态 🗓️→calendar、🔗→link
+- 图标库 29 个；全项目界面图标位 emoji 清零（保留 ✦/✓/✧ 等文字装饰记号与两处下拉 emoji 票形——按用户偏好）
+
+## 4.10.4 — 图标系统铺开（SVG 线性图标替换高频 emoji）（2026-09-05）
+
+- 落地决策：经评估 **iconfont 与纤细线性图标本质冲突**（字形须填充轮廓），保留并铺开 CSS mask 方案（svg-icon 组件，真机已验证）
+- 图标库扩充至 25 个：album/map-folded/gramophone/film-strip/train/trophy/users-two/settings/plus/trash/star/fire/mic/pin/envelope/compass 等
+- **勋章 12 枚 emoji → 线性图标**（ticket/fire/star/heart/film-strip/compass/moon/train/mic/pin/envelope/map-folded），描边色随主题 --ink；摘要条/兜底同步
+- **票卡左滑动作图标化**（album 生成卡片 / trash 删除，白描边）
+- **扫描页拍摄按钮** 📷 → camera-retro 线性图标；**足迹地图入口** 🗺️ → map-folded（容器底改 --softbg 随主题）
+- tabBar 用 PNG 图标，无 emoji，未动
+
+## 4.10.3 — 微动效系统落地（2026-09-05）
+
+- **主题切换闪光过渡**：我的页切主题先罩半透明纸色遮罩（240ms 换肤瞬间不可见）再淡出，全页如"换滤镜"，无需重启
+- **数字滚动节奏随主题**：animated-number 时长 A×1（从容 400–800ms）/ B×0.5（迅捷）/ C×0.75（轻柔）
+- **识别完成盖戳动画**：scan 识别转表单时在预览票面上"盖"类型章（scale 1.8→1 + 旋转回落，停留后淡出），颜色随主题 accent（A 朱砂 / B 霓虹检票 / C 抹茶），wx:key 保证每次重播
+- **新勋章点亮脉冲**：解锁提醒出现时对应勋章光晕扩散两圈
+- **纸票右下卷角**：detail 无照片纸票拟物加卷角（浅影→纸背渐亮）
+- **扫描页手写引导**：「收下它，就是收下那一天的自己 ✦」
+- 顺手：scan 取景引导布局改纵向居中
+
+## 4.10.2 — 下拉刷新票形回退 emoji（2026-09-05）
+
+- 首页下拉「松手拾光」的票形图标从线性 SVG 回退为原 emoji 🎫（用户偏好原样）；空态线性图标保留待验收
+
+## 4.10.1 — 重装饰系统落地 + C 水彩质感修复（2026-09-05）
+
+- **纸面噪点全页统一**：9 个页面根容器插入 `.grain` 覆盖层（SVG feTurbulence data-uri，A/C 灰纸纹 5% / B 反相成微白星尘 6%），整页从卡片到留白都有纸张颗粒感
+- **C 水彩晕染层**：wall/detail/me 顶部 `.wash-layer`（抹茶/蜜桃/雾蓝多层低饱和 radial + blur），仅 C 主题显示
+- **C 水彩渲染质量修复**（回应"劣于上一版"）：卡片/次级底/时光机渐变改为半透明（透出水彩晕染=水彩纸感）；通用 `.card` 叠加顶部柔光 + 颜料尾迹光斑；色彩通透感与层次恢复并超过上一版绿底（绿底只是"像水彩"，这版是"透出水彩"）
+- **那年今日书签锯齿**：首页时光机卡右缘 clip-path 撕票锯齿（去右侧虚线），三主题统一"撕票凭证"形态
+- **手写批注三处**：首页引言落款「—— 收好它们，日子就有了形状」、空态「从这里开始，收进第一张 →」、AI 代笔虚位文案，全部楷体弱化处理
+- 弹层面板底引入不透明 `--sheet` token（C 半透明卡片不污染弹层可读性）
+
+## 4.10.0 — 视觉 V2 精修（三主题 token 全量对齐 + wall 打样）（2026-09-05）
+
+- **三项方向变更全部采纳**（V2 规格见《04-拾光票根-视觉设计系统V2.md》）：A 朱砂印章 #C4623A / 暖白纸 #FDFBF7；B 偏冷深夜 #0F0F1A + 霓虹粉 #FF6B9D + 霓虹紫 #B07FE8；C **去绿改暖**（奶油底 #FFF9F0 + 可可棕字 #5A4E42，抹茶 #95B088 + 蜜桃 #F0A888 作强调）
+- 新增 token：`--grad-neon/--grad-tea/--stub-bg/--tape/--card-shadow/--r-card/--r-item/--sk-1/--sk-2`；导航栏/tabBar/我的主题 swatch/骨架流光全同步；4.9.7 各页 .theme-b 硬编码覆盖全部改为 var 引用
+- **wall 首页打样**：品牌诗意引言「每一张票，都是回得去的时光」；票卡错落 tilt（A ±1.5°/C ±2° 手贴感，B 0° 舞台整齐）；每月首卡胶带（A 米黄/C 蜜桃/B 透明）；类型标签改细描边印文章；下拉刷新与空态的 🎫 换 SVG 线性图标试点
+- **detail**：AI 文案楷体化（引文层级 + 朱砂竖线）；类型角标改米纸小签（朱字 rotate）；票面信息去重线
+- **me**：勋章邮票化（齿孔虚线内框 + 解锁微光）；签名楷体；菜单缝线虚线
+- 新组件 `components/icon`：CSS mask + data-uri SVG 线性图标（currentColor 随主题），解决微信不能内联 svg 的落地问题（试点 wall，全量替换后续迭代）
+- PRD《01-产品规划-V1》同步：拍板记录 + 第 8 节视觉系统现状
+- 遗留：#1 待办不变（隐私审核 / 微信 OCR quota / 备案初审）
+
+## 4.9.7 — 午夜现场（B）深色主题文字可读性大修（2026-09-05）
+
+- 根因：`--ink` 变量同时兼职「文字色」与「深色实底」。B 主题把 --ink 设成白色后，所有「米色纸感块 + var(--ink) 文字/条码」「深底金字小部件」集体语义翻转——白字印米纸、浅字印白底
+- 纸票/取景/圆章等**拟物固定墨色**（真实纸品不随主题）：详情页纸票占位标题+条码固定墨色（原 B 下白字白码印米纸=几乎隐形）；时光机圆章固定深金
+- 新增 `--stage-1/--stage-2` 展示台渐变变量（A 墨 / B 深紫 / C 墨绿）：详情照片衬底、扫描取景框不再翻白
+- 信息行块改用**语义底**跟随主题：类型选择行/时间线展开便签/城市排名圆 → `--softbg`；bottom-sheet 弹层面板 → `--card`（B 下深紫底白字，标题不再白字隐形）
+- B 专属深紫渐变覆盖：双人横幅（标题换亮紫 #B9A6FF）、我的页头像/会员卡、双人报告头像
+- B 弱文字 `--ink-faint #6E638E → #8A7DB3`（对比 3.8:1 → 5:1，说明文字达标）
+- 左滑「卡片」按钮固定品牌橘红（B 下 var(--accent) 亮粉底会吞白字）
+- 决策说明：OCR 维持纯微信云通道现状（百度空密钥未激活）；配额 101003 是否复现待隐私指引生效后实测
+
+## 4.9.6 — AI 文案保存修复 + 演示票明示（2026-09-05）
+
+- 真机确诊 -502005 database collection not exists：**还没成功保存过真票（OCR 挂+隐私审核拦拍照），tickets 集合从未创建**；云库查询失败静默兜底演示票，详情页里那句文案是 mock.js 第 25 行预置的「回春丹巡演」演示文案，不是 AI 刚生成的（AI 生成本身已验证成功）
+- 修复①：AI 文案保存（setCaption）从「前端直连云库 update」改为走 saveTicket 云函数新 action——服务端 ensureCollection 自动建集合 + `_openid` 归属校验，一步自愈
+- 修复②：演示票（云模式兜底展示的 5 张）写操作全部改本地覆盖层（AI 代笔/左滑删除不再报错），兜底列表套文案覆盖层防重进丢失
+- 修复③：详情页对演示票显示顶部提示条「演示票根 · 示例数据」；-502005 类错误弹窗人话化
+- 提醒：真票收藏链路仍卡在「隐私指引审核 + OCR 配额申诉/百度密钥」三件事上
+
+## 4.9.5 — OCR 链路加固（2026-09-05）
+
+- 官方文档核实：已认证小程序可直接调 ocr.printedText（100 次/天），服务市场仅为更高额度购买渠道——**我们的账号/配置完全符合，报 not enough market quota(101003) 属平台侧配额状态异常**，与文档矛盾
+- 应对双轨：①官方渠道申诉（mp 后台「开发者工具-API 诊断」/开放社区带 appid 发帖）；②百度 OCR 双通道接管（密钥到位即切换，微信通道保留为兜底）
+- 加固：上传云存储前 `wx.compressImage` 二次压缩（quality 60）——官方限制图片 <2M，chooseMedia 的 compressed 在高分相机上仍可能超限；压缩失败自动回落原图不阻塞
+## 4.9.4 — 上传失败人话指引（2026-09-05）
+
+- 真机确诊：`chooseMedia:fail api scope is not declared in the privacy agreement`——**平台《用户隐私保护指引》未声明/未生效**（非手机权限）。修复动作在 mp 后台：指引需包含「选中的照片或视频」「摄像头」「相册（仅写入）」三项并提交至已生效，生效后无需发版即刻恢复
+- scan 页 fail 弹窗识别 `not declared in the privacy` 给出后台修复路径；其余错误继续透出原始码
+- 全项目隐私接口盘点：仅 `wx.chooseMedia`（scan）与 `wx.saveImageToPhotosAlbum`（card）两处，无定位/剪贴板等其他敏感接口
+
+## 4.9.3 — 诊断增强：上传失败透出原始错误码（2026-09-05）
+
+- scan 页 chooseMedia 的 fail 弹窗直接显示原始 errMsg（此前静默失败无任何反馈）——正是这版弹出的 `api scope is not declared in the privacy agreement` 确诊了 4.9.4 的隐私指引问题
+
+## 4.9.2 — 修复：上传票根「点了没反应」（2026-09-05）
+
+- **根因**：scan 页 `pick`（拍摄/相册）只写了 `success` 回调，**没有 `fail`**——权限被拒（微信会记住拒绝记录）或隐私授权未通过时，`chooseMedia` 静默失败，界面毫无反应。card 页存相册早有权限引导（auth 检测 + 去设置），scan 页是历史遗漏
+- **修复**：补 `fail` 分支——用户主动取消（cancel）静默；其余弹窗说明原因 + 「去设置」直达 `wx.openSetting` 开权限
+
+## 4.9.1 — 修复：主题只在我的页生效（2026-09-05）
+
+> 真机反馈重大 BUG：切主题只有「我的」页变，其他页面仍是纸质收藏册。
+
+- **根因**：主题变量覆盖选择器写成了 `.page.theme-b`（复合选择器），而票根墙/回忆页根节点是 `page-scroll`（scroll-view，无 `.page` class），选择器匹配不上——所以挂在 scroll-view 上的 `theme-b` 是死 class。修复：选择器改为裸 `.theme-b` / `.theme-c`，任何节点挂上即生效（.page / .page-scroll / 组件皆可）
+- **wall/duo 滚动容器补背景**：`.page-scroll` 原本无 background（吃 page 级米色），深色主题下滚动区仍是米色——补 `background: var(--paper)` 随主题
+- **窗口背景随主题**：`theme.apply()` 增加 `wx.setBackgroundColor`（下拉回弹/键盘上推露出的底层），深色主题不再露米色底
+- **AI 模型名按官方文档修正**：成长计划指南明确 `hy3-preview` 即将下线 → 统一改 `hy3`；provider 从 `hunyuan-exp` 修正为 **`hunyuan-v3`**（专消耗成长计划免费额度 10 亿 Token、无需控制台开关、非资源点套餐也可用），兜底 `cloudbase`+`hy3`（优先免费额度、耗尽自动走套餐）；generateText 参数结构改为官方 invoke 同款顶层签名优先
+
+## 4.9.0 — 三主题系统上线（2026-09-05）
+
+> 产品负责人拍板：三套视觉方向不做单选，**全部保留、用户自主切换**（原「三选一」提案作废）。
+
+- **三主题全量变量化**：盘点全项目 270+ 处硬编码颜色 → 全部替换为语义 CSS 变量（352 处 `var()` 引用），app.wxss 定义 A/B/C 三套变量表（`.page.theme-b` / `.page.theme-c` 覆盖）——A 纸质收藏册（默认）/ B 午夜现场（深色 + 霓虹粉紫）/ C 手账水彩（抹茶绿 + 蜜桃橘），与「03-视觉方向对比.html」三方案同源
+- **utils/theme.js**：主题读写（storage `sp_theme`）+ `apply()`（页面 setData + 原生导航栏配色同步，主题变化才调 API）；11 个页面根节点挂 `theme-{{theme}}`，7 个无 onShow 页面补 onShow 保证主题不回退
+- **me 页「外观主题」选择器**：三选项卡片（迷你配色预览 + 选中 ✓ + 一句气质描述），点击即时全页生效 + light 震动 + 持久化
+- **tabBar 主题适配**：自定义 tab-bar 独立渲染树继承不到页面主题 class → 组件自带 B/C 变量覆盖，三个 tab 页 onShow 顺带同步主题
+- **OCR 双通道（recognizeTicket 重构）**：百度智能云「通用文字识别」（每月 1000 次免费）优先 → 微信云调用兜底；百度密钥在云函数顶部常量填入即自动启用，access_token 内存缓存 30 天；两通道报错合并透出（前文人话翻译继续生效）。**待办：百度 AK/SK 由运营提供后填入重新部署**
+- **AI 通道确认**：小程序成长计划已生效（10 亿混元 Token），4.8.1 的 `hunyuan-exp` 主通道方向正确，待真机验证模型名
+- 已知边界：22 处一次性微调色（渐变中间色等）仍为字面量，B 主题下个别角落可能需精修——真机验收后迭代
+
+## 4.8.1 — 紧急修复：AI 全挂根因（2026-09-05）
+
+> 真机验收暴露：OCR 与 AI 文案**从未成功过**。两个都是平台侧地基问题，本版修复代码侧并给出运营侧开通指引。
+
+- **AI 接入层重构（utils/ai.js）**：根因是云开发 2026-05 改版——`hunyuan-lite` 免费直调与 `hunyuan-2.0-instruct` 等一批混元模型已于 2026-05-30 下线，原 `createModel('hunyuan-lite')` 必挂。重构为双通道回退链：主通道 `hunyuan-exp`（小程序成长计划，本小程序已加入，模型 hy3-preview）→ 兜底 `cloudbase`（TokenHub 聚合池，模型 deepseek-v4-flash）；参数结构双兼容（官方新签名 `{ data: { model, messages } }` 与旧顶层结构）；错误信息人话化并引导到云开发控制台「AI+ → 模型管理」核对模型名
+- **OCR 错误人话化（scan.js）**：`not enough market quota`（服务市场配额不足——OCR 从上线起从未配通）翻译为「识别服务额度未配置，需在微信服务市场领取『通用印刷体识别』免费体验包并绑定本小程序」，同时覆盖未开通/无权限两类常见错误
+- **卡片风格切换可发现性（card 页）**：产品负责人本人都没发现画布下方的小胶囊是切换按钮——加提示行「卡片风格 · 点击标签切换」、chip 字号 23→26rpx、底色透明度 0.06→0.12、选中态加 ✓ 前缀。四个风格：经典纸感/演出海报/手账水彩/每日日签
+- **运营侧待办（代码无法替代）**：① 微信服务市场（fuwu.weixin.qq.com）领「通用印刷体识别」0 元体验包绑到 AppID——OCR 恢复的唯一路径；② 云开发控制台「AI+」确认已开通、模型管理里核对 hy3-preview / deepseek-v4-flash 是否可用——若模型名不符，改 utils/ai.js 顶部 MODEL_CHAIN 一处即可
+
+## 4.8.0 — 交互打磨专版（2026-09-04）
+
+> 本版不新增业务功能，专做「手感」：动效、反馈、微交互七项（A-G），全部不破坏现有架构。
+
+- **A 全局进场动效**：`app.wxss` 新增 `.fade-up`（280ms cubic-bezier 上移淡入），scan/card/bind/timeline/report/map/protocol 七个页面根节点接入，进页面不再"闪现"
+- **B 票根墙错峰入场**：ticket-card 新增 `stagger` 属性 + `card-in` 动画（320ms 缩放+上浮），首屏 8 张按 40ms 逐张错峰，后续立即显示——列表打开像"翻相册"而非"一次性糊脸"
+- **C 勋章解锁提醒**：me 页 refresh 时对比上次勋章快照（storage `sp_badge_prev`），有新解锁则 medium 震动 + toast「🏅 解锁新勋章「×××」」2.5s；首次记录快照不提示，不会开屏刷屏
+- **D 长按看原图**：票根卡长按 → light 震动 + `wx.previewImage` 全屏原图（云存储 fileID 先走 `getTempFileURL` 换临时链接），看票面细节不用进详情页
+- **E tabBar 震动反馈**：底部标签切换 light 震动，"去收票"扫票入口 medium 震动——关键动作有了"按下去"的实感
+- **F 清理死代码**：删除 timeline 页永不触发的 `onPullDownRefresh`（页面未开 `enablePullDownRefresh`）
+- **G 取消**：原计划列表卡图片 lazy-load，核实发现票根墙列表卡为纯文字版式（无图片元素），无此需求
+- **统一动效参数**：280-320ms / cubic-bezier(0.32,0.72,0,1)；震动分级 light（选择）/ medium（关键动作）/ heavy（删除）
+
+## 4.7.1 — 协议正式文本上线（2026-09-04）
+
+- **协议页模板 → 正式文本**：运营主体「广东德天商务服务有限公司」、联系电话、生效日期（2026 年 9 月 8 日）全部落进隐私协议与用户协议——页头显示主体与生效日期，正文新增「运营主体」章节（隐私）与「联系我们」章节（双协议），注销/撤回权利对应到具体电话；页脚由"模板声明"改为运营主体落款
+- **内容安全口径同步**：隐私协议"信息的使用"明确覆盖「备注、票面字段」——与今晚部署的入库手输字段 msgSecCheck 补丁对齐（4.7.0+）
+- M5 提审清单第 ② 项（协议文本替换）完成
+
+## 4.7.0 — V1.5 天气记忆 UI（2026-09-04）
+
+- **详情页天气印记**：票面信息卡新增「当晚天气」行（`🌧 中雨 · 14°C` 格式，带「入库时自动存档」来源标注）——数据来自 M2 起入库时 Open-Meteo 静默存档的 `{ tempC, code }`，**无存档的票根不显示该行**（诚实原则，不造假）
+- **WMO 码表端上化** `utils/weather.js`：Open-Meteo 标准 WMO 天气码 → 中文描述 + emoji（晴/多云/雾/雨/雪/雷暴全量 28 码）；`weatherText`（展示）+ `weatherHint`（AI 提示）双出口
+- **AI 文案融合感官细节**：`generateCaption` prompt 按存档天气追加提示（如「当晚晴、约31°C，体感闷热。可自然融入一两个感官细节（雨声、风、温度感），不要生硬罗列数据」）——文案从"时间地点批注"升级为"带天气记忆的批注"；无天气存档时 prompt 与原来完全一致
+- **演示数据补天气**：mock 8 张票根按季节补了结构一致的演示天气（武汉 10 月底中雨 14°C … 盛夏 31°C），演示模式详情页可见效果
+- 裁剪说明：纪念卡片海报的天气小标本期不做（四风格绘制函数回归风险大于收益，天气印记详情页 + 文案融合是核心价值；V2 会员权益包可再做）
+- 本版无云函数改动
+
+## 4.6.0 — M5 合规代码侧：协议页 + 隐私授权弹窗（2026-09-04）
+
+- **协议页** `pages/protocol/`：隐私协议 / 用户协议双模式（`?type=privacy|terms`，me 页两个菜单分别带入）——纸质底座长文排版（邮戳头部 + 金棕章节标题 + 两端对齐正文）；正文为行业通用模板（页脚标注「以经法务审核的正式文本为准」，提审前替换 DOCS 常量即可）
+- **隐私授权弹窗** `components/privacy-sheet/`：微信要求隐私接口调用前需用户同意《隐私保护指引》——组件 attached 时注册 `wx.onNeedPrivacyAuthorization`，触发时弹品牌化 bottom-sheet（🔐 说明 + 「同意并继续」/「拒绝」+ 协议页链接），resolve agree/disagree；拒绝与点遮罩都收口 resolve，避免授权请求悬空
+- **落点**：scan（chooseMedia 相机/相册）、card（saveImageToPhotosAlbum 相册写入）两页挂载；`app.json` 开启 `__usePrivacyCheck__: true`
+- **兜底说明**：低版本基础库无该 API 时组件静默、平台默认弹窗接管；两页同时驻留页面栈时监听器后者覆盖前者，off 后回退平台弹窗——均不影响合规性
+- **README 新增「M5 提审清单」**：用户侧 6 项行动项（后台隐私指引配置、协议文本替换、ICP 备案、类目/深度合成、支付商户号、提审材料口径）
+- 本版无云函数改动
+
+## 4.5.1 — 拾光勋章墙：可折叠 + 横向滑动（2026-09-04）
+
+- **折叠/展开**：me 页勋章墙默认展开，点标题行或折叠摘要任意位置切换（light 震动）——展开态高度过渡 250ms `cubic-bezier(0.32,0.72,0,1)`（max-height + opacity + translateY，与项目动效参数一致）；折叠态显示一行摘要：已点亮勋章图标横排 + 进度文案（「已点亮 n 枚 · 点开看看」）
+- **展开态横向滑动**：12 枚勋章从 3 列网格（4 行大屏占位）改为 scroll-view `scroll-x` 勋章条——单行卡片（220rpx 宽、medal+名称+进度），连续横向滚动（enhanced、隐藏滚动条、两端留白与页面卡对齐），原生横向手势与页面纵向滚动天然隔离，不干扰其他元素；底部提示「← 左右滑动查看全部 12 枚 →」
+- 标题「时光勋章」→「拾光勋章」（贴品牌）；勋章进度 desc 限两行 ellipsis，长文案不撑破卡
+- WXML 细节：表达式不支持模板字符串（反引号），摘要文案改字符串拼接
+
+## 4.5.0 — M4-b 双人时间线完整版 + 时光报告（2026-09-04）
+
+- **双人时间线完整版** `pages/timeline/`：双方全部票根按月分组（沿用 wall 的月份叙事）——每行带类型点（演出橘/电影棕/交通蓝）+ 归属标记「你收藏的 / TA收藏的」；同一场次双方都收过 → 行尾「一起」橘标（组键优先 eventKey，兜底 venue|date）
+- **权限现实的交互设计**：详情数据仅创建者可见（store.getTicket 只查自己的票）——自己的票点行进详情，**TA 的票行内展开**（场馆/城市/座位/票价），不进详情页避免空页；展开有说明「TA 收藏的票根，仅 TA 本人可打开详情」
+- **我们的时光报告** `pages/report/`：纸质报告仪式感封面（邮戳+双人 ∞ 头像+时光跨度）+ 类型分布横条 + 城市 Top3 + 里程（哈弗辛，合并票根按日期连线）+「都收过的场次」+ 故事两端（最早/最近一张）；可分享（标题带真实数据，落地回 duo）
+- **产品裁剪（透明说明）**：交接文档原写「年度回忆报告」，但产品规划 V1 已明确年度报告排 V1.5（年终仪式感）——9 月做"年度"名不副实，落地为实时「时光报告」，随时可看；数据层同源，年底可无缝升级年度版
+- **架构**：`utils/duoData.js` 新增（duo/timeline/report 三页合并数据同源组装，演示/云双模式）；`utils/geo.js` 抽公共哈弗辛（map/report 共用）；**唯一后端改动** = `duoStats` 加 `full` 参数返回双方全量精简票根（向后兼容原字段，仍走 action 路由，未新建云函数）
+- 演示模式：timeline/report 均标注「演示数据」小标（诚实原则）
+
+## 4.4.0 — M4.5 足迹地图（批次四并入，2026-09-04）
+
+- **足迹地图页** `pages/map/`：map 组件（58vh，`enable-poi`）——有坐标的票根打点（自定义 pin 图，点标记弹 callout 显示票名）；相邻票根按日期连虚线 polyline（#E0532F），看见一年走过的线
+- **里程累计**：哈弗辛公式（R=6371km）计算相邻票根球面距离累加，顶部浮牌显示「总里程 / 城市数 / 票根数」
+- **城市聚焦**：城市 chips 横滑（按到访次数排序），点 chip 地图 include-points 聚焦该城（再点取消回全景，light 震动）；下方展开该城票根列表，点行进详情
+- **空态兜底**：无坐标票根时地图回到中国中心视野（35,105）+ 提示文案「识别时填了城市的票根会自动出现在地图上」
+- **b12 勋章联动**：进过地图写本地标记 `sp_map_visited`；me 页「行走的勋章」判定改为 `mapVisited && 城市数≥3`，进度文案按城市数分两态（「还差 X 座城」/「去足迹地图点亮」）
+- **me 页入口卡**：勋章墙与会员占位之间新增「足迹地图」入口（显示当前城市数）
+- 架构说明：看自己的票根纯端上能力（store.listTickets + 端上计算），**未新增云函数/未新增 action**——遵守 action 路由红线
+- 诚实原则：地图只显示真实有坐标的票根（云模式由城市字典 88 城自动配对，演示数据自带坐标），无坐标不打点不造假
+
+## 4.3.0 — M4.5 交互层·第三批 P2（2026-09-04）
+
+- **票根卡左滑**（交互7）：ticket-card 组件 touch + transform 自实现（不用 movable-view，嵌套月分组冲突更可控）——横向位移 >8px 判定手势（纵向放行页面滚动）、<60rpx 回弹、≥60rpx 吸附展开 280rpx；拖动中关 transition 跟手、松手吸附；滑动过的卡不响应 tap（防误触）；全局同时只开一张（getApp()._swipeOpen 协调）；peek 半张预览禁用左滑（swipe 属性）
+- **快捷动作**：「🎴 卡片」直达纪念卡片页；「🗑️ 删除」二次确认（票名提示、heavy 震动）→ 删除 → 首页刷新。任务书的「编辑」按钮裁剪——编辑页尚未存在，无落点
+- **票根可删除**（补齐基础能力）：`store.removeTicket` 双模式——云模式创建者权限直接删云库记录（无需 action，照片文件保留云存储）；演示模式本地记录直删 + mock 票写「隐藏名单」（`sp_deleted_ids`）模拟删除
+- **detail 照片视差**（交互8，裁剪版）：onPageScroll 双通道节流（视差 30fps / FAB 100ms）——照片随滚动 translateY 8px + scale 1.12→1.18（起步 1.12 预留位移余量）、类型角标淡出；无照片的纸票占位同样联动。me 头部 / duo 封面视差裁剪（感知低、回归风险高）
+- duo 时间线行不做左滑：点行即进详情，行内动作无增量价值
+
+## 4.2.0 — M4.5 交互层·第二批 P1（2026-09-04）
+
+- **下拉弹性（wall/duo）**：页面滚动迁移到 `scroll-view enhanced`，自定义 refresher——票根图标随手势旋转（60px 内一圈封顶）、状态文案「下拉拾光→松手拾光→正在拾光…→已更新 ✦」、`refresher-max-drag-rate 0.5` 阻尼；pulling 事件角度变化 >5° 才 setData（节流）。wall 骨架期间禁用 refresher
+- **bottom-sheet 弹出层组件**：`components/bottom-sheet/`——遮罩 200ms 淡入、面板 300ms `cubic-bezier(0.32,0.72,0,1)` 底部滑入、顶部圆角 32rpx + 拖拽手柄 + safe-area、退场反向动画后移除节点、`catchtouchmove` 阻断滚动穿透、内容超高内部滚动（max 85vh）
+- **落点①scan 类型选择**：原生 ActionSheet → 品牌 bottom-sheet（🎤演出/🎬电影/🚄交通 三选一，当前项高亮，选完 light 震动）
+- **落点②me 关于**：新增「关于拾光票根」菜单 → 弹出层（版本号/slogan/产品简介）；隐私/用户协议入口保留（M5 接真实协议页）。card 页风格切换保留 chip（产品裁定，不做弹层）
+- **detail FAB**：右下角 112rpx 渐变圆钮，展开「卡片」+「分享」两子钮（弹性 cubic-bezier(0.34,1.56,0.64,1)），主钮 + 旋转 45° 变 ×，展开遮罩 0.3，展开/收起 light 震动；onPageScroll 100ms 节流——下滚 60px 隐藏、上滚显示；底部「生成纪念卡片」主按钮保留
+- **detail 分享**：新增 onShareAppMessage（晒票名卡片、落地回首页——详情数据仅创建者可见，避免好友端空页）
+- 产品裁定维持：wall 不加 FAB（tabBar 中央+唯一主入口）、card 模板保留 chip
+
+## 4.1.0 — M4.5 交互层·第一批 P0（2026-09-04）
+
+- **按压反馈（P0）**：全局可点元素接入 `hover-class`（自定义组件上 CSS :active 不可靠，改用小程序原生机制）——按钮/胶囊 scale 0.96、列表项/票卡 scale 0.98（票卡阴影染橘红 `rgba(224,83,47,.15)`）、tabBar item 0.94 / 中央「+」0.9；`pressable/press-hover/press-item-hover` 公共类进 `app.wxss`，组件内（ticket-card）自带样式。禁用态 `.disabled`
+- **震动反馈**：关键操作 medium——收下票根(scan.save)、保存卡片(card.save)、绑定成功(duo.joinCode/bind.accept)、进入卡片仪式(detail.goCard)；删除类 heavy——解除绑定(duo.unbindTap)
+- **骨架屏（P0）**：wall / duo / detail 三页接入，`utils/skeleton.js` 统一时序——**加载超 300ms 才显示**（防闪烁），骨料为暖灰渐变流光（#E8DFD0→#F5EFE3，1.5s 循环），结构与真实内容对应，让位后内容 200ms fade-in；演示模式同步加载不闪骨架
+- **数字滚动（P0）**：新组件 `components/animated-number/`——easeOutCubic，时长按位数 400/600/800ms，≥10000 格式化「x.x万」；**33ms 间隔（≈30fps）节流 setData** 且仅在显示值变化时推送（setData 跨线程，60fps 全帧推送低端机有风险）。落点：me 统计三联、duo 同行天数+合并统计、wall 问候行数字
+- 产品裁定（用户拍板）：wall 不加 FAB、card 模板保留 chip 切换、拖拽排序砍掉、共享元素转场降级
+
+## 4.0.0 — M4-a 双人空间（2026-09-04）
+
+- **绑定闭环**：duo 页双态重写——未绑定（自动生成 4 位邀请码、复制口令、输码绑定、微信分享邀请卡片）；新增 `pages/bind/bind` 邀请中转页（分享卡片带 code 直达确认）
+- **云端**：`saveTicket` 新增 action——`bind`（create/join/query/unbind，`couples` 集合，邀请码 7 天过期、重复绑定保护）、`duoStats`（云函数合并双方票根统计）、`eventStats`（同场收藏计数）
+- **双人头像上海报**：绑定后纪念卡片照片角上的「拾光」邮戳自动换成双人头像徽章（classic/poster/journal 三风格）
+- **勋章自动点亮**：me 页 12 枚勋章改为真实数据判定 + 「还差 X」进度文案；「时光信使」读分享/导出本地计数
+- **同场真实计数**：详情页同场印记按 `eventKey` 统计动态文案
+- 新增 `utils/couple.js`；`pages/bind/` 加入 `app.json`
+
+## 3.2.0 — 视觉三方案（2026-09-04）
+
+- 卡片新增第四风格**「手账水彩」**（`drawJournal`）：水彩晕染、虚线手账框、拍立得照片（白框倾斜+和纸胶带）、bullet 排版、水彩笔触下划线
+- 决策：A 纸质收藏册=产品底座 / B 午夜现场=演出海报风格 / C 手账水彩=情侣手账；全 App 主题皮肤放 V2（挂会员权益）
+
+## 3.1.0 — 原型还原补丁（2026-09-04）
+
+- 卡片海报补票根照片区（有照片 cover 裁剪、无照片纸票占位）、演出海报补 NO. 编号、经典风格补「拾光」邮戳、撕票线打孔随底色自适应、页面改暗色舞台
+- 票根墙：品牌头部、今日时光签（24 句时令短句库）、按月问候、peek 折叠展开
+- 勋章墙 6→12 枚；演示数据补 AI 文案；`goDetail` 防自定义/原生事件双触发
+- 修复审计结论：里程碑按能力切、原型未逐项验收是偏差根因 → 流程改为逐屏对照验收
+
+## 3.0.0 — M3 AI 灵魂（2026-09-04）
+
+- 端上大模型 `utils/ai.js`（hunyuan-lite）：OCR 行文本 → JSON 草稿解析（规则引擎兜底）+ 30 字纪念文案生成
+- AI 文案入库前过 `msgSecCheck`（saveTicket 升级为 action 路由：入库 + `checkText`）
+- 纪念卡片 Canvas 2D 真实渲染三风格 + `saveImageToPhotosAlbum` 相册导出（含授权引导）+ 分享
+- 详情页 AI 文案卡（生成/换一句）；识别页接 AI 解析
+
+## 2.x — M1 骨架 + M2 识别闭环
+
+- M1：纸质收藏册设计系统、六屏骨架、自定义 tabBar、票卡组件
+- M2：`recognizeTicket`（OCR+规则解析+坐标字典）、`saveTicket`（入库+天气存档+eventKey）、`utils/store.js` 双模式数据层、那年今日动态匹配
+
+## 0. 前置决策记录
+
+- 云函数仅两个（saveTicket 万能路由 / recognizeTicket）：**miniprogram-ci 只能更新不能创建云函数**，新后端能力一律走 action
+- AI 调用放端上（wx.cloud.extend.AI 免费模型），云函数只做 OCR 与入库
+- 类目策略：工具>图片处理 + 工具>信息查询（避开社交/票务/出行类目）

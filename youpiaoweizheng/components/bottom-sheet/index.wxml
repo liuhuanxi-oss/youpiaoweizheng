@@ -1,0 +1,9 @@
+<!-- components/bottom-sheet/index.wxml -->
+<view class="bs" wx:if="{{visible}}" catchtouchmove="noop">
+  <view class="bs-mask {{leaving ? 'out' : ''}}" bindtap="close"></view>
+  <view class="bs-panel {{leaving ? 'out' : ''}}">
+    <view class="bs-grip" hover-class="none" bindtap="close"><view class="bs-bar"></view></view>
+    <view class="bs-title serif" wx:if="{{title}}">{{title}}</view>
+    <view class="bs-body"><slot></slot></view>
+  </view>
+</view>

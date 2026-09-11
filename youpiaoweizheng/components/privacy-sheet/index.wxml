@@ -1,0 +1,20 @@
+<bottom-sheet show="{{show}}" title="隐私保护提示" bind:close="onClose">
+  <view class="pv-body">
+    <view class="pv-ico">🔐</view>
+    <view class="pv-t serif">为了完成这个操作</view>
+    <view class="pv-s">我们需要按你的指示处理相应信息（如访问相机与相册、保存图片到相册）。收集与处理规则以</view>
+    <view class="pv-link" bindtap="goProtocol">《有票为证隐私协议》</view>
+    <view class="pv-s">为准，你可以随时在「我的-隐私协议」中查看。</view>
+  </view>
+  <!-- 修复：同意必须走官方协议 button（open-type="agreePrivacyAuthorization"），
+       平台用 buttonId 校验授权合法性——普通 bindtap 的 resolve({event:'agree'}) 会被判无效，
+       导致 chooseMedia/saveImageToPhotosAlbum 报 privacy permission is not authorized or buttonId is wrong -->
+  <button
+    id="agree-btn"
+    class="pv-agree pressable"
+    hover-class="press-hover"
+    open-type="agreePrivacyAuthorization"
+    bindagreeprivacyauthorization="onAgreePrivacy"
+  >同意并继续</button>
+  <view class="pv-deny pressable" hover-class="press-hover" bindtap="deny">拒绝</view>
+</bottom-sheet>

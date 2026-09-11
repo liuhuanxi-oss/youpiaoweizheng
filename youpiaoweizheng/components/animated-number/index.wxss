@@ -1,0 +1,15 @@
+/* components/animated-number/index.wxss —— v6.6.0 */
+/* 行内渲染：可嵌在句子文本流中（如「已同行 N 天」），字号/颜色从父级继承 */
+:host { display: inline; }
+.an {
+  display: inline; font: inherit; color: inherit; letter-spacing: inherit;
+  /* v6.6.0：位数变化不抖动（等宽数字） */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  /* 过渡层：显示即 opacity 淡入（reduced-motion 下这是唯一保留的动效） */
+  animation: an-in 240ms ease-out both;
+}
+@keyframes an-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

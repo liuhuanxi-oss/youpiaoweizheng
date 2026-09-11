@@ -1,0 +1,975 @@
+// pages/card/card.js —— 纪念卡片（M3.2 Canvas 真实渲染 + 相册导出）
+// ============================================================
+// 四套风格在同一张 600×960 逻辑画布上绘制：
+//   classic 经典纸感（视觉方案 A · 纸质收藏册底座）
+//   poster  演出海报（视觉方案 B · 午夜现场，暗色光晕）
+//   journal 手账水彩（视觉方案 C · 情侣手账，拍立得+水彩晕染）
+//   daily   每日日签
+// M3.1 对齐产品原型屏③：
+//   + 票根照片区（有照片画照片 cover 裁剪，无照片画纸票占位）
+//   + 演出海报补 NO. 收藏编号眉头
+//   + 经典纸感补「有票为证」邮戳（盖在照片角上）
+//   + 撕票线打孔颜色随底色自适应
+// 保存：canvasToTempFilePath → saveImageToPhotosAlbum（含授权引导）
+// 换一版文案：AI 实时重写（详情页保存为准）
+// ============================================================
+const store = require('../../utils/store.js');
+const { weekday, annivYears } = require('../../utils/date.js');
+const ai = require('../../utils/ai.js');
+const themeUtil = require("../../utils/theme.js");
+const couple = require('../../utils/couple.js');
+const { USE_CLOUD } = require('../../utils/env.js');       // 4.17.0：演示模式不带码
+const track = require('../../utils/track.js');             // 4.17.0：拉新埋点
+const pay = require('../../utils/pay.js');                 // 4.20.3：署名（昵称 → 卡面落款）
+
+const W = 600, H = 960;
+const LS_SHARE = 'sp_share_count'; // 时光信使勋章：分享/导出计数（本地）
+
+// v5.0 S1 小红书竖版：主画布 600×960（5:8）→ 离屏画布装裱成 1080×1440（3:4 标准竖版）
+// 装裱底色/水印色随卡片风格适配（poster 深底用奶油水印，其余纸底用褐灰）
+const XHS_W = 1080, XHS_H = 1440;
+const XHS_BG = { classic: '#F4EFE6', daily: '#F4EFE6', journal: '#FDF9F0', poster: '#1A1512' };
+const XHS_WM = {
+  classic: 'rgba(156, 143, 128, 0.9)',
+  daily: 'rgba(156, 143, 128, 0.9)',
+  journal: 'rgba(185, 168, 140, 0.9)',
+  poster: 'rgba(247, 242, 230, 0.55)'
+};
+const WM_TEXT = '@有票为证 · 你的时光档案馆'; // v5.0 S2 标准品牌水印文案
+
+// ---------- 绘制工具 ----------
+function wrapText(ctx, text, maxWidth, maxLines) {
+  const lines = [];
+  let line = '';
+  for (const ch of String(text || '')) {
+    if (ctx.measureText(line + ch).width > maxWidth) {
+      lines.push(line);
+      line = ch;
+      if (lines.length === maxLines) return lines;
+    } else {
+      line += ch;
+    }
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  return lines.length ? lines : [''];
+}
+
+function drawBarcode(ctx, x, y, w, h, color) {
+  ctx.fillStyle = color;
+  let cx = x;
+  let seed = 7;
+  while (cx < x + w - 6) {
+    seed = (seed * 9301 + 49297) % 233280;
+    const bw = 2 + (seed % 5);
+    ctx.fillRect(cx, y, bw, h);
+    cx += bw + 3 + (seed % 4);
+  }
+}
+
+function tearLine(ctx, y, color, holeColor) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 8]);
+  ctx.beginPath();
+  ctx.moveTo(36, y);
+  ctx.lineTo(W - 36, y);
+  ctx.stroke();
+  // 两侧打孔（用撕线后的底色圆模拟缺口）
+  ctx.setLineDash([]);
+  ctx.fillStyle = holeColor || '#F4EFE6';
+  ctx.beginPath(); ctx.arc(36, y, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W - 36, y, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function kvRow(ctx, k, v, y, kColor, vColor) {
+  ctx.textAlign = 'left';
+  ctx.font = '20px sans-serif';
+  ctx.fillStyle = kColor;
+  ctx.fillText(k, 60, y);
+  ctx.textAlign = 'right';
+  ctx.font = '600 20px sans-serif';
+  ctx.fillStyle = vColor;
+  ctx.fillText(String(v || '—').slice(0, 22), W - 60, y);
+}
+
+function md(dateStr) {
+  const parts = String(dateStr || '').split('-');
+  return parts.length === 3 ? `${Number(parts[1])}.${parts[2]}` : '--.--';
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** 票根照片区：有照片 cover 裁剪，无照片画纸票占位；右下角标座位·票价 */
+function drawPhotoBlock(ctx, img, t, x, y, w, h, opts) {
+  const o = opts || {};
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 16);
+  ctx.clip();
+  if (img) {
+    const iw = img.width || 600, ih = img.height || 800;
+    const s = Math.max(w / iw, h / ih);
+    const dw = iw * s, dh = ih * s;
+    try { ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); } catch (e) { /* 图异常则落占位 */ }
+  }
+  if (!img) {
+    ctx.fillStyle = o.emptyBg || '#EFE7D6';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = o.emptyFg || '#B3A690';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('票根照片 · 待补拍', x + 22, y + h / 2 - 12);
+    drawBarcode(ctx, x + 22, y + h / 2 + 8, Math.min(w - 44, 220), 16, o.emptyBarcode || '#C9BB9F');
+  }
+  ctx.restore();
+  ctx.strokeStyle = o.border || 'rgba(43,36,32,0.18)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, 16);
+  ctx.stroke();
+  const cap = [t.seat, t.price ? '¥' + t.price : ''].filter(Boolean).join(' · ');
+  if (cap) {
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = o.capColor || 'rgba(43,36,32,0.5)';
+    ctx.fillText(cap, x + w, y + h + 26);
+  }
+}
+
+/** 「有票为证」邮戳（4.11.1 对齐品牌定稿印章）：虚线外环 + 实心印面 + 白「证」 */
+function drawPostmark(ctx, x, y, r, color) {
+  ctx.save();
+  // 外虚线环（呼应定稿标识的外圈虚线）
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 6]);
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  // 实心印面
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, r - 7, 0, Math.PI * 2); ctx.fill();
+  // 印面白「证」
+  ctx.fillStyle = '#FDF6EC';
+  ctx.textAlign = 'center';
+  ctx.font = `700 ${Math.round((r - 7) * 1.12)}px serif`;
+  ctx.fillText('证', x, y + (r - 7) * 0.36);
+  ctx.restore();
+}
+
+/** 双人头像徽章：M4 绑定后替代邮戳出现在照片角上（我橘 · TA蓝） */
+function drawDuoBadge(ctx, x, y, r, duo) {
+  const off = r * 0.74;
+  const one = (cx, char, bg) => {
+    ctx.save();
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.arc(cx, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,252,245,0.92)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.fillStyle = '#FFF6E8';
+    ctx.font = `700 ${Math.round(r * 0.92)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(char, cx, y + r * 0.34);
+    ctx.restore();
+  };
+  one(x - off, (duo.myName || '我')[0], '#E0532F');
+  one(x + off, (duo.partnerName || 'TA')[0], '#3E6B8C');
+}
+
+/** 水彩晕染：中心实、边缘散的径向渐变色斑 */
+function watercolorBlob(ctx, x, y, r, color) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, color);
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+/** 4.11.0 同场角标：「✦ 同场 N 人共同收藏」（N≥2 才画；深色胶囊底适配四风格） */
+function drawSameBadge(ctx, x, y, n, dark) {
+  if (!(n >= 2)) return;
+  const text = `✦ 同场 ${n} 人共同收藏`;
+  ctx.font = '600 17px sans-serif';
+  const w = ctx.measureText(text).width + 34;
+  const h = 34;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.18)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 3;
+  ctx.fillStyle = dark ? 'rgba(20,16,24,0.66)' : 'rgba(30,24,20,0.62)';
+  roundRect(ctx, x, y - h / 2, w, h, 17);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = '#FFF6E8';
+  ctx.textAlign = 'left';
+  ctx.fillText(text, x + 17, y + 6);
+  ctx.restore();
+}
+
+/** 4.17.0 M1 海报带码：右下角小程序码（白底圆角衬 + 88px 画幅，扫码直达收藏册）
+ *  qr 为空不画，返回默认右距；带码时返回让位后的品牌文案右对齐 x。 */
+function drawQR(ctx, qr) {
+  if (!qr) return W - 60;
+  ctx.save();
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, W - 148, 826, 88, 88, 12);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(43,36,32,0.14)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, W - 148, 826, 88, 88, 12);
+  ctx.stroke();
+  try { ctx.drawImage(qr, W - 142, 832, 76, 76); } catch (e) { /* 码图异常则只留白衬 */ }
+  ctx.restore();
+  return W - 162; // 品牌文案右对齐让位（码左缘 - 14px 间距）
+}
+
+/** 和纸胶带：半透明斜色带（手账贴照片的灵魂） */
+function drawTape(ctx, x, y, angle, w, h, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.fillStyle = color;
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+/** 拍立得：白框 + 微倾斜 + 底边手写注释 + 双角胶带（手账水彩风格的照片区） */
+function drawPolaroid(ctx, img, t, cx, cy, w, h, angle, duo) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  // 白框（带投影，像贴上去的）
+  ctx.shadowColor = 'rgba(43,36,32,0.18)';
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 8;
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, -w / 2, -h / 2, w, h, 6);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  // 图区
+  const px = -w / 2 + 14, py = -h / 2 + 14;
+  const pw = w - 28, ph = h - 74;
+  ctx.save();
+  roundRect(ctx, px, py, pw, ph, 4);
+  ctx.clip();
+  if (img) {
+    const iw = img.width || 600, ih = img.height || 800;
+    const s = Math.max(pw / iw, ph / ih);
+    try { ctx.drawImage(img, px + (pw - iw * s) / 2, py + (ph - ih * s) / 2, iw * s, ih * s); } catch (e) { /* 异常落占位 */ }
+  }
+  if (!img) {
+    ctx.fillStyle = '#F2EAD9';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = '#C9BB9F';
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('票根照片 · 待补拍', 0, -12);
+    drawBarcode(ctx, -80, 0, 160, 14, '#D5C8AC');
+  }
+  ctx.restore();
+  // 白框底边手写注释
+  const cap = [t.seat, t.price ? '¥' + t.price : ''].filter(Boolean).join(' · ');
+  if (cap) {
+    ctx.fillStyle = '#8A7B66';
+    ctx.font = 'italic 17px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(cap, 0, h / 2 - 24);
+  }
+  // 双角和纸胶带（半透明，压在照片上边缘）
+  drawTape(ctx, -w / 2 + 26, -h / 2 + 6, -0.6, 70, 26, 'rgba(240,170,110,0.5)');
+  drawTape(ctx, w / 2 - 26, -h / 2 + 6, 0.6, 70, 26, 'rgba(150,180,200,0.45)');
+  // 绑定后：右下角双人头像徽章
+  if (duo) drawDuoBadge(ctx, w / 2 - 66, h / 2 - 28, 26, duo);
+  ctx.restore();
+}
+
+// ---------- 三套风格 ----------
+function drawClassic(ctx, t, quote, img, duo, same, qr, sig) {
+  ctx.fillStyle = '#F4EFE6';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#E0D6C2';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(20, 20, W - 40, H - 40);
+
+  ctx.textAlign = 'left';
+  ctx.font = '16px sans-serif';
+  ctx.fillStyle = '#9C8F80';
+  ctx.fillText('Y O U P I A O · K E E P S A K E', 60, 70);
+  ctx.textAlign = 'right';
+  ctx.fillText('NO.' + String(t.id || '').slice(-6).toUpperCase(), W - 60, 70);
+
+  tearLine(ctx, 100, 'rgba(43,36,32,0.35)');
+
+  // 票名（两行）
+  ctx.textAlign = 'left';
+  ctx.font = '600 32px sans-serif';
+  ctx.fillStyle = '#2B2420';
+  const titleLines = wrapText(ctx, t.title, W - 120, 2);
+  titleLines.forEach((l, i) => ctx.fillText(l, 60, 175 + i * 44));
+
+  // 信息区（行数不定 → 照片区动态让位）
+  let y = 275;
+  kvRow(ctx, '时间', `${t.date} ${t.time || ''}`, y, '#9C8F80', '#2B2420'); y += 46;
+  kvRow(ctx, '场馆', t.venue, y, '#9C8F80', '#2B2420'); y += 46;
+  kvRow(ctx, '城市', t.city, y, '#9C8F80', '#2B2420'); y += 46;
+  if (t.seat) { kvRow(ctx, '座位', t.seat, y, '#9C8F80', '#2B2420'); y += 46; }
+  if (t.price) { kvRow(ctx, '票价', `¥${t.price}${t.source ? ' · ' + t.source : ''}`, y, '#9C8F80', '#2B2420'); }
+
+  // 票根照片区（信息行越多画得越矮，保证文案区不挤压）
+  const rows = 3 + (t.seat ? 1 : 0) + (t.price ? 1 : 0);
+  const infoEnd = 275 + rows * 46;
+  const photoH = rows >= 4 ? 140 : 180;
+  const photoY = infoEnd + 26;
+  drawPhotoBlock(ctx, img, t, 60, photoY, W - 120, photoH);
+  // 绑定后照片角上是双人头像徽章，未绑定是「有票为证」邮戳
+  if (duo) drawDuoBadge(ctx, W - 118, photoY + photoH - 30, 30, duo);
+  else drawPostmark(ctx, W - 118, photoY + photoH - 30, 34, 'rgba(224,83,47,0.72)');
+  // 4.11.0：同场角标（照片区左下，避开右侧邮戳/双人徽章）
+  drawSameBadge(ctx, 76, photoY + photoH - 30, same, false);
+
+  // 文案
+  if (quote) {
+    const quoteY = photoY + photoH + 66;
+    ctx.font = 'italic 22px serif';
+    ctx.fillStyle = '#6B5F52';
+    ctx.textAlign = 'left';
+    const qLines = wrapText(ctx, `「${quote}」`, W - 120, 2);
+    qLines.forEach((l, i) => ctx.fillText(l, 60, quoteY + i * 34));
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = '#B3A690';
+    ctx.fillText('—— 文案由 AI 生成', 60, quoteY + qLines.length * 34 + 12);
+  }
+
+  // 底部条形码 + 品牌（4.17.0 M1：带码时品牌文案左让，给右下小程序码腾位）
+  drawBarcode(ctx, 60, 830, 280, 44, '#2B2420');
+  const brandX = drawQR(ctx, qr);
+  ctx.textAlign = 'right';
+  ctx.font = '600 18px sans-serif';
+  ctx.fillStyle = '#2B2420';
+  ctx.fillText((sig ? sig + ' · ' : '') + '有票为证 · 让时光有迹可循', brandX, 850);
+  ctx.font = '14px sans-serif';
+  ctx.fillStyle = '#9C8F80';
+  ctx.fillText(`${t.date} · ${t.city || ''}`, brandX, 878);
+}
+
+function drawPoster(ctx, t, quote, img, duo, same, qr, sig) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#3A2E24');
+  g.addColorStop(0.55, '#241E19');
+  g.addColorStop(1, '#1A1512');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // 顶部光晕
+  const halo = ctx.createRadialGradient(160, 90, 20, 160, 90, 320);
+  halo.addColorStop(0, 'rgba(245,185,64,0.30)');
+  halo.addColorStop(1, 'rgba(245,185,64,0)');
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, W, 420);
+
+  ctx.textAlign = 'left';
+  ctx.font = '16px sans-serif';
+  ctx.fillStyle = 'rgba(247,242,230,0.55)';
+  ctx.fillText('Y O U P I A O · L I V E', 60, 70);
+  // 收藏编号眉头（对齐原型 NO.0077）
+  ctx.textAlign = 'right';
+  ctx.fillText('NO.' + String(t.id || '').slice(-6).toUpperCase(), W - 185, 71);
+
+  // 日期徽章
+  ctx.fillStyle = '#E0532F';
+  roundRect(ctx, W - 160, 42, 100, 44, 22);
+  ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.font = '600 20px sans-serif';
+  ctx.fillStyle = '#FFF6E8';
+  ctx.fillText(md(t.date), W - 110, 71);
+
+  // 票名（三行，大字）
+  ctx.textAlign = 'left';
+  ctx.font = '600 40px sans-serif';
+  ctx.fillStyle = '#F7F2E6';
+  const titleLines = wrapText(ctx, t.title, W - 120, 3);
+  titleLines.forEach((l, i) => ctx.fillText(l, 60, 175 + i * 54));
+
+  ctx.font = '20px sans-serif';
+  ctx.fillStyle = '#C9A24B';
+  ctx.fillText(`${t.city || ''} ${t.venue ? '· ' + t.venue : ''}`.trim().slice(0, 24), 60, 175 + titleLines.length * 54 + 16);
+
+  tearLine(ctx, 370, 'rgba(247,242,230,0.30)', '#2B231C');
+
+  // 票根照片区（对齐原型：海报中段是票根图）
+  drawPhotoBlock(ctx, img, t, 60, 400, W - 120, 160, {
+    border: 'rgba(247,242,230,0.25)',
+    capColor: 'rgba(247,242,230,0.55)',
+    emptyBg: 'rgba(255,255,255,0.08)',
+    emptyFg: 'rgba(247,242,230,0.5)',
+    emptyBarcode: 'rgba(247,242,230,0.35)'
+  });
+  if (duo) drawDuoBadge(ctx, W - 118, 530, 30, duo);
+  // 4.11.0：同场角标
+  drawSameBadge(ctx, 76, 530, same, true);
+
+  // 信息
+  kvRow(ctx, '时间', `${t.date} ${t.time || ''}`, 624, 'rgba(247,242,230,0.5)', 'rgba(247,242,230,0.95)');
+  if (t.seat) kvRow(ctx, '座位', t.seat, 666, 'rgba(247,242,230,0.5)', 'rgba(247,242,230,0.95)');
+
+  // 文案
+  if (quote) {
+    const quoteY = 712;
+    ctx.font = 'italic 24px serif';
+    ctx.fillStyle = 'rgba(247,242,230,0.9)';
+    ctx.textAlign = 'left';
+    const qLines = wrapText(ctx, `「${quote}」`, W - 120, 2);
+    qLines.forEach((l, i) => ctx.fillText(l, 60, quoteY + i * 38));
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = 'rgba(247,242,230,0.45)';
+    ctx.fillText('—— 文案由 AI 生成', 60, quoteY + qLines.length * 38 + 14);
+  }
+
+  // 底部条形码 + 品牌（4.17.0 M1：带码时品牌文案左让）
+  drawBarcode(ctx, 60, 830, 280, 44, 'rgba(247,242,230,0.85)');
+  const brandXP = drawQR(ctx, qr);
+  ctx.textAlign = 'right';
+  ctx.font = '600 18px sans-serif';
+  ctx.fillStyle = '#F7F2E6';
+  ctx.fillText((sig ? sig + ' · ' : '') + '有票为证 · 让时光有迹可循', brandXP, 850);
+  ctx.font = '14px sans-serif';
+  ctx.fillStyle = 'rgba(247,242,230,0.5)';
+  ctx.fillText(`${t.date} · ${t.city || ''}`, brandXP, 878);
+}
+
+function drawDaily(ctx, t, quote, img, duo, same, qr, sig) {
+  ctx.fillStyle = '#F4EFE6';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#E0D6C2';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(20, 20, W - 40, H - 40);
+
+  // 顶部大日期
+  ctx.textAlign = 'left';
+  ctx.font = '600 72px sans-serif';
+  ctx.fillStyle = '#E0532F';
+  ctx.fillText(md(t.date), 60, 150);
+  ctx.font = '18px sans-serif';
+  ctx.fillStyle = '#9C8F80';
+  ctx.fillText(`${t.date} ${weekday(t.date)}`, 60, 190);
+  ctx.textAlign = 'right';
+  ctx.font = '16px sans-serif';
+  ctx.fillText('今日时光签', W - 60, 70);
+  ctx.fillText('YOUPIAO DAILY', W - 60, 95);
+
+  // 票名
+  ctx.textAlign = 'left';
+  ctx.font = '600 30px sans-serif';
+  ctx.fillStyle = '#2B2420';
+  const titleLines = wrapText(ctx, t.title, W - 120, 2);
+  titleLines.forEach((l, i) => ctx.fillText(l, 60, 300 + i * 42));
+
+  ctx.font = '20px sans-serif';
+  ctx.fillStyle = '#6B5F52';
+  ctx.fillText(`${t.city || ''} ${t.venue ? '· ' + t.venue : ''}`.trim().slice(0, 24), 60, 300 + titleLines.length * 42 + 16);
+
+  // 票根照片区（小横幅）
+  drawPhotoBlock(ctx, img, t, 60, 392, W - 120, 140);
+  // 4.11.0：同场角标
+  drawSameBadge(ctx, 76, 392 + 140 - 30, same, false);
+
+  tearLine(ctx, 580, 'rgba(43,36,32,0.35)');
+
+  // 文案（居中）
+  if (quote) {
+    ctx.textAlign = 'center';
+    ctx.font = '26px serif';
+    ctx.fillStyle = '#2B2420';
+    const qLines = wrapText(ctx, quote, W - 160, 3);
+    qLines.forEach((l, i) => ctx.fillText(l, W / 2, 630 + i * 44));
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = '#B3A690';
+    ctx.fillText('—— 文案由 AI 生成', W / 2, 630 + qLines.length * 44 + 16);
+  }
+
+  // 底部条形码 + 品牌（4.17.0 M1：带码时品牌文案左让）
+  drawBarcode(ctx, 60, 830, 280, 44, '#2B2420');
+  const brandXD = drawQR(ctx, qr);
+  ctx.textAlign = 'right';
+  ctx.font = '600 18px sans-serif';
+  ctx.fillStyle = '#2B2420';
+  ctx.fillText((sig ? sig + ' · ' : '') + '有票为证 · 让时光有迹可循', brandXD, 850);
+}
+
+// 手账水彩（对齐视觉方案 C：情侣/温柔气质——水彩晕染 + 拍立得 + bullet 手账排版）
+function drawJournal(ctx, t, quote, img, duo, same, qr) {
+  // 暖白纸底 + 水彩晕染
+  ctx.fillStyle = '#FDF9F0';
+  ctx.fillRect(0, 0, W, H);
+  watercolorBlob(ctx, 500, 110, 280, 'rgba(240,150,90,0.20)');
+  watercolorBlob(ctx, 100, 850, 260, 'rgba(90,130,170,0.14)');
+  watercolorBlob(ctx, 110, 210, 180, 'rgba(230,120,110,0.10)');
+
+  // 虚线手账框
+  ctx.save();
+  ctx.strokeStyle = '#D9CBB2';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 7]);
+  roundRect(ctx, 26, 26, W - 52, H - 52, 20);
+  ctx.stroke();
+  ctx.restore();
+
+  // 顶部：日期贴纸 + 手写英文
+  ctx.fillStyle = '#F6D9B8';
+  roundRect(ctx, 52, 52, 156, 44, 10);
+  ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.font = '600 18px sans-serif';
+  ctx.fillStyle = '#8A5A2B';
+  ctx.fillText(`${md(t.date)} ${weekday(t.date)}`, 130, 81);
+  ctx.textAlign = 'right';
+  ctx.font = '15px sans-serif';
+  ctx.fillStyle = '#B9A88C';
+  ctx.fillText('YOUPIAO JOURNAL', W - 56, 70);
+
+  // 标题 + 水彩笔触下划线
+  ctx.textAlign = 'left';
+  ctx.font = '700 34px serif';
+  ctx.fillStyle = '#4A3B2D';
+  const titleLines = wrapText(ctx, t.title, W - 130, 2);
+  titleLines.forEach((l, i) => ctx.fillText(l, 60, 165 + i * 46));
+  const titleW = ctx.measureText(titleLines[0]).width;
+  const underlineY = 182 + (titleLines.length - 1) * 46;
+  ctx.fillStyle = 'rgba(240,150,90,0.28)';
+  roundRect(ctx, 58, underlineY, Math.min(titleW + 26, W - 130), 12, 6); ctx.fill();
+  ctx.fillStyle = 'rgba(240,150,90,0.18)';
+  roundRect(ctx, 72, underlineY + 5, Math.min(titleW + 60, W - 116), 10, 5); ctx.fill();
+
+  // 拍立得照片（微倾斜 + 双角胶带；绑定后角上双人徽章）
+  drawPolaroid(ctx, img, t, W / 2, 432, 400, 330, -0.028, duo);
+  // 4.11.0：同场角标（拍立得左下）
+  drawSameBadge(ctx, 122, 556, same, false);
+
+  // 手账 bullet 信息
+  const bullets = [
+    ['时间', `${t.date} ${t.time || ''}`.trim()],
+    ['地点', `${t.city || ''} ${t.venue ? '· ' + t.venue : ''}`.trim() || '—']
+  ];
+  if (t.seat) bullets.push(['座位', t.seat]);
+  let by = 650;
+  ctx.textAlign = 'left';
+  bullets.forEach((b) => {
+    ctx.fillStyle = '#E0532F';
+    ctx.beginPath(); ctx.arc(66, by - 7, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '19px sans-serif';
+    ctx.fillStyle = '#8A7B66';
+    ctx.fillText(b[0], 82, by);
+    ctx.font = '600 19px sans-serif';
+    ctx.fillStyle = '#4A3B2D';
+    ctx.fillText(String(b[1]).slice(0, 20), 138, by);
+    by += 38;
+  });
+
+  // 文案
+  if (quote) {
+    const quoteY = by + 16;
+    ctx.font = 'italic 22px serif';
+    ctx.fillStyle = '#6B5A45';
+    const qLines = wrapText(ctx, `「${quote}」`, W - 140, 2);
+    qLines.forEach((l, i) => ctx.fillText(l, 60, quoteY + i * 34));
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#C0B09A';
+    ctx.fillText('—— 文案由 AI 生成', 60, quoteY + qLines.length * 34 + 14);
+  }
+
+  // 底部：星星分隔 + 品牌（4.17.0 M1：码画右下，居中文案不冲突、无需让位）
+  drawQR(ctx, qr);
+  ctx.textAlign = 'center';
+  ctx.font = '14px sans-serif';
+  ctx.fillStyle = '#D9B88A';
+  ctx.fillText('✦ · ✦ · ✦', W / 2, 864);
+  ctx.font = '600 17px sans-serif';
+  ctx.fillStyle = '#4A3B2D';
+  ctx.fillText('有票为证 · 让时光有迹可循', W / 2, 894);
+}
+
+const DRAWERS = { classic: drawClassic, poster: drawPoster, journal: drawJournal, daily: drawDaily };
+
+// ---------- 页面 ----------
+Page({
+
+  onShow() {
+    themeUtil.apply(this);
+    this._loadSignature(); // 4.20.3：署名异步到货后重绘（首绘不等它，不卡首屏）
+  },
+
+  /** 4.20.3 署名：昵称截 10 字防落款溢出；云失败/未设置 → 空串，落款保持品牌原样 */
+  _loadSignature() {
+    pay.getProfile().then((p) => {
+      const nick = String((p && p.nickname) || '').trim();
+      const sig = nick ? (nick.length > 10 ? nick.slice(0, 10) + '…' : nick) : '';
+      if (sig === this.data.signature) return;
+      this.setData({ signature: sig }, () => { if (this._ctx && this.data.t) this.draw(); });
+    }).catch(() => {});
+  },
+  data: {
+    theme: "a", legacyTheme: "a",
+    t: null,
+    quote: '',
+    style: 'classic',
+    signature: '', // 4.20.3：卡面落款署名（昵称，截 10 字；空=不署名）
+    styles: [
+      { key: 'classic', label: '经典纸感' },
+      { key: 'poster', label: '演出海报' },
+      { key: 'journal', label: '手账水彩' },
+      { key: 'daily', label: '每日日签' }
+    ],
+    // v5.1 S3：分享文案 3 模板（onShareAppMessage 按 e.target.dataset.tpl 选用）
+    shareTpls: [
+      { key: 'sentiment', label: '文艺' },
+      { key: 'showoff', label: '晒票' },
+      { key: 'invite', label: '邀约' }
+    ],
+    exporting: false,
+    redoing: false,
+    // 4.19.1 空态：票根未命中（过期 id / 云库异常 / 分享落地）——整页内容都挂在
+    // wx:if="{{t}}" 下，t=null 时四个风格胶囊、海报、按钮全部消失只剩导航栏白屏
+    notFound: false
+  },
+
+  async onLoad(options) {
+    // 4.22.5 修复（BUG审查①）：移除「getTicket 未命中 → 自动 fallback 自己第一张票」。
+    // 后果：好友点开分享卡（云库仅创建者可读，读不到他人票）会看到"自己的票"而非空态，
+    // 同场角标/海报文案全部错位。现在 id 失效/越权一律落 notFound 空态（明确出路）。
+    // 4.19.1 保留：取票 reject 不外抛，页面不死透。
+    let t = null;
+    try {
+      t = await store.getTicket(options.id);
+    } catch (e) {
+      console.warn('[card] 取票链路异常：', e);
+    }
+    if (!t) {
+      console.warn('[card] 票根未命中，落空态：id =', options && options.id);
+      this.setData({ notFound: true });
+      return;
+    }
+    // 4.17.0 M1 海报带码 A/B：首次进入随机分组并持久化（20% 不带码做对照，
+    // 用于对比两组海报的扫码回流）。演示模式无云能力 → 固定不带。
+    let ab = '';
+    try { ab = wx.getStorageSync('sp_poster_ab') || ''; } catch (e) { /* 忽略 */ }
+    if (!ab) {
+      ab = Math.random() < 0.8 ? 'code' : 'none';
+      try { wx.setStorageSync('sp_poster_ab', ab); } catch (e) { /* 忽略 */ }
+    }
+    this._ab = USE_CLOUD ? ab : 'none';
+    // 4.11.0：详情页带来的同场数（N≥2 时卡片画「同场 N 人共同收藏」角标）
+    this._same = Number(options && options.same) || 0;
+    // 绑定态 → 海报照片角画双人头像徽章
+    const c = couple.cachedCouple();
+    this._duo = c && c.boundAt ? c : null;
+    this.setData({
+      t,
+      quote: t.aiCaption || '有些夜晚值得被留下来，一遍一遍地放。'
+    }, () => {
+      // 4.22.4：t 到货后 canvas 才真正挂载，此处补初始化再首绘（修 onReady 竞争导致的空白画布）
+      this._ensureCanvas().then((ok) => { if (ok) this.draw(); });
+    });
+  },
+
+  onReady() {
+    this._ensureCanvas().then((ok) => { if (ok) this.draw(); });
+  },
+
+  /**
+   * 4.22.4 修复：canvas 初始化幂等 + 重试（修「卡片区域整块空白」）。
+   * 根因——canvas 挂在 wx:if="{{t}}" 下，onReady 与异步取票存在竞争：
+   * 取票慢时（云函数冷启动/弱网）onReady 先跑，t 还是 null → canvas 节点尚未挂载 →
+   * 旧逻辑打句 warn 就 return，之后再也没人初始化；取票回来 setData 后画布永远空白
+   * （真机表现：风格胶囊/按钮都在，卡片区域一整块黑）。改为幂等自愈：
+   * onReady / 票到货 / 任何 draw 入口都可经此补初始化（已初始化直接返回 true）。
+   */
+  _ensureCanvas(tryN) {
+    if (this._ctx) return Promise.resolve(true);
+    tryN = tryN || 0;
+    return new Promise((resolve) => {
+      this.createSelectorQuery().select('#cardCanvas').fields({ node: true, size: true }).exec((res) => {
+        const node = res && res[0] && res[0].node;
+        if (!node) {
+          if (tryN >= 10) {
+            console.warn('[card] canvas 节点初始化失败（重试耗尽），海报不会渲染：', res);
+            return resolve(false);
+          }
+          return setTimeout(() => resolve(this._ensureCanvas(tryN + 1)), 200);
+        }
+        this._canvas = node;
+        this._ctx = node.getContext('2d');
+        const dpr = Math.min((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2, 3);
+        this._canvas.width = W * dpr;
+        this._canvas.height = H * dpr;
+        this._ctx.scale(dpr, dpr);
+        resolve(true);
+      });
+    });
+  },
+
+  /** 票根照片 → Canvas Image（cloud:// 先换临时链接；失败返回 null 走占位） */
+  _ensurePhoto() {
+    const t = this.data.t || {};
+    if (!t.img) return Promise.resolve(null);
+    if (this._photoFor === t.img && this._photo) return Promise.resolve(this._photo);
+    return new Promise((resolve) => {
+      const finish = (url) => {
+        if (!url || !this._canvas) return resolve(null);
+        const img = this._canvas.createImage();
+        img.onload = () => { this._photo = img; this._photoFor = t.img; resolve(img); };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      };
+      if (/^cloud:/.test(t.img)) {
+        wx.cloud.getTempFileURL({
+          fileList: [t.img],
+          success: (r) => finish(r.fileList && r.fileList[0] && r.fileList[0].tempFileURL),
+          fail: () => resolve(null)
+        });
+      } else {
+        finish(t.img);
+      }
+    });
+  },
+
+  draw() {
+    if (!this.data.t) return;
+    if (!this._ctx) {
+      // 4.22.4：任何入口（风格切换/署名回包）先到而画布未初始化 → 自愈补初始化后再绘
+      this._ensureCanvas().then((ok) => { if (ok && this.data.t) this.draw(); });
+      return;
+    }
+    const token = (this._drawToken = (this._drawToken || 0) + 1);
+    // 4.17.1 修复：海报不等码图——首版 Promise.all(照片, 码) 让首屏卡在云函数上
+    //（wxacode 冷启动可达十几秒，真机表现为画布长期空白）。
+    // 现改为：照片就绪立即渲染（恢复 4.16.0 秒出体验）；码图独立加载，
+    // 就绪且本次绘制未被风格切换过期 → 自动补画带码版。
+    this._ensurePhoto().then((img) => {
+      if (token !== this._drawToken) return;
+      this._render(img, this._qrImg || null);
+      if (this._ab === 'code' && !this._qrImg && !this._qrFail) {
+        this._ensureQR().then((qr) => {
+          if (qr && token === this._drawToken) this._render(img, qr);
+        });
+      }
+    });
+  },
+
+  /** 用已就绪的素材渲染当前风格海报（img/qr 任一可为 null：落照片占位/不带码） */
+  _render(img, qr) {
+    this._qrDrawn = !!qr; // 本次实际是否带码（poster_save 埋点口径）
+    (DRAWERS[this.data.style] || drawClassic)(this._ctx, this.data.t, this.data.quote, img, this._duo || null, this._same || 0, qr || null, this.data.signature || '');
+  },
+
+  /** 4.17.0 M1：小程序码图（云函数生成 + 全局缓存 fileID；A组 none / 演示 / 失败 → null 静默） */
+  _ensureQR() {
+    if (this._ab !== 'code' || this._qrFail) return Promise.resolve(null);
+    if (this._qrImg) return Promise.resolve(this._qrImg);
+    if (this._qrPend) return this._qrPend; // 4.17.1：进行中的请求直接复用（防连点风格重复调云函数）
+    this._qrPend = new Promise((resolve) => {
+      wx.cloud.callFunction({
+        name: 'saveTicket',
+        data: { action: 'wxacode' },
+        success: (res) => {
+          const fileID = res.result && res.result.fileID;
+          if (!fileID) { this._qrFail = true; this._qrPend = null; return resolve(null); }
+          wx.cloud.getTempFileURL({
+            fileList: [fileID],
+            success: (r) => {
+              const url = r.fileList && r.fileList[0] && r.fileList[0].tempFileURL;
+              if (!url || !this._canvas) { this._qrFail = true; this._qrPend = null; return resolve(null); }
+              const img = this._canvas.createImage();
+              img.onload = () => { this._qrImg = img; this._qrPend = null; resolve(img); };
+              img.onerror = () => { this._qrFail = true; this._qrPend = null; resolve(null); };
+              img.src = url;
+            },
+            fail: () => { this._qrFail = true; this._qrPend = null; resolve(null); }
+          });
+        },
+        fail: () => { this._qrFail = true; this._qrPend = null; resolve(null); }
+      });
+    });
+    return this._qrPend;
+  },
+
+  pickStyle(e) {
+    this.setData({ style: e.currentTarget.dataset.key }, () => this.draw());
+  },
+
+  /** 换一版 AI 文案（仅当前画布生效，详情页保存为准；4.11.0 跟随详情页风格记忆 + 周年语气） */
+  async redo() {
+    const t = this.data.t;
+    if (!t || this.data.redoing) return;
+    this.setData({ redoing: true });
+    wx.showLoading({ title: 'AI 重写中…', mask: true });
+    try {
+      let style = '';
+      try { style = wx.getStorageSync('sp_cap_style') || ''; } catch (e) { /* 忽略 */ }
+      const quote = await ai.generateCaption(t, style, annivYears(t.date));
+      this.setData({ quote }, () => this.draw());
+      wx.hideLoading();
+      wx.showToast({ title: '已换一版', icon: 'none' });
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '换版失败，稍后再试', icon: 'none' });
+    } finally {
+      this.setData({ redoing: false });
+    }
+  },
+
+  /** 时光信使勋章：分享/导出一次 +1（本地计数） */
+  _incrShare() {
+    try {
+      const n = (wx.getStorageSync(LS_SHARE) || 0) + 1;
+      wx.setStorageSync(LS_SHARE, n);
+    } catch (e) { /* 忽略 */ }
+  },
+
+  /** 导出 PNG 到相册 */
+  async save() {
+    if (!this._canvas || this.data.exporting) return;
+    this.setData({ exporting: true });
+    wx.showLoading({ title: '生成图片中…', mask: true });
+    try {
+      const res = await wx.canvasToTempFilePath({ canvas: this._canvas });
+      await new Promise((resolve, reject) => {
+        wx.saveImageToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: resolve,
+          fail: reject
+        });
+      });
+      this._incrShare();
+      // 4.17.0 poster_save：带码海报的保存转化（口径：本次实际画没画码）
+      track.track('poster_save', { style: this.data.style, code: this._qrDrawn ? 1 : 0 });
+      wx.hideLoading();
+      wx.vibrateShort({ type: 'medium' }); // M4.5：关键操作（卡片入册）
+      wx.showToast({ title: '已存入相册', icon: 'success' });
+      // 4.20.3 按需触发署名：保存动作完成、价值已兑现后再邀请（一次会话至多一次，不打断主流程）
+      if (!this.data.signature && !this._sigHintShown) {
+        this._sigHintShown = true;
+        setTimeout(() => {
+          wx.showModal({
+            title: '给卡片署个名？',
+            content: '设置昵称后，你的卡片落款会带上「你的昵称 · 有票为证」。随时可清除。',
+            confirmText: '去设置',
+            cancelText: '暂不',
+            success: (r) => { if (r.confirm) wx.navigateTo({ url: '/pages/me/me' }); }
+          });
+        }, 1200); // 让「已存入相册」toast 先走完
+      }
+    } catch (e) {
+      wx.hideLoading();
+      const msg = String((e && e.errMsg) || e.message || e);
+      if (/auth/i.test(msg)) {
+        wx.showModal({
+          title: '需要相册权限',
+          content: '保存卡片需要「添加到相册」权限，请在设置中开启',
+          confirmText: '去设置',
+          success: (r) => { if (r.confirm) wx.openSetting(); }
+        });
+      } else if (!/cancel/i.test(msg)) {
+        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      }
+    } finally {
+      this.setData({ exporting: false });
+    }
+  },
+
+  /** v5.0 S1 小红书竖版导出：主画布截图 → 离屏 1080×1440（3:4）纸边装裱 + S2 品牌水印 → 存相册 */
+  async saveXHS() {
+    if (!this._canvas || this.data.exporting) return;
+    this.setData({ exporting: true });
+    wx.showLoading({ title: '生成小红书竖图…', mask: true });
+    try {
+      const shot = await wx.canvasToTempFilePath({ canvas: this._canvas });
+      const off = wx.createOffscreenCanvas({ type: '2d', width: XHS_W, height: XHS_H });
+      const ctx = off.getContext('2d');
+      const img = await new Promise((resolve, reject) => {
+        const im = off.createImage();
+        im.onload = () => resolve(im);
+        im.onerror = () => reject(new Error('装裱失败'));
+        im.src = shot.tempFilePath;
+      });
+      // contain 装裱：完整呈现不裁切，纸色/墨色底出收藏册质感（600×960 图高向受限，左右自然出纸边）
+      const style = this.data.style;
+      ctx.fillStyle = XHS_BG[style] || '#F4EFE6';
+      ctx.fillRect(0, 0, XHS_W, XHS_H);
+      const s = Math.min(XHS_W / img.width, XHS_H / img.height);
+      const dw = img.width * s, dh = img.height * s;
+      ctx.drawImage(img, (XHS_W - dw) / 2, (XHS_H - dh) / 2, dw, dh);
+      // S2 水印：右下角小字（深浅底随风格适配）
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillStyle = XHS_WM[style] || XHS_WM.classic;
+      ctx.fillText(WM_TEXT, XHS_W - 44, XHS_H - 36);
+      const out = await wx.canvasToTempFilePath({ canvas: off });
+      await new Promise((resolve, reject) => {
+        wx.saveImageToPhotosAlbum({ filePath: out.tempFilePath, success: resolve, fail: reject });
+      });
+      this._incrShare();
+      track.track('poster_save', { style, code: this._qrDrawn ? 1 : 0, xhs: 1 });
+      wx.hideLoading();
+      wx.vibrateShort({ type: 'medium' });
+      wx.showToast({ title: '已存入相册 · 3:4 适配小红书', icon: 'none' });
+    } catch (e) {
+      wx.hideLoading();
+      const msg = String((e && e.errMsg) || e.message || e);
+      if (/auth/i.test(msg)) {
+        wx.showModal({
+          title: '需要相册权限',
+          content: '保存卡片需要「添加到相册」权限，请在设置中开启',
+          confirmText: '去设置',
+          success: (r) => { if (r.confirm) wx.openSetting(); }
+        });
+      } else if (!/cancel/i.test(msg)) {
+        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      }
+    } finally {
+      this.setData({ exporting: false });
+    }
+  },
+
+  /** 4.19.1 空态动作（与 detail 4.18.0 空态同款）：去收自己的第一张票 / 返回 */
+  goScan() {
+    wx.redirectTo({ url: '/pages/scan/scan' });
+  },
+  goBack() {
+    wx.navigateBack({
+      delta: 1,
+      fail: () => wx.switchTab({ url: '/pages/album/album' }) // 无页面栈兜底（v6.1：wall 已并入 album，tab 页须用 switchTab）
+    });
+  },
+
+  onShareAppMessage(e) {
+    this._incrShare();
+    const t = this.data.t || {};
+    const name = String(t.title || '这张票');
+    // v5.1 S3：3 套分享文案模板（按钮 data-tpl 区分；无 tpl 走默认）
+    const TP = {
+      sentiment: `「${name}」的票根还在，那天的风也还在 · 有票为证`,
+      showoff: `我的票根收藏 +1 ·「${name}」值得好好收着`,
+      invite: `一起看过的「${name}」，我都替你收进时光册了`
+    };
+    const tpl = (e && e.target && e.target.dataset && e.target.dataset.tpl) || '';
+    const payload = {
+      title: TP[tpl] || `${name} · 让时光有票为证`,
+      path: `/pages/detail/detail?id=${t.id || ''}`
+    };
+    // v5.0 S1：分享卡片图用当前画布导出（promise 需 3 秒内返回；失败降级默认截图）
+    if (this._canvas) {
+      payload.promise = wx.canvasToTempFilePath({ canvas: this._canvas })
+        .then((r) => ({ imageUrl: r.tempFilePath }))
+        .catch(() => ({}));
+    }
+    return payload;
+  }
+});

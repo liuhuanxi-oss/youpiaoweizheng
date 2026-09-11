@@ -1,0 +1,101 @@
+{
+  "data": [
+    {
+      "id": "page-scheme-candy",
+      "title": "方案一 · 软糖手账风",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1789114800000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/scheme-candy.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-scheme-travel",
+      "title": "方案二 · 旅行图志风",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1789114800000,
+      "canvasData": {
+        "x": 0,
+        "y": 285,
+        "group": 1
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/scheme-travel.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-scheme-modern",
+      "title": "方案三 · 现代收藏家",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1789114800000,
+      "canvasData": {
+        "x": 0,
+        "y": 570,
+        "group": 2
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/scheme-modern.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "image-001",
+      "title": "软糖手账风主视觉",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1789114800000,
+      "canvasData": {
+        "x": 0,
+        "y": 855
+      },
+      "devMetadata": {
+        "imageSrc": "assets/scheme-candy-hero.jpg"
+      }
+    },
+    {
+      "id": "image-002",
+      "title": "旅行图志风主视觉",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1789114800000,
+      "canvasData": {
+        "x": 480,
+        "y": 855
+      },
+      "devMetadata": {
+        "imageSrc": "assets/scheme-travel-hero.jpg"
+      }
+    },
+    {
+      "id": "image-003",
+      "title": "现代收藏家主视觉",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1789114800000,
+      "canvasData": {
+        "x": 960,
+        "y": 855
+      },
+      "devMetadata": {
+        "imageSrc": "assets/scheme-modern-hero.jpg"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "freeSize",
+    "projectName": "有票为证 · 三视觉极端方案",
+    "designLibrary": null,
+    "visualEditorEnabled": false
+  }
+}

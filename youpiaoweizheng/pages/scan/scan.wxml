@@ -1,0 +1,154 @@
+<view class="sc-page theme-{{theme}}">
+
+  <!-- ============================================================
+       品牌稿第三屏 · 拍照上传（6.4.0）
+       相机全屏取景 + 白虚线取景框四角白角标 + 相册/快门/翻转三钮
+       + 底部白面板「✦ AI智能处理中」识别→修复→重绘→入档四步
+       ============================================================ -->
+  <view class="cam-wrap" wx:if="{{mode !== 'done'}}">
+
+    <!-- 相机舞台（取景态 camera 实时画面 / 处理态 盖刚拍的照片） -->
+    <view class="cam-stage">
+      <camera
+        wx:if="{{!camErr}}"
+        class="cam"
+        device-position="{{devicePos}}"
+        flash="{{flash}}"
+        resolution="high"
+        binderror="onCamErr"
+      />
+      <!-- 相机不可用降级（权限拒绝/被占用）：奶油白引导 + 相册兜底 -->
+      <view wx:else class="cam cam-fb">
+        <view class="fb-ico">📷</view>
+        <view class="fb-t">相机暂时开不动</view>
+        <view class="fb-s">可以先把票根拍进相册，再从这里选出来</view>
+        <view class="fb-btn" bindtap="pickAlbum">从相册选票根</view>
+        <view class="fb-set" bindtap="goSetting">去开启相机权限 ›</view>
+      </view>
+
+      <!-- 处理态：刚拍的照片盖在舞台上，扫描线扫过 -->
+      <view class="vf vf-photo" wx:if="{{mode === 'scanning'}}">
+        <image class="vf-img" src="{{imgPath}}" mode="aspectFill" bindtap="preview" />
+        <view class="scanline"></view>
+      </view>
+
+      <!-- 取景态：白色虚线取景框 + 四角白角标（一比一对齐品牌稿） -->
+      <block wx:else>
+        <view class="vf">
+          <view class="vf-c c1"></view>
+          <view class="vf-c c2"></view>
+          <view class="vf-c c3"></view>
+          <view class="vf-c c4"></view>
+        </view>
+        <!-- 稿内导航栏右侧 ⚡/?：闪光灯开关 + 拍摄技巧 -->
+        <view class="cam-tools">
+          <view class="tool-dot {{flash === 'on' ? 'on' : ''}}" bindtap="toggleFlash" aria-label="闪光灯">
+            <view class="fl-ico"></view>
+          </view>
+          <view class="tool-dot" bindtap="showHelp" aria-label="拍摄技巧"><text class="tool-q">?</text></view>
+        </view>
+      </block>
+
+      <!-- 相册 / 快门（灰玫粉大圆）/ 翻转 三钮（处理中隐藏） -->
+      <view class="ctrl-row" wx:if="{{mode === 'camera'}}">
+        <view class="ctrl-btn" bindtap="pickAlbum" aria-label="从相册选择">
+          <view class="ab-ico"><view class="ab-sun"></view><view class="ab-mtn"></view></view>
+        </view>
+        <view class="shutter pressable" hover-class="shutter-hover" hover-stay-time="0" bindtap="takeShutter" aria-label="拍摄票根">
+          <view class="sh-ico"></view>
+        </view>
+        <view class="ctrl-btn" bindtap="flipCamera" aria-label="翻转摄像头"><text class="flip-ico">↻</text></view>
+      </view>
+    </view>
+
+    <!-- 底部白色面板：✦ AI智能处理中 + 四步流程 -->
+    <view class="ai-panel">
+      <view class="ai-head">
+        <text class="ai-spark">✦</text>
+        <text class="ai-title">AI智能处理中</text>
+        <text class="ai-manual" wx:if="{{mode === 'camera'}}" bindtap="goManualInput">手动录入 ›</text>
+      </view>
+      <view class="ai-steps">
+        <view class="ai-step {{step >= 1 ? 'on' : ''}}">
+          <view class="ai-ico ico-rose">🔍</view>
+          <text class="ai-lb">识别</text>
+        </view>
+        <text class="ai-arrow">→</text>
+        <view class="ai-step {{step >= 2 ? 'on' : ''}}">
+          <view class="ai-ico ico-butter">🪄</view>
+          <text class="ai-lb">修复</text>
+        </view>
+        <text class="ai-arrow">→</text>
+        <view class="ai-step {{step >= 3 ? 'on' : ''}}">
+          <view class="ai-ico ico-sage">🎨</view>
+          <text class="ai-lb">重绘</text>
+        </view>
+        <text class="ai-arrow">→</text>
+        <view class="ai-step {{step >= 4 ? 'on' : ''}}">
+          <view class="ai-ico ico-brown">📁</view>
+          <text class="ai-lb">入档</text>
+        </view>
+      </view>
+      <view class="ai-cap" wx:if="{{progText}}">{{statusText}}</view>
+      <view class="demo-note" wx:if="{{isDemo}}">演示模式：识别结果为示例数据，开通云开发后自动变成真实识别</view>
+    </view>
+  </view>
+
+  <!-- ===== 状态三：done · 确认表单（稿外必要态：识别结果核对后入库） ===== -->
+  <block wx:else>
+    <view class="frame slim pressable" hover-class="press-item-hover" bindtap="preview">
+      <image class="shot" src="{{imgPath}}" mode="aspectFill" />
+      <view class="corner c1"></view>
+      <view class="corner c2"></view>
+      <view class="corner c3"></view>
+      <view class="corner c4"></view>
+      <!-- 识别完成"盖戳"（品牌主题随 --accent 灰玫粉/邮政红） -->
+      <view class="stamp-over" wx:key="stampTick">
+        <view class="stamp-in serif">{{typeText}}</view>
+      </view>
+    </view>
+
+    <view class="card form">
+      <view class="f-head">识别结果 · 点击任意一项可修改</view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="title"><text class="k">票名</text><text class="v {{form.title ? '' : 'blank'}}">{{form.title || '待填写'}}</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="type"><text class="k">类型</text><text class="v">{{typeText}} ▾</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="date"><text class="k">日期</text><text class="v {{form.date ? '' : 'blank'}}">{{form.date || '待填写'}}</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="time"><text class="k">时间</text><text class="v {{form.time ? '' : 'blank'}}">{{form.time || '待填写'}}</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="venue"><text class="k">场馆</text><text class="v {{form.venue ? '' : 'blank'}}">{{form.venue || '待填写'}}</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="city"><text class="k">城市</text><text class="v {{form.city ? '' : 'blank'}}">{{form.city || '待填写'}}</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="seat"><text class="k">座位</text><text class="v {{form.seat ? '' : 'blank'}}">{{form.seat || '可不填'}}</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="price"><text class="k">票价</text><text class="v {{form.price ? '' : 'blank'}}">{{form.price ? '¥' + form.price : '可不填'}}</text></view>
+      <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="source"><text class="k">来源</text><text class="v {{form.source ? '' : 'blank'}}">{{form.source || '可不填'}}</text></view>
+    </view>
+
+    <view class="btn-main pressable" hover-class="press-hover" bindtap="save">保存到时光档案</view>
+    <view class="btn-ghost pressable" hover-class="press-hover" bindtap="retake">重新拍摄 / 换一张</view>
+  </block>
+
+  <view class="safe-bottom"></view>
+</view>
+
+<!-- ===== M4.5 类型选择弹出层（替换原生 ActionSheet，品牌一致性） ===== -->
+<bottom-sheet show="{{typeSheet}}" title="这张票根是什么类型？" bind:close="closeTypeSheet">
+  <view class="type-opt pressable {{form.type === item.key ? 'on' : ''}}" hover-class="press-item-hover" wx:for="{{typeOptions}}" wx:key="key" bindtap="pickType" data-key="{{item.key}}">
+    <text class="t-icon">{{item.icon}}</text>
+    <text class="t-label">{{item.label}}</text>
+    <text class="t-check" wx:if="{{form.type === item.key}}">✓</text>
+  </view>
+</bottom-sheet>
+
+<!-- M5 隐私授权弹窗（chooseMedia 相机/相册） -->
+<privacy-sheet />
+
+<!-- 4.13.0 品牌盖章：保存成功瞬间（v6.6.0 动效4：对勾圆环一笔描边 + 三色粒子散出 + 浮层上移淡出；
+     Canvas 2D 绘制，粒子 玫粉/鹅黄/鼠尾草 各 2-3 枚，失败态不进入本浮层（按钮红抖）） -->
+<view class="stamp-overlay" wx:if="{{stamped}}" aria-role="presentation">
+  <view class="stamp-inner {{liftOff ? 'lift-off' : ''}}">
+    <view class="check-wrap">
+      <canvas type="2d" id="checkCv" class="check-cv" disable-scroll="{{true}}"></canvas>
+    </view>
+    <view class="stamp-text">已收进时光档案</view>
+    <!-- v5.0 A1 票根飞入收藏册 -->
+    <image class="fly-ticket" wx:if="{{imgPath}}" src="{{imgPath}}" mode="aspectFill" aria-role="presentation" />
+  </view>
+</view>

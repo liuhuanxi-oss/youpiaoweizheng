@@ -1,0 +1,158 @@
+/* pages/me/me.wxss —— v6.5 我的页（六主题变量化，禁止写死色值） */
+
+/* —— 顶部 hero（tk-hero 提供蓝天白云 → 主题底） —— */
+.me-hero {
+  position: relative;
+  padding: 48rpx 32rpx 32rpx;
+  overflow: hidden;
+  border-radius: 0 0 36rpx 36rpx;
+}
+.me-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(40% 30% at 80% 0%, var(--soft), transparent 60%);
+  pointer-events: none;
+}
+.me-row {
+  position: relative; display: flex; align-items: center; gap: 24rpx;
+  z-index: 1;
+}
+.me-avatar-btn {
+  width: 128rpx; height: 128rpx; padding: 0;
+  background: transparent; border: 4rpx solid var(--card); border-radius: 50%;
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.08));
+  flex: 0 0 128rpx;
+  overflow: hidden;
+}
+.me-avatar-btn::after { border: none; }
+.me-avatar { width: 100%; height: 100%; border-radius: 50%; }
+.me-info { flex: 1; min-width: 0; }
+.me-nick-row { display: flex; align-items: center; gap: 16rpx; }
+.me-nick {
+  font-size: 36rpx; font-weight: 800; color: var(--text);
+  letter-spacing: 2rpx; min-height: 50rpx; line-height: 1.2;
+}
+.me-nick-ph { color: var(--text2); font-weight: 600; }
+.me-lv {
+  padding: 6rpx 16rpx; border-radius: 999rpx;
+  background: var(--primary); color: var(--on-primary);
+  font-size: 20rpx; font-weight: 700; letter-spacing: 1rpx;
+}
+.me-nick-go {
+  margin-left: 12rpx; padding: 8rpx 20rpx;
+  background: var(--primary); color: var(--on-primary);
+  border-radius: 999rpx; font-size: 22rpx; font-weight: 600;
+}
+.me-sub {
+  margin-top: 8rpx; font-size: 22rpx; color: var(--text2);
+  letter-spacing: 1rpx;
+}
+.me-stat-row {
+  position: relative; z-index: 1;
+  display: flex; justify-content: space-around; gap: 12rpx;
+  margin-top: 28rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 32rpx);
+  padding: 24rpx 16rpx;
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
+}
+.me-stat { text-align: center; flex: 1; }
+.me-stat-n { font-size: 52rpx; font-weight: 900; color: var(--primary); line-height: 1.1; }
+.me-stat-k { font-size: 20rpx; color: var(--accent); font-weight: 700; margin-left: 4rpx; }
+.me-stat-l { display: block; font-size: 23rpx; color: var(--text2); margin-top: 4rpx; }
+
+/* —— 通用卡片容器 —— */
+.me-card {
+  margin: 24rpx 28rpx 0; padding: 24rpx 28rpx;
+  background: var(--card-bg, var(--card)); border-radius: var(--card-r, 32rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+.me-section-title {
+  font-size: 28rpx; font-weight: 700; color: var(--text);
+  margin-bottom: 18rpx; letter-spacing: 1rpx;
+}
+
+/* —— 主题切换入口（v6.2：跳转独立选择页 pages/theme） —— */
+.me-theme-entry {
+  display: flex; align-items: center; gap: 20rpx;
+}
+.me-theme-pv {
+  width: 120rpx; height: 88rpx; border-radius: 20rpx;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 120rpx;
+}
+.me-theme-pv-card {
+  width: 76%; height: 62rpx; border-radius: 12rpx;
+  display: flex; flex-direction: column; gap: 6rpx;
+  padding: 10rpx 12rpx; justify-content: center;
+  box-shadow: var(--card-shadow, 0 4rpx 8rpx rgba(var(--text-rgb), 0.08));
+}
+.me-theme-pv-bar { height: 8rpx; border-radius: 4rpx; width: 70%; opacity: 0.9; }
+.me-theme-pv-bar.thin { width: 40%; height: 6rpx; opacity: 0.4; }
+.me-theme-body { flex: 1; min-width: 0; }
+.me-theme-name { font-size: 28rpx; font-weight: 700; color: var(--text); }
+.me-theme-desc { margin-top: 6rpx; font-size: 22rpx; color: var(--text2); line-height: 1.5; }
+.me-theme-go { font-size: 32rpx; color: var(--text2); flex: 0 0 auto; }
+/* 三主题小圆点预览（非卡片缩略，纯色点，一眼看出差异） */
+.me-theme-dots { display: flex; gap: 10rpx; margin-top: 12rpx; }
+.me-theme-dot {
+  width: 40rpx; height: 16rpx; border-radius: 8rpx;
+}
+
+/* —— 次数包 / 额度 —— */
+.me-quota { padding: 8rpx 0; }
+.me-quota-big {
+  font-size: 64rpx; font-weight: 900;
+  color: var(--primary);
+  letter-spacing: 2rpx; line-height: 1.1;
+}
+.me-quota-cap { font-size: 22rpx; color: var(--text2); margin-top: 4rpx; }
+.me-quota-bar {
+  margin-top: 18rpx; height: 14rpx; border-radius: 14rpx;
+  background: var(--soft);
+  overflow: hidden;
+}
+.me-quota-fill {
+  height: 100%; border-radius: 14rpx;
+  background: var(--primary);
+  transition: width 400ms ease;
+}
+.me-quota-label { margin-top: 12rpx; font-size: 22rpx; color: var(--text2); }
+
+/* —— 功能列表 —— */
+.me-list { display: flex; flex-direction: column; }
+.me-list-item {
+  display: flex; align-items: center; gap: 18rpx;
+  padding: 22rpx 4rpx;
+  border-bottom: 1rpx solid var(--border);
+}
+.me-list-item:last-child { border-bottom: none; }
+.me-list-ico {
+  width: 56rpx; height: 56rpx; line-height: 56rpx; text-align: center;
+  font-size: 30rpx;
+  background: var(--chip);
+  border-radius: 18rpx;
+  flex: 0 0 56rpx;
+}
+.me-list-name { flex: 1; font-size: 28rpx; color: var(--text); }
+.me-list-go { font-size: 32rpx; color: var(--text2); }
+
+.me-foot {
+  margin: 40rpx 0 0;
+  text-align: center;
+  font-size: 22rpx; color: var(--text2);
+  letter-spacing: 2rpx;
+}
+
+/* ICP 备案展示（4.22.2 合规要求：小程序底部标注备案号；点击复制） */
+.me-icp {
+  margin: 32rpx 28rpx 0; text-align: center;
+  font-size: 22rpx; color: var(--text2);
+  letter-spacing: 1rpx;
+  padding: 14rpx;
+  background: var(--chip);
+  border-radius: 999rpx;
+}

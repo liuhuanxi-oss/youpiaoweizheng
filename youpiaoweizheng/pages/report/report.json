@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "时光报告",
+  "usingComponents": {
+    "animated-number": "/components/animated-number/index"
+  }
+}

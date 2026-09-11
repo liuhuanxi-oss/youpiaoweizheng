@@ -1,0 +1,114 @@
+<!-- 4.19.0 票根博物志：vintage 藏品图版（AI 重绘 + Canvas 藏品签）
+     四态：lost 票根不在册 / empty 没照片 / idle+failed 可开始 / running 作画中 / done 展示 -->
+<view class="page theme-{{theme}}">
+
+  <!-- lost：票根不存在或不属于你（分享落地/过期 id） -->
+  <view class="empty" wx:if="{{phase === 'lost'}}">
+    <view class="big">🎟</view>
+    <view>没找到这张票根</view>
+    <view class="e-sub">它可能不在你的册子里 · 回票根墙看看吧</view>
+    <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goBack">返回</view>
+  </view>
+
+  <!-- empty：这张票根还没有照片 —— 4.19.3 给出正宗出路：收票页就是相册/拍照入口，不再死路引导 -->
+  <view class="empty" wx:elif="{{phase === 'empty'}}">
+    <view class="big">🖼</view>
+    <view>这张票根还没有照片</view>
+    <view class="e-sub">图版以票根照片为底本作画 · 重新收一张带照片的票根即可入馆作画</view>
+    <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去拍照或从相册选票根">📷 拍照 / 选票根照片</view>
+    <view class="btn-sub pressable" hover-class="press-hover" bindtap="goBack">返回详情</view>
+  </view>
+
+  <view class="wrap" wx:else>
+
+    <!-- 题头 -->
+    <view class="head">
+      <view class="h-title serif">票根博物志</view>
+      <view class="h-sub">把你的票根，画成一幅值得装裱的版画</view>
+      <!-- 4.21.0 额度可视化：免费 3 格印章格（used=已用）+ 次数包余量文字——先让人看见额度，才能让人心疼额度 -->
+      <view class="quota" wx:if="{{phase === 'idle' || phase === 'failed'}}">
+        <view class="q-pips" aria-hidden="true">
+          <view class="pip {{item.used ? 'used' : ''}}" wx:for="{{quotaPips}}" wx:key="index"></view>
+        </view>
+        <text class="q-paid" wx:if="{{quotaPaid > 0}}">次数包 +{{quotaPaid}}</text>
+        <text class="q-txt">{{quotaLabel}}</text>
+      </view>
+    </view>
+
+    <!-- idle / failed：开始作画 -->
+    <view class="stage" wx:if="{{phase === 'idle' || phase === 'failed'}}">
+      <view class="plate-blank">
+        <view class="pb-star">✦</view>
+        <view class="pb-t serif">时光版画</view>
+        <view class="pb-d">AI 照着你的票根照片画一幅复古版画，并盖上藏品编号</view>
+        <view class="pb-no" wx:if="{{plateNo}}">已藏 · Plate No.{{plateNo}}</view>
+      </view>
+      <view class="fail-msg" wx:if="{{phase === 'failed'}}">{{msg}}</view>
+      <view class="btn-main accent pressable" hover-class="press-hover" bindtap="start" aria-role="button" aria-label="开始作画">
+        {{phase === 'failed' ? '再画一次' : '为它画一幅图版'}}
+      </view>
+      <view class="btn-sub pressable" hover-class="press-hover" bindtap="goBack">返回详情</view>
+    </view>
+
+    <!-- running：作画中（10-60s，晕染呼吸 + 转星） -->
+    <view class="stage" wx:elif="{{phase === 'running'}}">
+      <view class="painting">
+        <view class="halo"></view>
+        <view class="halo h2"></view>
+        <view class="star">✦</view>
+      </view>
+      <view class="p-t serif">正在作画…</view>
+      <view class="p-d">大约需要 10-60 秒，画好了自动亮出来 · 去倒杯水也行</view>
+    </view>
+
+    <!-- done：藏品展示 -->
+    <view class="stage" wx:elif="{{phase === 'done'}}">
+      <view class="art-frame">
+        <image class="art-img" src="{{imgUrl}}" mode="widthFix" binderror="onArtError" aria-role="img" aria-label="票根藏品图版" />
+        <view class="frame-no serif">Plate No.{{plateNo}}</view>
+      </view>
+      <view class="ops">
+        <view class="btn-main accent pressable {{saving ? 'dis' : ''}}" hover-class="press-hover" bindtap="save">存入相册</view>
+        <view class="op-row">
+          <view class="btn-half pressable" hover-class="press-hover" bindtap="again" aria-role="button" aria-label="换一张">换一幅 · 剩{{quotaLeft}}幅</view>
+          <button class="btn-half share-btn" open-type="share" hover-class="none" aria-label="分享">分享</button>
+        </view>
+        <view class="back-link pressable" hover-class="press-hover" bindtap="goBack">返回详情</view>
+      </view>
+    </view>
+
+    <!-- 藏起来的合成画布：只在「存入相册」瞬间用（图归图 + 字归 Canvas） -->
+    <canvas type="2d" id="art-canvas" class="cv-off"></canvas>
+  </view>
+</view>
+
+<!-- ===== 4.21.0 品牌化付费墙：替代 wx.showModal——版画预览 + 双轨出路 =====
+     次数包（虚拟支付）为主动力，激励视频免费补 1 幅为流量主变现入口；
+     广告位未配置（rewardReady=false）或今日已达上限（rewardLeft=0）时视频选项自动隐藏 -->
+<bottom-sheet show="{{paywall}}" title="图版次数用完啦" bind:close="closePaywall">
+  <view class="pw">
+    <view class="pw-plate">
+      <view class="pb-star">✦</view>
+      <view class="pw-plate-t serif">时光版画</view>
+      <view class="pw-plate-d">本月 {{freePerMonth}} 幅免费已用完 · 出路给你备好了</view>
+    </view>
+    <view class="pw-opt pressable" hover-class="press-item-hover" wx:if="{{rewardReady && rewardLeft > 0}}" bindtap="watchForReward" aria-role="button" aria-label="看视频免费补一幅">
+      <view class="pw-opt-l">
+        <view class="pw-opt-t">▶ 看一段视频 · 免费补 1 幅</view>
+        <view class="pw-opt-s">今天还能补 {{rewardLeft}} 幅 · 明天再来</view>
+      </view>
+      <view class="pw-go">›</view>
+    </view>
+    <view class="pw-opt pw-buy pressable" hover-class="press-item-hover" bindtap="_buyFromWall" aria-role="button" aria-label="购买次数包 {{payPackLabel}}">
+      <view class="pw-opt-l">
+        <view class="pw-opt-t">次数包 · {{payPackLabel}}</view>
+        <view class="pw-opt-s">随买随用 · 已画好的作品一直在</view>
+      </view>
+      <view class="pw-go accent">›</view>
+    </view>
+    <view class="pw-note">次月 1 日免费额度自动恢复</view>
+  </view>
+</bottom-sheet>
+
+<!-- 4.20.4 合规加固：saveImageToPhotosAlbum（存入相册）触发隐私授权时用品牌化弹窗（与 scan/card 一致；低版本基础库平台默认弹窗兜底） -->
+<privacy-sheet />

@@ -1,0 +1,72 @@
+{
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": null,
+    "version_source": "unknown",
+    "read_status": "missing"
+  },
+  "project": {
+    "name": "有票为证 · 三视觉极端方案",
+    "operation": "create",
+    "deviceType": "freeSize",
+    "designRead": "小程序UI视觉探索 / 票根收藏用户 / 活泼/旅行/现代三种极端调性 / 中高信息密度 / 避免中庸过渡方案",
+    "designDials": { "layoutVariance": 5, "motionIntensity": 2, "visualDensity": 4 },
+    "resolvedLane": "complex_html_page",
+    "multiStyleExploration": true,
+    "cssPreflightEvidence": {
+      "status": "skipped",
+      "reason": "Node.js runtime not available in shell environment; semantic aliases already included in CSS files and pages will inline Tailwind v4 + token fallbacks."
+    }
+  },
+  "designSource": {
+    "operatingMode": "free-explore",
+    "cssFilePath": "colors_and_type-candy.css",
+    "cssFiles": [
+      "colors_and_type-candy.css",
+      "colors_and_type-travel.css",
+      "colors_and_type-modern.css"
+    ],
+    "brandPrefix": "ypw",
+    "libraryIdentity": null
+  },
+  "pages": [
+    {
+      "nodeId": "page-scheme-candy",
+      "title": "方案一 · 软糖手账风",
+      "htmlSrc": "pages/scheme-candy.html",
+      "group": 0,
+      "cssFilePath": "colors_and_type-candy.css",
+      "visualNorthStar": "极致软萌手账：奶油粉调、3D软质IP、胶带邮戳、圆角卡片、手写感标题",
+      "compositionPattern": "横向排列5台手机样机，每台展示一个核心页面；背景用柔和渐变与漂浮装饰",
+      "continuityAnchors": ["统一手机外壳尺寸", "统一5屏内容顺序"],
+      "miniProgramStyle": true
+    },
+    {
+      "nodeId": "page-scheme-travel",
+      "title": "方案二 · 旅行图志风",
+      "htmlSrc": "pages/scheme-travel.html",
+      "group": 1,
+      "cssFilePath": "colors_and_type-travel.css",
+      "visualNorthStar": "极致旅行图志：沙蓝大地色、照片卡片、路标导航、胶片元素、手账叙事",
+      "compositionPattern": "横向排列5台手机样机，偏杂志拼贴布局；背景用手绘地图与路标",
+      "continuityAnchors": ["统一手机外壳尺寸", "统一5屏内容顺序"],
+      "miniProgramStyle": true
+    },
+    {
+      "nodeId": "page-scheme-modern",
+      "title": "方案三 · 现代收藏家",
+      "htmlSrc": "pages/scheme-modern.html",
+      "group": 2,
+      "cssFilePath": "colors_and_type-modern.css",
+      "visualNorthStar": "极致现代极简：白底深靛、大字号数据、几何卡片、扫描框、仪表盘布局",
+      "compositionPattern": "横向排列5台手机样机，强调网格与留白；背景用淡灰网格线",
+      "continuityAnchors": ["统一手机外壳尺寸", "统一5屏内容顺序"],
+      "miniProgramStyle": true
+    }
+  ],
+  "assets": [
+    { "path": "assets/scheme-candy-hero.jpg", "title": "软糖手账风主视觉", "scheme": "candy" },
+    { "path": "assets/scheme-travel-hero.jpg", "title": "旅行图志风主视觉", "scheme": "travel" },
+    { "path": "assets/scheme-modern-hero.jpg", "title": "现代收藏家主视觉", "scheme": "modern" }
+  ]
+}

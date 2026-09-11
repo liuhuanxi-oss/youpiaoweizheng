@@ -1,0 +1,62 @@
+<view class="page theme-{{theme}} fade-up">
+  <!-- 4.10.1 重装饰层：纸面噪点 -->
+  <view class="grain"></view>
+
+  <!-- 加载中 -->
+  <view class="state" wx:if="{{loading}}">
+    <view class="st-ico">📅</view>
+    <view>正在整理你的票根年报…</view>
+  </view>
+
+  <!-- 0 票根：无字可写（v5.0 空态同款出路） -->
+  <view class="empty" wx:elif="{{empty}}">
+    <view class="big">🎫</view>
+    <view>还没有票根，年报暂时无字可写</view>
+    <view class="kai">收进第一张票根，时光才有故事</view>
+    <view class="nf-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去收第一张票">去收第一张票</view>
+  </view>
+
+  <!-- 拉取失败：重试 -->
+  <view class="empty" wx:elif="{{error}}">
+    <view class="big">☁️</view>
+    <view>网络好像不太好，年报没取回来</view>
+    <view class="nf-btn pressable" hover-class="press-hover" bindtap="reload" aria-role="button" aria-label="重试">重试</view>
+  </view>
+
+  <!-- 正常态：摘要 + 9:16 海报预览 + 导出 -->
+  <block wx:else>
+    <!-- 四格摘要（数字滚动） -->
+    <view class="sum-row">
+      <view class="sum">
+        <view class="n"><animated-number mode="viewport" value="{{s.total}}" /></view>
+        <view class="k">张收藏</view>
+      </view>
+      <view class="sum">
+        <view class="n cost"><animated-number mode="viewport" value="{{s.cost}}" />{{s.cost > 0 ? '' : ''}}</view>
+        <view class="k">票钱（元）</view>
+      </view>
+      <view class="sum">
+        <view class="n"><animated-number mode="viewport" value="{{s.cities}}" /></view>
+        <view class="k">座城市</view>
+      </view>
+      <view class="sum">
+        <view class="n"><animated-number mode="viewport" value="{{s.shows}}" /></view>
+        <view class="k">场演出</view>
+      </view>
+    </view>
+    <view class="sum-cap">{{s.firstLabel}} 起，一路攒到今天</view>
+
+    <!-- 年报海报（Canvas 9:16 竖版长图，所见即所得） -->
+    <view class="stage">
+      <canvas type="2d" id="annualCanvas" class="annual-canvas"></canvas>
+    </view>
+    <view class="hint">9:16 竖版长图 · 右下角已带品牌水印</view>
+
+    <view class="btn-main accent pressable" hover-class="press-hover" bindtap="save">{{exporting ? '正在生成…' : '保存到相册 · 晒给 TA 看'}}</view>
+    <button class="btn-share" open-type="share" aria-label="分享我的时光年报">分享年报给朋友</button>
+    <view class="safe-bottom"></view>
+  </block>
+</view>
+
+<!-- M5 隐私授权弹窗（saveImageToPhotosAlbum 相册写入；与 card/art 一致） -->
+<privacy-sheet />

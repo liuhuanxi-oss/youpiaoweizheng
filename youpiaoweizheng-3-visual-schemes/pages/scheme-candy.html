@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>有票为证 · 视觉方案一：软糖手账风</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../colors_and_type-candy.css">
+  <style id="theme-vars">
+    :root {
+      --ypw-cream: #FFF8F0;
+      --ypw-blush: #FFB7C5;
+      --ypw-coral: #FF8A80;
+      --ypw-butter: #FFE082;
+      --ypw-mint: #B2DFDB;
+      --ypw-lavender: #E1BEE7;
+      --ypw-chocolate: #5D4037;
+      --ypw-cocoa: #8D6E63;
+      --ypw-paper: #FFFFFF;
+      --ypw-background: var(--ypw-cream);
+      --ypw-foreground: var(--ypw-chocolate);
+      --ypw-card: var(--ypw-paper);
+      --ypw-card-foreground: var(--ypw-chocolate);
+      --ypw-primary: var(--ypw-coral);
+      --ypw-primary-foreground: #FFFFFF;
+      --ypw-secondary: var(--ypw-blush);
+      --ypw-secondary-foreground: var(--ypw-chocolate);
+      --ypw-muted: #F5EBE4;
+      --ypw-muted-foreground: var(--ypw-cocoa);
+      --ypw-accent: var(--ypw-butter);
+      --ypw-accent-foreground: var(--ypw-chocolate);
+      --ypw-border: #F0E0D4;
+      --ypw-radius-small: 14px;
+      --ypw-radius-medium: 22px;
+      --ypw-radius-large: 32px;
+      --font-display: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      --background: var(--ypw-background);
+      --foreground: var(--ypw-foreground);
+      --card: var(--ypw-card);
+      --primary: var(--ypw-primary);
+      --secondary: var(--ypw-secondary);
+      --border: var(--ypw-border);
+      --radius: var(--ypw-radius-medium);
+    }
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: linear-gradient(135deg, #FFF8F0 0%, #FFF0F3 40%, #FFF8E1 100%);
+      color: var(--ypw-chocolate);
+      overflow-x: auto;
+      min-height: 100vh;
+    }
+    .font-display { font-family: var(--font-display); }
+
+    /* Scrapbook paper grain background */
+    .paper-grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255,183,197,0.18) 0%, transparent 35%),
+        radial-gradient(circle at 80% 20%, rgba(178,223,219,0.18) 0%, transparent 30%),
+        radial-gradient(circle at 60% 80%, rgba(225,190,231,0.18) 0%, transparent 40%),
+        radial-gradient(circle at 10% 70%, rgba(255,224,130,0.18) 0%, transparent 30%);
+      z-index: 0;
+    }
+
+    /* Floating decorations */
+    .cloud {
+      position: absolute;
+      background: #fff;
+      border-radius: 999px;
+      opacity: 0.85;
+      filter: drop-shadow(0 6px 12px rgba(93,64,55,0.06));
+    }
+    .cloud::before, .cloud::after {
+      content: "";
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+    }
+    .cloud-a { width: 120px; height: 50px; top: 8%; left: 5%; transform: rotate(-8deg); }
+    .cloud-a::before { width: 60px; height: 60px; top: -28px; left: 14px; }
+    .cloud-a::after { width: 70px; height: 55px; top: -18px; right: 10px; }
+    .cloud-b { width: 90px; height: 42px; top: 18%; right: 8%; transform: rotate(6deg); }
+    .cloud-b::before { width: 48px; height: 48px; top: -22px; left: 12px; }
+    .cloud-b::after { width: 56px; height: 44px; top: -14px; right: 8px; }
+    .cloud-c { width: 110px; height: 48px; bottom: 12%; left: 12%; transform: rotate(4deg); }
+    .cloud-c::before { width: 54px; height: 54px; top: -26px; left: 16px; }
+    .cloud-c::after { width: 64px; height: 50px; top: -16px; right: 12px; }
+
+    .tape {
+      position: absolute;
+      height: 28px;
+      border-radius: 4px;
+      opacity: 0.88;
+      box-shadow: 0 2px 6px rgba(93,64,55,0.08);
+    }
+    .tape-1 { width: 92px; background: repeating-linear-gradient(45deg, #FFB7C5, #FFB7C5 8px, #FFF 8px, #FFF 16px); top: 6%; left: 26%; transform: rotate(-18deg); }
+    .tape-2 { width: 76px; background: repeating-linear-gradient(90deg, #B2DFDB, #B2DFDB 8px, #FFF 8px, #FFF 14px); top: 22%; left: 62%; transform: rotate(14deg); }
+    .tape-3 { width: 88px; background: repeating-linear-gradient(-45deg, #FFE082, #FFE082 8px, #FFF 8px, #FFF 16px); bottom: 18%; right: 22%; transform: rotate(22deg); }
+    .tape-4 { width: 70px; background: repeating-linear-gradient(0deg, #E1BEE7, #E1BEE7 8px, #FFF 8px, #FFF 14px); bottom: 10%; left: 42%; transform: rotate(-12deg); }
+
+    .stamp-deco {
+      position: absolute;
+      width: 44px;
+      height: 56px;
+      border: 2px dashed rgba(93,64,55,0.25);
+      background: #fff;
+      border-radius: 3px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      box-shadow: 0 3px 8px rgba(93,64,55,0.06);
+      transform: rotate(var(--r, 0deg));
+    }
+    .stamp-deco::after {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(93,64,55,0.12);
+    }
+
+    .heart, .star {
+      position: absolute;
+      color: var(--ypw-coral);
+      opacity: 0.6;
+    }
+
+    /* Phone mockup */
+    .phone-mockup {
+      flex: 0 0 auto;
+      position: relative;
+      width: 308px;
+      padding: 10px;
+      filter: drop-shadow(0 24px 50px rgba(93,64,55,0.18));
+      transition: transform 0.3s ease;
+    }
+    .phone-frame {
+      background: linear-gradient(145deg, #FFF 0%, #FDF2F0 100%);
+      border-radius: 46px;
+      padding: 12px;
+      box-shadow:
+        inset 0 0 0 2px rgba(255,138,128,0.18),
+        0 20px 60px rgba(93,64,55,0.15),
+        0 4px 12px rgba(255,138,128,0.12);
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 96px;
+      height: 24px;
+      background: #FFF8F0;
+      border-radius: 0 0 18px 18px;
+      z-index: 10;
+      box-shadow: inset 0 -1px 2px rgba(93,64,55,0.08);
+    }
+    .phone-screen {
+      width: 284px;
+      height: 560px;
+      background: var(--ypw-cream);
+      border-radius: 38px;
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 5px;
+      background: rgba(93,64,55,0.22);
+      border-radius: 999px;
+      z-index: 10;
+    }
+
+    /* Common screen elements */
+    .screen-scroll {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 28px 16px 40px;
+      scrollbar-width: none;
+    }
+    .screen-scroll::-webkit-scrollbar { display: none; }
+
+    .candy-card {
+      background: #fff;
+      border-radius: var(--ypw-radius-medium);
+      box-shadow: 0 6px 18px rgba(93,64,55,0.07);
+      border: 1px solid rgba(240,224,212,0.6);
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .chip-coral { background: #FFEBE9; color: var(--ypw-coral); }
+    .chip-blush { background: #FFF0F3; color: #E91E63; }
+    .chip-butter { background: #FFF8E1; color: #F9A825; }
+    .chip-mint { background: #E0F2F1; color: #00796B; }
+    .chip-lavender { background: #F3E5F5; color: #7B1FA2; }
+
+    .tape-corner {
+      position: absolute;
+      width: 34px;
+      height: 16px;
+      background: rgba(255,183,197,0.75);
+      border-radius: 3px;
+      box-shadow: 0 2px 4px rgba(93,64,55,0.1);
+    }
+
+    .stamp-mark {
+      width: 54px;
+      height: 68px;
+      border: 2px dashed rgba(93,64,55,0.28);
+      background: #fff;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      color: var(--ypw-coral);
+      box-shadow: 0 3px 8px rgba(93,64,55,0.08);
+      position: relative;
+    }
+    .stamp-mark .city { font-size: 10px; line-height: 1; }
+    .stamp-mark .day { font-size: 22px; line-height: 1; }
+    .stamp-mark .month { font-size: 9px; line-height: 1; }
+    .stamp-mark::after {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(93,64,55,0.1);
+    }
+
+    .serrated-bottom {
+      position: relative;
+    }
+    .serrated-bottom::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      right: 0;
+      height: 10px;
+      background:
+        radial-gradient(circle at 6px 5px, transparent 4px, #fff 5px);
+      background-size: 14px 10px;
+    }
+
+    .wavy-line {
+      height: 10px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'%3E%3Cpath d='M0 5 Q5 0,10 5 T20 5 T30 5 T40 5' fill='none' stroke='%23FF8A80' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x;
+      background-size: 24px 10px;
+      opacity: 0.6;
+    }
+
+    .handwritten-note {
+      font-family: var(--font-display);
+      transform: rotate(-2deg);
+    }
+
+    .iphone-rotate-1 { transform: rotate(-5deg) translateY(18px); }
+    .iphone-rotate-2 { transform: rotate(3deg) translateY(-8px); }
+    .iphone-rotate-3 { transform: rotate(-2deg) translateY(12px); }
+    .iphone-rotate-4 { transform: rotate(4deg) translateY(-14px); }
+    .iphone-rotate-5 { transform: rotate(-4deg) translateY(22px); }
+
+    .polaroid {
+      background: #fff;
+      padding: 8px 8px 28px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(93,64,55,0.1);
+      transform: rotate(var(--r, 0deg));
+    }
+
+    .camera-corner {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-color: rgba(255,255,255,0.95);
+      border-style: solid;
+      border-width: 0;
+    }
+    .camera-corner.tl { top: 18px; left: 18px; border-top-width: 4px; border-left-width: 4px; border-radius: 10px 0 0 0; }
+    .camera-corner.tr { top: 18px; right: 18px; border-top-width: 4px; border-right-width: 4px; border-radius: 0 10px 0 0; }
+    .camera-corner.bl { bottom: 18px; left: 18px; border-bottom-width: 4px; border-left-width: 4px; border-radius: 0 0 0 10px; }
+    .camera-corner.br { bottom: 18px; right: 18px; border-bottom-width: 4px; border-right-width: 4px; border-radius: 0 0 10px 0; }
+
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: var(--ypw-cocoa);
+    }
+    .progress-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .progress-dot.active { background: var(--ypw-coral); color: #fff; }
+    .progress-dot.pending { background: #F0E0D4; color: var(--ypw-cocoa); }
+
+    .shutter-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #fff;
+      border: 4px solid rgba(255,138,128,0.85);
+      box-shadow: 0 4px 12px rgba(93,64,55,0.15);
+      position: relative;
+    }
+    .shutter-btn::after {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      background: var(--ypw-coral);
+    }
+
+    .quota-bar {
+      height: 10px;
+      background: #F0E0D4;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .quota-fill {
+      height: 100%;
+      width: 72%;
+      background: linear-gradient(90deg, #FFB7C5, #FF8A80);
+      border-radius: 999px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: #fff;
+      border-radius: var(--ypw-radius-small);
+      margin-bottom: 8px;
+      box-shadow: 0 3px 8px rgba(93,64,55,0.05);
+    }
+
+    .mini-tab {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #F5EBE4;
+      color: var(--ypw-cocoa);
+      white-space: nowrap;
+    }
+    .mini-tab.active { background: var(--ypw-coral); color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="paper-grain"></div>
+
+  <!-- Floating decorations -->
+  <div class="cloud cloud-a"></div>
+  <div class="cloud cloud-b"></div>
+  <div class="cloud cloud-c"></div>
+  <div class="tape tape-1"></div>
+  <div class="tape tape-2"></div>
+  <div class="tape tape-3"></div>
+  <div class="tape tape-4"></div>
+  <div class="stamp-deco" style="top: 12%; left: 78%; --r: 14deg;">✈️</div>
+  <div class="stamp-deco" style="top: 72%; left: 7%; --r: -10deg;">🎫</div>
+  <div class="stamp-deco" style="top: 84%; right: 8%; --r: 8deg;">🎬</div>
+  <div class="heart" style="top: 16%; left: 18%; font-size: 18px; transform: rotate(-15deg);">♥</div>
+  <div class="heart" style="top: 74%; right: 14%; font-size: 16px; color: var(--ypw-blush); transform: rotate(12deg);">♥</div>
+  <div class="star" style="top: 8%; right: 26%; font-size: 20px; color: var(--ypw-butter); transform: rotate(20deg);">★</div>
+  <div class="star" style="bottom: 24%; left: 32%; font-size: 16px; color: var(--ypw-mint); transform: rotate(-18deg);">★</div>
+
+  <main class="relative z-10 min-h-screen flex items-center justify-start px-10 py-12 gap-8" style="min-width: max-content;">
+
+    <!-- 1. 首页 -->
+    <div class="phone-mockup iphone-rotate-1">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="screen-scroll">
+            <!-- Hero -->
+            <div class="relative w-full h-48 rounded-3xl overflow-hidden mb-4 shadow-md" style="background: url('../assets/scheme-candy-hero.jpg') center/cover no-repeat;">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent"></div>
+              <div class="absolute bottom-3 left-3 right-3">
+                <div class="inline-block px-3 py-1 rounded-full text-xs font-bold text-white mb-1" style="background: rgba(255,138,128,0.85);">有票为证</div>
+                <div class="text-white text-sm font-display leading-tight drop-shadow">记录每一次心动</div>
+              </div>
+            </div>
+
+            <!-- Greeting -->
+            <div class="handwritten-note text-center mb-4">
+              <div class="text-lg font-display" style="color: var(--ypw-coral);">你好呀 ✨</div>
+              <div class="text-xs mt-1" style="color: var(--ypw-cocoa);">愿这些票根，都是你热爱生活的证据</div>
+            </div>
+
+            <!-- Search -->
+            <div class="flex items-center gap-2 px-3 py-2 rounded-full mb-4" style="background: #fff; border: 1px solid var(--ypw-border); box-shadow: 0 3px 10px rgba(93,64,55,0.05);">
+              <span class="text-sm" style="color: var(--ypw-cocoa);">🔍</span>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">搜索演出 / 城市 / 票根</span>
+            </div>
+
+            <!-- Categories -->
+            <div class="flex gap-2 mb-5 overflow-x-auto pb-1" style="scrollbar-width: none;">
+              <span class="chip chip-coral">🎤 演出</span>
+              <span class="chip chip-blush">🎬 电影</span>
+              <span class="chip chip-butter">🚇 交通</span>
+              <span class="chip chip-mint">✈️ 旅行</span>
+            </div>
+
+            <!-- Masonry cards -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="candy-card p-2 relative" style="transform: rotate(-2deg);">
+                <div class="stamp-mark absolute -top-2 -right-2" style="transform: scale(0.55);"><span class="city">上海</span><span class="day">12</span><span class="month">SEP</span></div>
+                <div class="h-20 rounded-xl mb-2" style="background: linear-gradient(135deg,#FFB7C5,#FF8A80);"></div>
+                <div class="text-xs font-bold truncate">夏日入侵企画</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">Modern Sky · 09.12</div>
+                <div class="absolute top-2 left-2 text-white text-xs">♥</div>
+              </div>
+              <div class="candy-card p-2 relative" style="transform: rotate(1deg); margin-top: 10px;">
+                <div class="h-24 rounded-xl mb-2" style="background: linear-gradient(135deg,#B2DFDB,#80CBC4);"></div>
+                <div class="text-xs font-bold truncate">京都岚山小火车</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">京都 · 11.03</div>
+                <div class="absolute top-2 left-2 text-white text-xs">♥</div>
+              </div>
+              <div class="candy-card p-2 relative" style="transform: rotate(2deg);">
+                <div class="h-24 rounded-xl mb-2" style="background: linear-gradient(135deg,#E1BEE7,#CE93D8);"></div>
+                <div class="text-xs font-bold truncate">爱乐之城重映</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">百丽宫 · 08.22</div>
+                <div class="absolute top-2 left-2 text-white text-xs">♥</div>
+              </div>
+              <div class="candy-card p-2 relative" style="transform: rotate(-1deg); margin-top: 6px;">
+                <div class="h-20 rounded-xl mb-2" style="background: linear-gradient(135deg,#FFE082,#FFD54F);"></div>
+                <div class="text-xs font-bold truncate">高铁 G1234</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">北京南 · 10.01</div>
+                <div class="absolute top-2 left-2 text-white text-xs">♥</div>
+              </div>
+            </div>
+
+            <div class="wavy-line mt-5 mb-2"></div>
+            <div class="text-center text-[10px]" style="color: var(--ypw-cocoa);">共收藏 128 张票根 · 穿越 23 座城市</div>
+          </div>
+        </div>
+        <div class="phone-home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 2. 我的票夹 -->
+    <div class="phone-mockup iphone-rotate-2">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="screen-scroll">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-display text-xl" style="color: var(--ypw-chocolate);">我的票夹</div>
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background: #FFF0F3;">✨</div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-2 overflow-x-auto mb-5" style="scrollbar-width: none;">
+              <span class="mini-tab active">全部</span>
+              <span class="mini-tab">演出</span>
+              <span class="mini-tab">电影</span>
+              <span class="mini-tab">旅行</span>
+              <span class="mini-tab">交通</span>
+            </div>
+
+            <!-- Stacked polaroid cards -->
+            <div class="relative" style="height: 460px;">
+              <div class="polaroid absolute top-0 left-0 right-0" style="--r: -3deg; z-index: 5;">
+                <div class="h-36 rounded-lg mb-2 relative overflow-hidden" style="background: linear-gradient(135deg,#FF8A80,#FFB7C5);">
+                  <div class="absolute bottom-2 right-2 text-white text-2xl">🎤</div>
+                </div>
+                <div class="flex items-center justify-between px-1">
+                  <div>
+                    <div class="text-xs font-bold">夏日入侵企画</div>
+                    <div class="text-[10px]" style="color: var(--ypw-cocoa);">上海 · 2024.09.12</div>
+                  </div>
+                  <span class="chip chip-coral text-[10px] py-1 px-2">演出</span>
+                </div>
+              </div>
+
+              <div class="polaroid absolute top-28 left-1 right-1" style="--r: 2deg; z-index: 4;">
+                <div class="h-36 rounded-lg mb-2 relative overflow-hidden" style="background: linear-gradient(135deg,#B2DFDB,#80CBC4);">
+                  <div class="absolute bottom-2 right-2 text-white text-2xl">✈️</div>
+                </div>
+                <div class="flex items-center justify-between px-1">
+                  <div>
+                    <div class="text-xs font-bold">京都岚山小火车</div>
+                    <div class="text-[10px]" style="color: var(--ypw-cocoa);">京都 · 2024.11.03</div>
+                  </div>
+                  <span class="chip chip-mint text-[10px] py-1 px-2">旅行</span>
+                </div>
+              </div>
+
+              <div class="polaroid absolute top-56 left-0 right-0" style="--r: -1deg; z-index: 3;">
+                <div class="h-36 rounded-lg mb-2 relative overflow-hidden" style="background: linear-gradient(135deg,#E1BEE7,#CE93D8);">
+                  <div class="absolute bottom-2 right-2 text-white text-2xl">🎬</div>
+                </div>
+                <div class="flex items-center justify-between px-1">
+                  <div>
+                    <div class="text-xs font-bold">爱乐之城重映</div>
+                    <div class="text-[10px]" style="color: var(--ypw-cocoa);">上海 · 2024.08.22</div>
+                  </div>
+                  <span class="chip chip-lavender text-[10px] py-1 px-2">电影</span>
+                </div>
+              </div>
+
+              <div class="polaroid absolute top-80 left-1 right-1" style="--r: 3deg; z-index: 2;">
+                <div class="h-28 rounded-lg mb-2 relative overflow-hidden" style="background: linear-gradient(135deg,#FFE082,#FFD54F);">
+                  <div class="absolute bottom-2 right-2 text-white text-2xl">🚄</div>
+                </div>
+                <div class="flex items-center justify-between px-1">
+                  <div>
+                    <div class="text-xs font-bold">高铁 G1234</div>
+                    <div class="text-[10px]" style="color: var(--ypw-cocoa);">北京南 · 2024.10.01</div>
+                  </div>
+                  <span class="chip chip-butter text-[10px] py-1 px-2">交通</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 3. 票根详情 -->
+    <div class="phone-mockup iphone-rotate-3">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="screen-scroll">
+            <!-- Nav -->
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm" style="background: #FFF0F3;">←</div>
+              <div class="text-xs font-bold" style="color: var(--ypw-cocoa);">票根详情</div>
+              <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm" style="background: #FFF0F3;">⋮</div>
+            </div>
+
+            <!-- Ticket card -->
+            <div class="relative rounded-3xl overflow-hidden serrated-bottom mb-5" style="background: #fff; border: 1px solid var(--ypw-border); box-shadow: 0 10px 30px rgba(93,64,55,0.1);">
+              <!-- Tape corners -->
+              <div class="tape-corner" style="top: -6px; left: 18px; transform: rotate(-8deg);"></div>
+              <div class="tape-corner" style="top: -6px; right: 18px; transform: rotate(8deg); background: rgba(178,223,219,0.75);"></div>
+
+              <!-- Ticket image -->
+              <div class="h-40 m-3 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg,#FF8A80,#FFB7C5);">
+                <div class="absolute inset-0 flex items-center justify-center text-white font-display text-2xl tracking-widest opacity-90">LIVE</div>
+                <div class="absolute bottom-2 right-2 text-4xl">🎤</div>
+              </div>
+
+              <!-- Postmark -->
+              <div class="absolute top-4 right-4 stamp-mark" style="transform: scale(0.7); background: rgba(255,255,255,0.92);">
+                <span class="city">上海</span>
+                <span class="day">12</span>
+                <span class="month">SEP</span>
+              </div>
+
+              <!-- Info -->
+              <div class="px-4 pb-5 pt-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="chip chip-coral">演出</span>
+                  <span class="text-[10px]" style="color: var(--ypw-cocoa);">已收藏 14 天</span>
+                </div>
+                <div class="font-display text-lg leading-tight mb-2">夏日入侵企画「想去海边」巡演</div>
+                <div class="text-xs mb-1" style="color: var(--ypw-cocoa);">📍 Modern Sky LAB · 上海</div>
+                <div class="text-xs mb-3" style="color: var(--ypw-cocoa);">🕗 2024.09.12 周三 20:00</div>
+
+                <div class="flex items-center justify-between py-2 border-t" style="border-color: var(--ypw-border);">
+                  <div class="text-[10px]" style="color: var(--ypw-cocoa);">票号 NO.831092847</div>
+                  <div class="text-lg" style="color: var(--ypw-coral);">♥</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI handwritten note -->
+            <div class="relative rounded-2xl p-4 mb-4" style="background: #FFF8E1; border: 1px dashed #FFE082; transform: rotate(1deg);">
+              <div class="absolute -top-2 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold text-white" style="background: var(--ypw-butter);">AI 手记</div>
+              <div class="handwritten-note text-sm mt-2" style="color: var(--ypw-chocolate);">
+                “那天的海风是咸的，音乐是甜的，你在人群中发光。”
+              </div>
+            </div>
+
+            <!-- Action pills -->
+            <div class="flex justify-center gap-3">
+              <button class="px-5 py-2 rounded-full text-xs font-bold text-white shadow-md" style="background: var(--ypw-coral);">修复</button>
+              <button class="px-5 py-2 rounded-full text-xs font-bold shadow-md" style="background: #E0F2F1; color: #00796B;">重绘</button>
+              <button class="px-5 py-2 rounded-full text-xs font-bold shadow-md" style="background: #F3E5F5; color: #7B1FA2;">分享</button>
+            </div>
+          </div>
+        </div>
+        <div class="phone-home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 4. 拍照上传 -->
+    <div class="phone-mockup iphone-rotate-4">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="screen-scroll" style="padding: 0;">
+            <!-- Camera viewfinder -->
+            <div class="relative w-full h-[420px] overflow-hidden" style="background: linear-gradient(180deg,#E0F2F1 0%,#B2DFDB 100%);">
+              <div class="absolute inset-0 flex items-center justify-center opacity-30">
+                <div class="w-40 h-56 rounded-lg border-4 border-dashed border-white/50"></div>
+              </div>
+              <div class="camera-corner tl"></div>
+              <div class="camera-corner tr"></div>
+              <div class="camera-corner bl"></div>
+              <div class="camera-corner br"></div>
+
+              <!-- Scanning line -->
+              <div class="absolute left-4 right-4 h-0.5 bg-white/70" style="top: 40%; box-shadow: 0 0 10px rgba(255,255,255,0.8);"></div>
+
+              <!-- Focus brackets -->
+              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-60 border-2 border-white/60 rounded-xl"></div>
+
+              <div class="absolute top-6 left-5 text-white text-xs font-display">AI 取景中…</div>
+            </div>
+
+            <!-- Camera controls -->
+            <div class="absolute bottom-[118px] left-0 right-0 flex items-center justify-between px-10">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style="background: rgba(255,255,255,0.9);">🖼️</div>
+              <div class="shutter-btn"></div>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style="background: rgba(255,255,255,0.9);">🔄</div>
+            </div>
+
+            <!-- Bottom processing panel -->
+            <div class="absolute bottom-0 left-0 right-0 rounded-t-[28px] p-5" style="background: #fff; box-shadow: 0 -6px 24px rgba(93,64,55,0.1);">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white" style="background: var(--ypw-coral);">AI</div>
+                <div class="text-sm font-bold">AI 智能处理中</div>
+                <div class="ml-auto flex gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: var(--ypw-coral);"></span>
+                  <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: var(--ypw-blush); animation-delay: 0.1s;"></span>
+                  <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: var(--ypw-butter); animation-delay: 0.2s;"></span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div class="progress-step">
+                  <div class="progress-dot active">1</div>
+                  <span>识别</span>
+                </div>
+                <div class="flex-1 h-0.5 mx-1" style="background: var(--ypw-coral);"></div>
+                <div class="progress-step">
+                  <div class="progress-dot active">2</div>
+                  <span>修复</span>
+                </div>
+                <div class="flex-1 h-0.5 mx-1" style="background: var(--ypw-coral);"></div>
+                <div class="progress-step">
+                  <div class="progress-dot pending">3</div>
+                  <span>重绘</span>
+                </div>
+                <div class="flex-1 h-0.5 mx-1" style="background: #F0E0D4;"></div>
+                <div class="progress-step">
+                  <div class="progress-dot pending">4</div>
+                  <span>入档</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- 5. 个人中心 -->
+    <div class="phone-mockup iphone-rotate-5">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="screen-scroll">
+            <!-- Hero avatar area -->
+            <div class="relative -mx-4 -mt-7 mb-4 h-44 rounded-b-[32px] overflow-hidden" style="background: linear-gradient(135deg,#FF8A80 0%,#FFB7C5 50%,#FFE082 100%);">
+              <div class="absolute top-8 left-5">
+                <div class="text-white text-xs opacity-80">个人中心</div>
+                <div class="text-white text-lg font-display mt-1">旅途收藏家</div>
+                <div class="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background: rgba(255,255,255,0.25);">Lv.7 票根魔法师 ✨</div>
+              </div>
+              <div class="absolute top-7 right-5 w-16 h-16 rounded-full border-4 border-white/50 flex items-center justify-center text-3xl" style="background: #FFF8F0;">🐱</div>
+              <div class="absolute bottom-3 left-5 text-white text-[10px] opacity-90">已收藏 128 天</div>
+              <div class="absolute bottom-3 right-5 text-white text-lg">⚙️</div>
+            </div>
+
+            <!-- Stats -->
+            <div class="candy-card flex justify-around p-3 mb-4">
+              <div class="text-center">
+                <div class="text-lg font-display" style="color: var(--ypw-coral);">128</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">票根</div>
+              </div>
+              <div class="text-center">
+                <div class="text-lg font-display" style="color: var(--ypw-mint);">23</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">城市</div>
+              </div>
+              <div class="text-center">
+                <div class="text-lg font-display" style="color: var(--ypw-lavender);">46</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">演出</div>
+              </div>
+            </div>
+
+            <!-- Theme card -->
+            <div class="candy-card p-3 mb-4 flex items-center gap-3" style="background: linear-gradient(135deg,#FFF0F3,#FFF8E1);">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background: #fff;">🍬</div>
+              <div class="flex-1">
+                <div class="text-xs font-bold">外观主题</div>
+                <div class="text-[10px]" style="color: var(--ypw-cocoa);">软糖手账 · 使用中</div>
+              </div>
+              <div class="text-[10px] px-2 py-1 rounded-full text-white" style="background: var(--ypw-coral);">切换</div>
+            </div>
+
+            <!-- Quota -->
+            <div class="candy-card p-3 mb-4">
+              <div class="flex justify-between text-xs mb-2">
+                <span class="font-bold">本月免费额度</span>
+                <span style="color: var(--ypw-cocoa);">72 / 100</span>
+              </div>
+              <div class="quota-bar">
+                <div class="quota-fill"></div>
+              </div>
+            </div>
+
+            <!-- Menu -->
+            <div class="menu-item">
+              <div class="flex items-center gap-2">
+                <span>💖</span>
+                <span class="text-xs font-bold">收藏夹</span>
+              </div>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">›</span>
+            </div>
+            <div class="menu-item">
+              <div class="flex items-center gap-2">
+                <span>🗺️</span>
+                <span class="text-xs font-bold">时光地图</span>
+              </div>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">›</span>
+            </div>
+            <div class="menu-item">
+              <div class="flex items-center gap-2">
+                <span>📊</span>
+                <span class="text-xs font-bold">数据统计</span>
+              </div>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">›</span>
+            </div>
+            <div class="menu-item">
+              <div class="flex items-center gap-2">
+                <span>🗑️</span>
+                <span class="text-xs font-bold">回收站</span>
+              </div>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">›</span>
+            </div>
+            <div class="menu-item">
+              <div class="flex items-center gap-2">
+                <span>🏅</span>
+                <span class="text-xs font-bold">勋章</span>
+              </div>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">›</span>
+            </div>
+            <div class="menu-item">
+              <div class="flex items-center gap-2">
+                <span>🔒</span>
+                <span class="text-xs font-bold">隐私</span>
+              </div>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">›</span>
+            </div>
+            <div class="menu-item">
+              <div class="flex items-center gap-2">
+                <span>⚙️</span>
+                <span class="text-xs font-bold">设置</span>
+              </div>
+              <span class="text-xs" style="color: var(--ypw-cocoa);">›</span>
+            </div>
+          </div>
+        </div>
+        <div class="phone-home-indicator"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Simple interaction: tap tabs / pills / buttons give a tiny bounce (no data-dom-id)
+    document.querySelectorAll('.chip, .mini-tab, button, .menu-item').forEach(el => {
+      el.addEventListener('click', () => {
+        el.style.transform = 'scale(0.96)';
+        setTimeout(() => el.style.transform = '', 120);
+      });
+    });
+  </script>
+</body>
+</html>

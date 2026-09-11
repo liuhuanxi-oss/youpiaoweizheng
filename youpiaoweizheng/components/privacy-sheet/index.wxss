@@ -1,0 +1,39 @@
+/* components/privacy-sheet/index.wxss —— 隐私授权弹窗内容 */
+.pv-body {
+  text-align: center;
+  padding: 8rpx 10rpx 24rpx;
+}
+.pv-ico { font-size: 56rpx; }
+.pv-t { font-size: 30rpx; margin-top: 14rpx; letter-spacing: 2rpx; }
+.pv-s {
+  font-size: 23rpx;
+  color: var(--ink-soft, #6B5F52);
+  line-height: 1.8;
+  margin-top: 12rpx;
+  text-align: center;
+}
+.pv-link {
+  display: inline-block;
+  font-size: 23rpx;
+  color: var(--accent, #E0532F);
+  text-decoration: underline;
+  margin-top: 4rpx;
+}
+
+.pv-agree {
+  margin: 0 0 18rpx;
+  background: linear-gradient(135deg, #E0532F, #C94424);
+  color: #FFF6E8;
+  font-size: 28rpx;
+  border-radius: 999rpx;
+  padding: 10rpx 0;
+  border: none;
+  line-height: 1.9;
+}
+.pv-agree::after { border: none; }
+.pv-deny {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--ink-faint, #9C8F80);
+  padding: 8rpx 0 16rpx;
+}

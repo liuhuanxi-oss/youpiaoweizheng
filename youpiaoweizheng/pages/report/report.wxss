@@ -1,0 +1,164 @@
+/* pages/report/report.wxss —— M4-b 我们的时光报告（v6.5 六主题令牌变量化） */
+page { background: var(--bg, var(--paper)); }
+.page {
+  padding-top: 36rpx;
+  background: var(--bg, var(--paper));
+  color: var(--text, var(--ink));
+}
+
+/* —— 骨架 —— */
+.sk { margin: 0 32rpx; }
+.sk-cover { height: 260rpx; border-radius: 24rpx; margin-bottom: 26rpx; }
+.sk-big { height: 140rpx; border-radius: 24rpx; margin-bottom: 26rpx; }
+.sk-card { height: 160rpx; border-radius: 24rpx; margin-bottom: 26rpx; }
+
+/* —— 封面（纸质报告仪式感） —— */
+.cover {
+  margin: 0 32rpx;
+  padding: 40rpx 30rpx 34rpx;
+  border-radius: var(--card-r, 24rpx);
+  background: linear-gradient(160deg, var(--card-bg, var(--card)), var(--soft));
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.09));
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cover::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 10rpx;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 24rpx, var(--butter) 24rpx 48rpx);
+  opacity: 0.55;
+}
+.stamp {
+  position: absolute;
+  top: 26rpx; right: 26rpx;
+  font-size: 20rpx;
+  color: var(--accent);
+  border: 2rpx solid var(--accent);
+  border-radius: 8rpx;
+  padding: 6rpx 12rpx;
+  transform: rotate(8deg);
+  opacity: 0.75;
+  letter-spacing: 3rpx;
+}
+.pair { display: flex; justify-content: center; align-items: center; gap: 20rpx; margin-top: 10rpx; }
+.avatar {
+  width: 96rpx; height: 96rpx;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--on-primary); font-size: 36rpx;
+}
+.a1 { background: linear-gradient(135deg, var(--primary), var(--accent)); }
+.a2 { background: linear-gradient(135deg, var(--accent), var(--primary)); }
+.link { font-size: 34rpx; color: var(--accent); }
+.names { font-size: 32rpx; margin-top: 20rpx; letter-spacing: 2rpx; }
+.span { font-size: 21rpx; color: var(--text2); margin-top: 10rpx; letter-spacing: 2rpx; }
+.demo-tag {
+  display: inline-block;
+  margin-top: 12rpx;
+  font-size: 18rpx;
+  color: var(--accent);
+  border: 1rpx solid var(--border);
+  border-radius: 6rpx;
+  padding: 1rpx 10rpx;
+}
+
+/* —— 大数字 —— */
+.big { text-align: center; margin: 44rpx 0 40rpx; }
+.bn { font-size: 88rpx; font-weight: 800; line-height: 1; }
+.bu { font-size: 26rpx; color: var(--accent); margin-left: 6rpx; font-weight: 400; }
+.bl { font-size: 24rpx; color: var(--text2); margin-top: 14rpx; letter-spacing: 4rpx; }
+
+/* —— 通用 section（卡片令牌随主题分化） —— */
+.sec {
+  margin: 0 32rpx 30rpx;
+  padding: 30rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 6rpx 20rpx rgba(var(--text-rgb), 0.07));
+}
+.s-t { font-size: 28rpx; color: var(--accent); letter-spacing: 2rpx; margin-bottom: 24rpx; }
+
+/* —— 类型分布条 —— */
+.bar-row { display: flex; align-items: center; gap: 18rpx; margin-bottom: 20rpx; }
+.bar-row:last-child { margin-bottom: 4rpx; }
+.bar-name { width: 70rpx; font-size: 23rpx; color: var(--text2); flex-shrink: 0; }
+.bar-track {
+  flex: 1;
+  height: 18rpx;
+  border-radius: 999rpx;
+  background: var(--soft);
+  overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 999rpx; }
+.bar-fill.show { background: var(--cat-show); }
+.bar-fill.movie { background: var(--cat-movie); }
+.bar-fill.traffic { background: var(--cat-transport); }
+.bar-n { width: 60rpx; text-align: right; font-size: 24rpx; font-weight: 700; flex-shrink: 0; }
+
+/* —— 城市排名 —— */
+.city-row { display: flex; align-items: center; gap: 20rpx; padding: 14rpx 0; }
+.c-rank {
+  width: 40rpx; height: 40rpx;
+  border-radius: 50%;
+  background: var(--soft);
+  color: var(--accent);
+  font-size: 22rpx;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.c-name { flex: 1; font-size: 26rpx; font-weight: 600; }
+.c-n { font-size: 21rpx; color: var(--text2); }
+.c-more { font-size: 19rpx; color: var(--text2); margin-top: 10rpx; padding-top: 14rpx; border-top: 1rpx dashed var(--border); }
+
+/* —— 里程 + 同场 双联 —— */
+.sec.duo { display: flex; align-items: center; padding: 34rpx 20rpx; }
+.d-item { flex: 1; text-align: center; }
+.d-n { font-size: 52rpx; font-weight: 800; }
+.d-u { font-size: 20rpx; color: var(--accent); margin-left: 4rpx; font-weight: 400; }
+.d-k { font-size: 20rpx; color: var(--text2); margin-top: 10rpx; }
+.d-divider { width: 1rpx; height: 70rpx; background: var(--border); }
+
+/* —— 故事两端 —— */
+.edge { display: flex; align-items: center; gap: 20rpx; padding: 16rpx 0; }
+.e-tag {
+  flex-shrink: 0;
+  font-size: 18rpx;
+  color: var(--accent);
+  border: 1rpx solid var(--border);
+  border-radius: 999rpx;
+  padding: 6rpx 16rpx;
+  letter-spacing: 1rpx;
+}
+.e-tag.e-new { color: var(--accent); border-color: var(--peach); }
+.e-main { flex: 1; min-width: 0; }
+.e-title { font-size: 26rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.e-date { font-size: 20rpx; color: var(--text2); margin-top: 4rpx; }
+
+.foot {
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--accent);
+  margin: 46rpx 0 10rpx;
+  letter-spacing: 6rpx;
+}
+
+.empty {
+  text-align: center;
+  padding: 70rpx 30rpx;
+  margin: 0 32rpx;
+  color: var(--text2);
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 6rpx 20rpx rgba(var(--text-rgb), 0.07));
+}
+.e-icon { font-size: 60rpx; }
+.e-t { font-size: 30rpx; margin-top: 18rpx; }
+.e-s { font-size: 22rpx; color: var(--text2); margin-top: 10rpx; }
+
+.safe-bottom { height: 60rpx; }

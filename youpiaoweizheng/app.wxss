@@ -1,0 +1,1172 @@
+/* ============================================
+   app.wxss —— 全局设计系统「纸质收藏册」
+   所有颜色/字体通过 CSS 变量统一管理，
+   任何页面想换肤，只需覆盖 page 级变量。
+   ============================================ */
+
+page {
+  /* —— 色板（默认 = A 纸质收藏册）—— */
+  --paper: #FDFBF7;        /* 页面底色：米白纸面 */
+  --card: #FFFEFB;         /* 卡片：暖纸白 */
+  --ink: #2C2C2C;          /* 主文字：深墨 */
+  --ink-soft: #8B7D6B;     /* 次级文字：褐灰 */
+  --ink-faint: #B5A99A;    /* 弱文字：浅褐 */
+  --line: #E8E4DD;         /* 分割线/描边 */
+  --line-strong: #DBD4C8;  /* 较重的描边 */
+  --accent: #C4623A;       /* 强调：印章橘红 */
+  --accent-deep: #A94F2B;  /* 强调按下/深态 */
+  --gold: #B98D52;         /* 点缀：勋章金 */
+  --gold-deep: #96713A;    /* 深金（时光机文字） */
+  --blue: #4A6A7A;         /* 电影类型标签 */
+  --cream: #FDF6EC;        /* 深底按钮上的奶油字 */
+  --bright: #FFFEFB;       /* 亮底（tab 栏/输入条） */
+  --softbg: #F4EFE7;       /* 浅色次级底 */
+  --tag-show-bg: #F4DFD3;  /* 演出标签底 */
+  --tag-movie-bg: #DEE6E2; /* 电影标签底 */
+  --tag-traffic-bg: #EFE8D8; /* 交通标签底 */
+  --shadow-rgb: 44, 44, 44; /* 阴影基色（rgb 三元组） */
+  --accent-rgb: 196, 98, 58; /* 强调色 rgb 三元组（半透明阴影/底） */
+  --tm1: #F6EFE2;          /* 时光机渐变起 */
+  --tm2: #EEDFC6;          /* 时光机渐变止 */
+
+  /* —— 4.9.7 展示台两档渐变（纸票/取景衬底，替代直接引用 --ink 当底色）—— */
+  --stage-1: #2C2C2C;      /* 照片/取景衬底渐变起（A 墨色） */
+  --stage-2: #1D1713;      /* 衬底渐变止 */
+
+  /* —— 4.12.0 动效曲线 token（全项目统一两族缓动）—— */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性：FAB 子钮弹出/印章落下等「落定感」动效 */
+  --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);    /* 平滑：页面进场/弹层/展开收起 */
+
+  /* —— 字号 —— */
+  --fs-xs: 20rpx;
+  --fs-sm: 22rpx;
+  --fs-md: 26rpx;
+  --fs-lg: 30rpx;
+  --fs-xl: 34rpx;
+  --stub-bg: #FBF6EB;          /* 票卡副券底（比 card 深一档的米） */
+  --tape: rgba(236, 219, 177, 0.55); /* 胶带：米黄半透明 */
+  --sk-1: #E9E0D0;  --sk-2: #F6F0E4;  /* 骨架流光 */
+  --r-card: 24rpx; --r-item: 16rpx;    /* V2 圆角 token */
+  --card-shadow: 0 6rpx 18rpx rgba(44, 44, 44, 0.08); /* 票卡投影 */
+  --sheet: #FFFEFB;            /* 弹层面板（需不透明） */
+}
+
+/* ============================================
+   4.9.0 三主题系统（用户自主切换，utils/theme.js）
+   页面根节点挂 theme-b / theme-c 即整页换肤；
+   默认（无 class / theme-a）= A 纸质收藏册。
+   ============================================ */
+
+/* B · 午夜现场：深色底 + 霓虹粉紫 */
+.theme-b {
+  --paper: #0F0F1A;
+  --card: #1A1A2E;
+  --ink: #F0EDE8;
+  --ink-soft: #9B95A8;
+  --ink-faint: #837C99;    /* 4.9.7 提亮：#6E638E 在深底对比仅 3.8:1，说明文字吃力 */
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --accent: #FF6B9D;
+  --accent-deep: #E2567F;
+  --gold: #B07FE8;
+  --gold-deep: #CFB3FF;
+  --blue: #8FB4EA;
+  --cream: #0F0F1A;
+  --bright: #202038;
+  --softbg: #22223A;
+  --tag-show-bg: rgba(255, 107, 157, 0.16);
+  --tag-movie-bg: rgba(143, 180, 234, 0.16);
+  --tag-traffic-bg: rgba(176, 127, 232, 0.16);
+  --shadow-rgb: 0, 0, 0;
+  --accent-rgb: 255, 107, 157;
+  --tm1: #262647;
+  --tm2: #1F1F3A;
+  --stage-1: #1A1A2E;      /* B 衬底：深紫渐变（4.9.7，避免纸票衬底变白） */
+  --stage-2: #0A0A16;
+  --stub-bg: #23203A;
+  --tape: transparent; /* B 不用胶带（霓虹代替） */
+  --grad-neon: linear-gradient(135deg, #FF6B9D, #B07FE8); /* 霓虹渐变标题/按钮 */
+  --glow: 0 0 24rpx rgba(255, 107, 157, 0.15); /* 卡片霓虹外发光 */
+  --sk-1: #23203A;  --sk-2: #2E2A4A;
+  --r-card: 18rpx; --r-item: 12rpx;
+  --card-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.45), 0 0 24rpx rgba(255, 107, 157, 0.12); /* 霓虹外发光 */
+  --sheet: #1A1A2E;
+}
+
+/* C · 手账水彩：抹茶绿 + 蜜桃橘 */
+.theme-c {
+  --paper: #FFF9F0;
+  --card: rgba(255, 254, 247, 0.88); /* 半透明：透出水彩晕染 */
+  --ink: #5A4E42;
+  --ink-soft: #9B8E7E;
+  --ink-faint: #B3A79A;
+  --line: #EDE5D8;
+  --line-strong: #E0D5C2;
+  --accent: #95B088;
+  --accent-deep: #7E9C73;
+  --gold: #F0A888;
+  --gold-deep: #D98B68;
+  --blue: #8FA8C4;
+  --cream: #FFFEF7;
+  --bright: #FFFDF4;
+  --softbg: rgba(246, 238, 223, 0.8);
+  --tag-show-bg: rgba(149, 176, 136, 0.16);
+  --tag-movie-bg: rgba(176, 196, 222, 0.20);
+  --tag-traffic-bg: rgba(240, 168, 136, 0.18);
+  --shadow-rgb: 90, 78, 66;
+  --accent-rgb: 149, 176, 136;
+  --tm1: rgba(248, 236, 217, 0.78); /* 半透明：水彩渐层透出晕染 */
+  --tm2: rgba(242, 223, 199, 0.72);
+  --stage-1: #C9D8BE;      /* C 衬底：墨绿渐变 */
+  --stage-2: #B7CBA8;
+  --stub-bg: #F3EBDC;
+  --tape: rgba(240, 168, 136, 0.28); /* 蜜桃胶带 */
+  --grad-tea: linear-gradient(135deg, #95B088, #F0A888); /* 抹茶→蜜桃 */
+  --sk-1: #EDE3D2;  --sk-2: #F8F1E4;
+  --r-card: 40rpx; --r-item: 32rpx;
+  --card-shadow: 0 8rpx 20rpx rgba(149, 176, 136, 0.12);
+  --sheet: #FFFEF7;
+}
+
+/* 页面根容器：铺满 + 随主题底色（盖住 page 级默认背景）；relative 供 wash-layer 定位 */
+.page {
+  position: relative;
+  min-height: 100vh;
+  background: var(--bg, var(--paper));
+  color: var(--text, var(--ink));
+}
+.page-scroll { position: relative; }
+
+/* 全局页面底色 */
+page {
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+}
+
+/* 衬线标题字：只在标题/票名/仪式性文字上使用 */
+.serif {
+  font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+  font-weight: 700;
+}
+
+/* —— 通用卡片（随六主题分化：底/圆角/描边/毛玻璃/投影） —— */
+.card {
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 6rpx 20rpx rgba(var(--shadow-rgb), 0.07));
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+}
+
+/* —— 类型标签 —— */
+.tag {
+  display: inline-block;
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  letter-spacing: 2rpx;
+}
+.tag-show   { background: var(--chip, var(--tag-show-bg)); color: var(--primary, var(--accent)); }
+.tag-movie  { background: var(--chip, var(--tag-movie-bg)); color: var(--cat-movie, var(--blue)); }
+.tag-traffic{ background: var(--chip, var(--tag-traffic-bg)); color: var(--cat-transport, var(--gold-deep)); }
+
+/* —— 主按钮（墨色）/ 强调按钮（橘红） —— */
+.btn-main {
+  margin: 28rpx 36rpx 0;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  border-radius: 28rpx;
+  background: var(--primary, var(--ink));
+  color: var(--on-primary, var(--cream));
+  font-size: 30rpx;
+  letter-spacing: 6rpx;
+}
+.btn-main.accent {
+  background: var(--accent);
+  box-shadow: 0 12rpx 32rpx rgba(var(--accent-rgb), 0.32);
+}
+.btn-ghost {
+  margin: 20rpx 36rpx 0;
+  height: 88rpx;
+  line-height: 84rpx;
+  text-align: center;
+  border-radius: 28rpx;
+  border: 2rpx solid var(--border, var(--line));
+  color: var(--text2, var(--ink-soft));
+  font-size: 26rpx;
+  letter-spacing: 4rpx;
+  background: transparent;
+}
+
+/* —— 通用区块标题 —— */
+.sec-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 4rpx 20rpx;
+}
+.sec-title .t {
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
+  color: var(--text, var(--ink));
+}
+.sec-title .s {
+  font-size: 22rpx;
+  color: var(--text2, var(--ink-faint));
+}
+
+/* 条形码（视觉母题之一） */
+.barcode {
+  height: 44rpx;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--text, var(--ink)) 0 4rpx, transparent 4rpx 10rpx,
+    var(--text, var(--ink)) 10rpx 12rpx, transparent 12rpx 22rpx,
+    var(--text, var(--ink)) 22rpx 28rpx, transparent 28rpx 34rpx
+  );
+  opacity: 0.85;
+}
+
+/* 空状态 */
+.empty {
+  text-align: center;
+  padding: 120rpx 60rpx;
+  color: var(--text2, var(--ink-faint));
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+}
+.empty .big { font-size: 64rpx; margin-bottom: 20rpx; }
+
+/* —— 4.21.0 广告位装裱（全项目统一：平台 ad 组件样式不可改，用纸卡容器 + 眉题「装裱」，
+      theme-b 深色主题下广告自带白底时呈现为画框而非裸贴补丁）—— */
+.ad-cap {
+  font-size: 18rpx;
+  color: var(--text2, var(--ink-faint));
+  letter-spacing: 3rpx;
+  padding: 0 4rpx 8rpx;
+}
+
+/* ============================================
+   M4.5 交互层（P0 批次）
+   ============================================ */
+
+/* —— 通用按压反馈（配合 hover-class 使用）——
+   v6.6.0 动效2「按压回弹」物理手感口径：
+   · 按下：scale(0.94)，100ms（transition 取自按下态类）
+   · 抬起：250ms cubic-bezier(0.34, 1.56, 0.64, 1) 弹性回冲——该曲线 y>1 段
+     自带约 1.04 的过冲再落回 1（先过冲 80ms 量级、再回弹 120ms 量级），
+     transition 插值天然防「动画叠影」，长按/连点不会重复叠加
+   · 按钮/胶囊用 press-hover，列表项/卡片用 press-item-hover（幅度略柔 0.96）
+   · prefers-reduced-motion：去掉位移缩放，只保留 opacity 淡变
+   禁用态：.disabled（透明度 0.4，无按压） */
+.pressable {
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out;
+  cursor: pointer; /* 4.12.0 桌面端（PC 微信）手型光标，移动端无影响 */
+}
+.press-hover {
+  transform: scale(0.94);
+  opacity: 0.88;
+  transition: transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 100ms ease-out;
+}
+.press-item-hover {
+  transform: scale(0.96);
+  opacity: 0.92;
+  transition: transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 100ms ease-out;
+}
+.disabled { opacity: 0.4; }
+
+/* v6.6.0：reduced-motion 降级——按压只做 opacity 淡变，无缩放位移 */
+@media (prefers-reduced-motion: reduce) {
+  .pressable { transition: opacity 150ms ease-out; }
+  .press-hover, .press-item-hover { transform: none; }
+}
+
+/* —— 骨架屏（公共骨料）——
+   v6.6.0 动效3口径：奶油灰块 + opacity 1→0.5 呼吸（1.2s 一来回），
+   替代旧的位移流光（shimmer）；reduced-motion 下呼吸停在最淡、由数据替换时的
+   .fade-in-200 淡入接管 */
+.skeleton-bone {
+  background: var(--soft, #F5EDE2);
+  animation: sk-breath 1.2s ease-in-out infinite;
+  border-radius: 12rpx;
+}
+@keyframes sk-breath {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bone { animation: none; opacity: 0.6; }
+}
+
+/* —— v6.6.0 公共过渡：真实数据替换骨架时 200ms 淡入（无高度跳动） —— */
+.fade-in-200 { animation: fade-in-200 200ms ease-out both; }
+@keyframes fade-in-200 {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-200 { animation-duration: 120ms; } /* 仍保留 opacity 过渡（允许） */
+}
+
+/* —— v6.6.0 公共：失败红抖（一次） —— */
+@keyframes shake-err {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10rpx); }
+  40% { transform: translateX(8rpx); }
+  60% { transform: translateX(-6rpx); }
+  80% { transform: translateX(4rpx); }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes shake-err {
+    0%, 100% { transform: translateX(0); }
+  }
+}
+
+/* —— 骨架让位后的内容淡入（200ms）—— */
+.fade-in { animation: sk-fadein 200ms ease-out both; }
+@keyframes sk-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* —— M4.8 二级页统一进场（上滑淡入，与弹出层同一缓动体系）—— */
+.fade-up { animation: page-fadeup 280ms var(--ease-smooth) both; }
+@keyframes page-fadeup {
+  from { opacity: 0; transform: translateY(16rpx); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   4.10.1 重装饰系统（逐页一致）
+   .grain      —— 纸面噪点（A/C 灰纸纹；B 反相成星尘）
+   .wash-layer —— 水彩晕染头（仅 C，多层低饱和 radial）
+   ============================================ */
+
+/* —— 纸面噪点：SVG feTurbulence 细颗粒，盖在内容上层 4~6%，pointer 穿透 —— */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27160%27%20height%3D%27160%27%3E%3Cfilter%20id%3D%27n%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.6%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%270%200%200%200%200.55%20%200%200%200%200%200.55%20%200%200%200%200%200.55%20%201%200%200%200%200%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27160%27%20height%3D%27160%27%20filter%3D%27url%28%23n%29%27%20opacity%3D%270.85%27%2F%3E%3C%2Fsvg%3E");
+  background-repeat: repeat;
+  opacity: 0.05;
+}
+.theme-b .grain { opacity: 0.06; filter: invert(1); } /* 深色页：噪点反相成微白星尘 */
+.theme-c .grain { opacity: 0.05; }
+.theme-a .grain { opacity: 0.05; }
+
+/* —— 水彩晕染头（C 专属；抹茶/蜜桃/雾蓝三层透亮）—— */
+.wash-layer {
+  display: none;
+}
+.theme-c .wash-layer {
+  display: block;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 420rpx;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(340rpx 240rpx at 12% 6%,  rgba(149, 176, 136, 0.42), transparent 68%),
+    radial-gradient(420rpx 260rpx at 86% 14%, rgba(240, 168, 136, 0.34), transparent 66%),
+    radial-gradient(300rpx 220rpx at 62% 30%, rgba(176, 196, 222, 0.30), transparent 70%),
+    radial-gradient(240rpx 180rpx at 30% 44%, rgba(218, 205, 170, 0.22), transparent 72%);
+  filter: blur(1rpx);
+}
+
+/* —— 4.10.1：C 主题卡片水彩光斑（通透：叠在卡片底色上的柔光与颜料尾迹）—— */
+.theme-c .card {
+  background-image:
+    radial-gradient(140% 90% at 88% -6%, rgba(255, 255, 255, 0.85), transparent 52%),
+    radial-gradient(120% 70% at 4% 108%, rgba(240, 168, 136, 0.20), transparent 58%),
+    radial-gradient(90% 60% at 92% 110%, rgba(149, 176, 136, 0.18), transparent 60%);
+}
+
+/* =============================================================
+   v6.5 六主题系统（8 套风格方案保留 1/2/4/5/6/8）
+   paper 纸感杂志 / glass 柔和玻璃 / collage 手账拼贴
+   film 胶片电影 / literary 清新文艺 / minimal 极简留白
+   页面根节点挂 theme-{{theme}} 即整页换肤；Storage key = app_theme，默认 paper。
+   兼容令牌：--bg/--card/--primary/--accent/--soft/--text/--text2/
+             --border/--on-primary/--chip/--radius + 分类辅助色
+   差异维度（6 套风格分化）：--font-title/--card-bg/--card-blur/
+             --card-border/--card-shadow/--card-r/--btn-r/--page-deco/--page-deco-size
+   ⚠️ 与上文 theme-a/b/c（纸感三主题）并存：a/b/c 供 detail/card/art/annual
+   等深色 Canvas 页继续使用；六主题供 v6 全部新页面使用。
+   ============================================================= */
+
+/* —— paper · 纸感杂志：米白纸底 + 衬线刊头 + 墨黑 —— */
+.theme-paper {
+  --bg: #F5F0E6;
+  --card: #FFFFFF;
+  --primary: #2B2420;     /* 墨黑（实底按钮 / 选中态） */
+  --accent: #C26B5E;      /* 邮政红（点缀） */
+  --soft: #E9E2D4;
+  --text: #2B2420;
+  --text2: #8A7E6E;
+  --text-rgb: 43, 36, 32;
+  --border: #E2D9C7;
+  --on-primary: #F5F0E6;
+  --chip: #EFE8DA;
+  --radius: 4px;
+  --font-title: "Songti SC", "Noto Serif CJK SC", serif;
+  --card-bg: #FFFFFF;
+  --card-blur: none;
+  --card-border: 1px solid #E2D9C7;
+  --card-shadow: 0 1px 3px rgba(43, 36, 32, 0.06);
+  --card-r: 4px;
+  --btn-r: 2px;
+  --page-deco: radial-gradient(rgba(43, 36, 32, 0.05) 0.6px, transparent 0.9px);
+  --page-deco-size: 8rpx 8rpx;
+  /* 品牌标准色直通（手册 §色彩系统） */
+  --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
+  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
+  --hero-top: #EDE6D8; --hero-mid: #F5F0E6;
+}
+
+/* —— glass · 柔和玻璃：弥散光斑 + 磨砂玻璃卡 + 大圆角 —— */
+.theme-glass {
+  --bg: #FAF5EE;
+  --card: #FFFFFF;
+  --primary: #D9A0A6;     /* 灰玫粉 */
+  --accent: #F4C6B4;      /* 蜜桃粉 */
+  --soft: #F6DFA8;
+  --text: #5A4D42;
+  --text2: #A5968A;
+  --text-rgb: 90, 77, 66;
+  --border: #F0E7DC;
+  --on-primary: #FFFFFF;
+  --chip: #F6EFE6;
+  --radius: 22px;
+  --font-title: "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --card-bg: rgba(255, 255, 255, 0.58);
+  --card-blur: blur(16rpx);
+  --card-border: 1px solid rgba(255, 255, 255, 0.75);
+  --card-shadow: 0 8rpx 24rpx rgba(107, 91, 80, 0.13);
+  --card-r: 22px;
+  --btn-r: 999rpx;
+  --page-deco: radial-gradient(38% 24% at 14% 12%, rgba(244, 198, 180, 0.75), transparent 70%),
+               radial-gradient(40% 26% at 88% 22%, rgba(246, 223, 168, 0.72), transparent 72%),
+               radial-gradient(46% 30% at 72% 88%, rgba(169, 195, 166, 0.68), transparent 74%),
+               radial-gradient(40% 26% at 8% 82%, rgba(217, 160, 166, 0.55), transparent 72%);
+  --page-deco-size: 100% 100%;
+  --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
+  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
+  --hero-top: #F6E8D8; --hero-mid: #FBF4EA;
+}
+
+/* —— collage · 手账拼贴：胶带贴纸 + 便签 + 手写 —— */
+.theme-collage {
+  --bg: #FAF5EE;
+  --card: #FFFFFF;
+  --primary: #D9A0A6;
+  --accent: #F6DFA8;
+  --soft: #FBF3D9;
+  --text: #5A4D42;
+  --text2: #A5968A;
+  --text-rgb: 90, 77, 66;
+  --border: #EFE5D8;
+  --on-primary: #FFFFFF;
+  --chip: #FBF3D9;
+  --radius: 16px;
+  --font-title: "Songti SC", "Noto Serif CJK SC", serif;
+  --card-bg: #FFFFFF;
+  --card-blur: none;
+  --card-border: none;
+  --card-shadow: 0 6rpx 16rpx rgba(107, 91, 80, 0.18);
+  --card-r: 16px;
+  --btn-r: 8rpx;
+  --page-deco: radial-gradient(rgba(107, 91, 80, 0.14) 0.9px, transparent 1.2px);
+  --page-deco-size: 32rpx 32rpx;
+  --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
+  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
+  --hero-top: #FBF3D9; --hero-mid: #FDF8EC;
+}
+
+/* —— film · 胶片电影：深褐暗底 + 暖黄光晕（深色页）—— */
+.theme-film {
+  --bg: #1F1A17;
+  --card: #2A2320;
+  --primary: #C26B5E;     /* 邮政红（实底 / 选中） */
+  --accent: #F6DFA8;      /* 暖黄（点缀） */
+  --soft: #3A302A;
+  --text: #EDE3D6;
+  --text2: rgba(237, 227, 214, 0.5);
+  --text-rgb: 237, 227, 214;
+  --border: rgba(246, 223, 168, 0.22);
+  --on-primary: #FFFFFF;
+  --chip: #332B26;
+  --radius: 12px;
+  --font-title: "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --card-bg: #2A2320;
+  --card-blur: none;
+  --card-border: 1px solid rgba(246, 223, 168, 0.22);
+  --card-shadow: 0 8rpx 22rpx rgba(0, 0, 0, 0.55);
+  --card-r: 12px;
+  --btn-r: 10rpx;
+  --page-deco: radial-gradient(60% 34% at 50% 8%, rgba(246, 223, 168, 0.20), transparent 70%),
+               radial-gradient(70% 40% at 50% 108%, rgba(194, 107, 94, 0.18), transparent 72%);
+  --page-deco-size: 100% 100%;
+  --cream: #1F1A17; --peach: #C26B5E; --butter: #F6DFA8; --rose: #C26B5E;
+  --sage: #A9C3A6; --brown: #EDE3D6; --stamp: #C26B5E;
+  --cat-show: #C26B5E; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
+  --hero-top: #2A2320; --hero-mid: #1F1A17;
+}
+
+/* —— literary · 清新文艺：水彩晕染 + 淡彩 + 鼠尾草绿 —— */
+.theme-literary {
+  --bg: #FAF5EE;
+  --card: #FFFFFF;
+  --primary: #A9C3A6;     /* 鼠尾草绿 */
+  --accent: #F4C6B4;      /* 蜜桃粉 */
+  --soft: #E8F0E6;
+  --text: #5A4D42;
+  --text2: #9BAF98;
+  --text-rgb: 90, 77, 66;
+  --border: #E6EFE4;
+  --on-primary: #FFFFFF;
+  --chip: #EDF4EB;
+  --radius: 20px;
+  --font-title: "Songti SC", "Noto Serif CJK SC", serif;
+  --card-bg: #FFFFFF;
+  --card-blur: none;
+  --card-border: none;
+  --card-shadow: 0 8rpx 22rpx rgba(107, 91, 80, 0.13);
+  --card-r: 18px;
+  --btn-r: 999rpx;
+  --page-deco: radial-gradient(34% 22% at 12% 16%, rgba(169, 195, 166, 0.5), transparent 68%),
+               radial-gradient(36% 24% at 90% 30%, rgba(184, 212, 232, 0.5), transparent 70%),
+               radial-gradient(40% 26% at 76% 92%, rgba(244, 198, 180, 0.5), transparent 70%);
+  --page-deco-size: 100% 100%;
+  --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
+  --sage: #A9C3A6; --brown: #6B5B50; --stamp: #C26B5E;
+  --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
+  --hero-top: #E8F0E6; --hero-mid: #F6FAF5;
+}
+
+/* —— minimal · 极简留白：纯白 + 大字 + 细线 —— */
+.theme-minimal {
+  --bg: #FFFFFF;
+  --card: #FFFFFF;
+  --primary: #1A1A1A;     /* 近黑（实底 / 选中） */
+  --accent: #D9A0A6;      /* 单点灰玫粉 */
+  --soft: #F5F5F5;
+  --text: #1A1A1A;
+  --text2: rgba(26, 26, 26, 0.5);
+  --text-rgb: 26, 26, 26;
+  --border: #EDEDED;
+  --on-primary: #FFFFFF;
+  --chip: #F5F5F5;
+  --radius: 8px;
+  --font-title: "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --card-bg: transparent;
+  --card-blur: none;
+  --card-border: none;
+  --card-shadow: none;
+  --card-r: 8px;
+  --btn-r: 8rpx;
+  --page-deco: none;
+  --page-deco-size: auto;
+  --cream: #FFFFFF; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
+  --sage: #A9C3A6; --brown: #1A1A1A; --stamp: #C26B5E;
+  --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
+  --hero-top: #F5F5F5; --hero-mid: #FFFFFF;
+}
+
+/* ===== 三主题通用设计语言（规范 §二）=====
+   1) IP 锚点  2) 票根符号  3) 大圆角  4) tabBar 凸起 +  5) 手绘装饰
+   6) 色彩分层  7) 禁止：生硬直角 / 纯黑文字 / 大面积高饱和 / 3D 重阴影 */
+
+/* 页面底：随主题背景 + 文字色 + 主题装饰层（v6 页面根节点用 .tk-page） */
+.tk-page {
+  min-height: 100vh;
+  background: var(--bg, #FBF2EC);
+  background-image: var(--page-deco, none);
+  background-size: var(--page-deco-size, auto);
+  background-repeat: repeat;
+  color: var(--text, #4A3F3A);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* 柔和投影（跟随主题差异档：minimal 无阴影 / paper 极浅 / film 深投影） */
+.tk-shadow { box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.06)); }
+
+/* —— 卡片：6 套主题下背景/圆角/描边/毛玻璃/投影均随令牌分化 —— */
+.tk-card {
+  background: var(--card-bg, var(--card, #FFFFFF));
+  border-radius: var(--card-r, 32rpx);
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.06));
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
+  padding: 28rpx;
+}
+.tk-card-sm { border-radius: var(--card-r, 28rpx); }
+.tk-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  padding: 12rpx 26rpx;
+  font-size: 24rpx;
+}
+.tk-btn {
+  border-radius: 999rpx;
+  height: 92rpx;
+  line-height: 92rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  background: var(--primary, #F26D8D);
+  color: var(--on-primary, #FFFFFF);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+.tk-btn-ghost {
+  background: transparent;
+  color: var(--text2, #9C8B84);
+  border: 2rpx solid var(--border, #F0E0D8);
+  box-shadow: none;
+}
+
+/* ===== 票根符号（产品核心识别，规范 §二.2）=====
+   .tk-ticket        票根卡本体（大圆角 + 柔和投影）
+   .tk-ticket::before/::after 上下齿孔边（半圆缺口，用径向渐变重复铺出）
+   .tk-ticket-perf   中部虚线撕裂线 */
+.tk-ticket {
+  position: relative;
+  background: var(--card, #FFFFFF);
+  border-radius: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+/* 齿孔边：上下各一排半圆缺口（缺口色 = 页面底色，视觉上"咬"出票根造型） */
+.tk-ticket::before,
+.tk-ticket::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 20rpx;
+  background-image: radial-gradient(circle at 10rpx 50%, var(--bg, #FBF2EC) 9rpx, transparent 9.5rpx);
+  background-size: 40rpx 20rpx;
+  background-repeat: repeat-x;
+  pointer-events: none;
+}
+.tk-ticket::before { top: -10rpx; }
+.tk-ticket::after { bottom: -10rpx; }
+
+/* 虚线撕裂线（票根中部；左右齿孔用 ::before/::after 的半圆） */
+.tk-ticket-perf {
+  position: relative;
+  height: 2rpx;
+  margin: 24rpx 0;
+  background-image: linear-gradient(90deg, var(--border, #F0E0D8) 0 10rpx, transparent 10rpx 20rpx);
+  background-size: 20rpx 2rpx;
+}
+.tk-ticket-perf::before,
+.tk-ticket-perf::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 50%;
+  background: var(--bg, #FBF2EC);
+  transform: translateY(-50%);
+}
+.tk-ticket-perf::before { left: -42rpx; }
+.tk-ticket-perf::after { right: -42rpx; }
+
+/* 迷你票根缩略（列表左侧的齿孔小票） */
+.tk-stub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 116rpx;
+  height: 116rpx;
+  flex: 0 0 116rpx;
+  border-radius: 24rpx;
+  background: var(--chip, #FDE8EE);
+  overflow: hidden;
+}
+.tk-stub::before,
+.tk-stub::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16rpx;
+  background-image: radial-gradient(circle at 50% 8rpx, var(--card, #FFFFFF) 7rpx, transparent 7.5rpx);
+  background-size: 16rpx 32rpx;
+  background-repeat: repeat-y;
+  pointer-events: none;
+}
+.tk-stub::before { left: -8rpx; }
+.tk-stub::after { right: -8rpx; }
+
+/* ===== 字体层级（规范 §四：三套通用基准）===== */
+.tk-h1 { font-size: 64rpx; font-weight: 900; letter-spacing: 4rpx; line-height: 1.15; color: var(--text); font-family: var(--font-title, inherit); }
+.tk-h2 { font-size: 38rpx; font-weight: 500; letter-spacing: 2rpx; line-height: 1.3; color: var(--text); font-family: var(--font-title, inherit); }
+.tk-body { font-size: 28rpx; font-weight: 400; color: var(--text); }
+.tk-cap { font-size: 23rpx; font-weight: 400; color: var(--text2); }
+.tk-num { font-size: 52rpx; font-weight: 900; line-height: 1.1; color: var(--primary); }
+/* dream 标题可用圆体（站酷快乐体类） */
+.theme-dream .tk-display-dream { font-family: "ZCOOL KuaiLe", "PingFang SC", sans-serif; }
+
+/* ===== 手绘装饰（规范 §五：标题下手写感波浪下划线 + 小爱心点缀）===== */
+.tk-underline {
+  position: relative;
+  display: inline-block;
+}
+.tk-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10rpx;
+  height: 12rpx;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M0 7 Q5 1 10 7 T20 7 T30 7 T40 7' fill='none' stroke='%23F26D8D' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 40rpx 12rpx;
+  pointer-events: none;
+}
+.theme-blue .tk-underline::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M0 7 Q5 1 10 7 T20 7 T30 7 T40 7' fill='none' stroke='%234FA8E8' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+.theme-dream .tk-underline::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M0 7 Q5 1 10 7 T20 7 T30 7 T40 7' fill='none' stroke='%23A97FE0' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* 顶部 hero 氛围层：蓝天白云 → 主题底（规范里的"氛围"描述） */
+.tk-hero {
+  position: relative;
+  background: linear-gradient(180deg, var(--hero-top) 0%, var(--hero-mid) 55%, var(--bg) 100%);
+}
+/* dream 的天空可再叠一层马卡龙圆点 */
+.theme-dream .tk-hero {
+  background:
+    radial-gradient(24rpx 24rpx at 84% 18%, var(--macaron-yellow) 0 99%, transparent 100%),
+    radial-gradient(18rpx 18rpx at 92% 40%, var(--macaron-mint) 0 99%, transparent 100%),
+    radial-gradient(14rpx 14rpx at 76% 44%, var(--macaron-pink) 0 99%, transparent 100%),
+    linear-gradient(180deg, var(--hero-top) 0%, var(--hero-mid) 55%, var(--bg) 100%);
+}
+
+/* 分类标签（票根类型；副色分层，不高饱和铺底） */
+.tk-chip {
+  display: inline-block;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  background: var(--chip);
+  color: var(--primary);
+}
+.tk-chip-show    { background: var(--soft); color: var(--primary); }
+.tk-chip-movie   { background: var(--chip); color: var(--text2); }
+.tk-chip-traffic { background: var(--chip); color: var(--text2); }
+
+/* 空态 / 加载态 / 失败态（三套主题共用骨架，颜色走变量） */
+.tk-empty { padding: 100rpx 60rpx; text-align: center; }
+.tk-empty-title { margin-top: 22rpx; font-size: 30rpx; font-weight: 700; color: var(--text); }
+.tk-empty-sub { margin-top: 14rpx; font-size: 24rpx; color: var(--text2); line-height: 1.6; }
+.tk-empty-cta {
+  display: inline-block;
+  margin-top: 36rpx;
+  padding: 22rpx 52rpx;
+  border-radius: 999rpx;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+.tk-skeleton {
+  /* v6.6.0 动效3：奶油灰块呼吸（与 .skeleton-bone 同口径） */
+  background: var(--soft, #F5EDE2);
+  animation: sk-breath 1.2s ease-in-out infinite;
+  border-radius: 24rpx;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-skeleton { animation: none; opacity: 0.6; }
+}
+.tk-error-title { color: var(--accent); }
+
+/* tabBar 占位（自定义 tabBar 116rpx + 安全区 + FAB 凸起余量） */
+.tk-safe-bottom { height: 176rpx; }
+
+
+/* =============================================================
+   v6.0 设计令牌 · 治愈系 3D 插画风（与既有纸感令牌双轨并行）
+   既有 token(--paper/--card/--ink/--accent 等) 保留供 detail/card/art/annual
+   等深色 Canvas 页面继续使用；新页面统一用 --v6-* 走治愈系渐变。
+   ============================================================= */
+:root, page, .theme-a, .theme-b, .theme-c {
+  /* —— 暖色基底 —— */
+  --v6-warm-50:  #FFFBF2;       /* 页面底：奶油纸 */
+  --v6-warm-100: #FDF5E6;       /* 一级底：暖米黄 */
+  --v6-warm-200: #F8E8D4;       /* 二级底/描边 */
+  --v6-warm-300: #EFD9BE;       /* 三级底/分割 */
+  --v6-warm-text: #5B4226;      /* 暖棕文字 */
+
+  /* —— 冷色辅助（不饱和）—— */
+  --v6-cool-100: #E6E6FA;       /* 淡紫（主辅助） */
+  --v6-cool-200: #D6D6F0;
+  --v6-blue-100: #D6E9F8;       /* 浅蓝 */
+  --v6-blue-200: #B8D8EE;
+  --v6-pink-100: #FFE5EC;       /* 淡粉（强调底） */
+  --v6-pink-200: #FFC8D6;
+  --v6-mint-100: #DDF1E5;       /* 薄荷（次分类底） */
+
+  /* —— 强强调（按钮/FAB 用）—— */
+  --v6-pink:     #FF6B9D;       /* 暖粉 */
+  --v6-purple:   #B07FE8;       /* 紫罗兰 */
+  --v6-rose:     #FF8FA3;       /* 玫瑰（次强调） */
+  --v6-amber:    #FFB37A;       /* 暖琥珀 */
+  --v6-teal:     #6BB8C9;       /* 青蓝（按钮次选） */
+
+  /* —— 文字 —— */
+  --v6-ink:        #3A3A3A;     /* 主文字 深灰（避免纯黑） */
+  --v6-ink-soft:   #6B6257;     /* 次文字 暖灰 */
+  --v6-ink-faint:  #A89B8C;     /* 弱文字 浅褐灰 */
+  --v6-ink-onAcc:  #FFFFFF;     /* 强调色上的文字 */
+
+  /* —— 圆角（16-24px 大圆角为主）—— */
+  --v6-r-card:  24rpx;
+  --v6-r-pill:  32rpx;
+  --v6-r-big:   36rpx;
+  --v6-r-sheet: 28rpx;
+  --v6-r-mini:  14rpx;
+
+  /* —— diffuse 柔和阴影（治愈系轻盈感）—— */
+  --v6-shadow-rgb: 200, 180, 220; /* 阴影偏冷紫，对暖色基底更柔 */
+  --v6-shadow-1: 0 4rpx 14rpx rgba(200, 180, 220, 0.18);
+  --v6-shadow-2: 0 8rpx 28rpx rgba(200, 180, 220, 0.22);
+  --v6-shadow-3: 0 14rpx 40rpx rgba(200, 180, 220, 0.28);
+  --v6-shadow-fab: 0 12rpx 32rpx rgba(255, 107, 157, 0.45);
+
+  /* —— 渐变 —— */
+  --v6-grad-warm:    linear-gradient(135deg, #FFE5EC 0%, #E6E6FA 100%);
+  --v6-grad-cta:     linear-gradient(135deg, #FFB3C6 0%, #C490E4 100%);
+  --v6-grad-fab:     linear-gradient(135deg, #FF6B9D 0%, #B07FE8 100%);
+  --v6-grad-cool:    linear-gradient(135deg, #D6E9F8 0%, #E6E6FA 100%);
+  --v6-grad-mint:    linear-gradient(135deg, #DDF1E5 0%, #FFE5EC 100%);
+  --v6-grad-card-pink: linear-gradient(160deg, #FFF5F8 0%, #FCEAF1 100%);
+  --v6-grad-card-purple: linear-gradient(160deg, #F4ECFB 0%, #ECE0F8 100%);
+  --v6-grad-card-blue:   linear-gradient(160deg, #EFF6FC 0%, #E0EEF8 100%);
+  --v6-grad-card-mint:   linear-gradient(160deg, #EFF8F1 0%, #E1F2E5 100%);
+
+  /* —— 渐变光晕（顶部 hero 区背景）—— */
+  --v6-hero-glow: radial-gradient(80% 60% at 50% 0%, rgba(255, 200, 220, 0.45) 0%, rgba(230, 230, 250, 0.25) 35%, transparent 70%);
+
+  /* —— 字体（v6 治愈系：圆体优先；手写体由 wx.loadFontFace 动态加载，TODO 设计提供 ttf 资源）—— */
+  --v6-font-display: "Round", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --v6-font-body:    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* ===== v6 全局基础类 ===== */
+.v6-page { padding: 24rpx 28rpx 60rpx; min-height: 100vh; background: var(--v6-warm-50); }
+.v6-card { background: #FFFFFF; border-radius: var(--v6-r-card); box-shadow: var(--v6-shadow-2); padding: 28rpx; }
+.v6-card-soft { background: var(--v6-warm-50); border-radius: var(--v6-r-card); box-shadow: var(--v6-shadow-1); padding: 28rpx; }
+.v6-pill { border-radius: var(--v6-r-pill); padding: 12rpx 24rpx; display: inline-flex; align-items: center; }
+.v6-cta {
+  background: var(--v6-grad-cta); color: var(--v6-ink-onAcc);
+  border-radius: 48rpx; padding: 26rpx 0; text-align: center;
+  font-size: 30rpx; font-weight: 700; letter-spacing: 4rpx;
+  box-shadow: var(--v6-shadow-fab);
+  font-family: var(--v6-font-display);
+}
+.v6-fab {
+  position: fixed; right: 36rpx; bottom: 200rpx; z-index: 900;
+  width: 110rpx; height: 110rpx; border-radius: 50%;
+  background: var(--v6-grad-fab);
+  color: #FFF; font-size: 56rpx; line-height: 110rpx; text-align: center;
+  box-shadow: var(--v6-shadow-fab);
+}
+.v6-fab-press { transform: scale(0.92); transition: transform 0.18s ease; }
+
+/* v6 顶部渐变 hero 通用类（被 home / discover 复用） */
+.v6-hero { position: relative; padding: 56rpx 32rpx 40rpx; background: var(--v6-hero-glow); }
+.v6-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(50% 40% at 80% 10%, rgba(255, 230, 200, 0.5), transparent 60%); pointer-events: none; }
+.v6-title { font-family: var(--v6-font-display); font-size: 56rpx; font-weight: 800; color: var(--v6-ink); letter-spacing: 6rpx; line-height: 1.15; }
+.v6-subtitle { margin-top: 16rpx; font-size: 26rpx; color: var(--v6-ink-soft); letter-spacing: 2rpx; }
+.v6-slogan { font-family: var(--v6-font-display); font-size: 32rpx; color: var(--v6-warm-text); letter-spacing: 2rpx; }
+
+/* 列表卡片（左插画/中信息/右缩略 的 v6 三栏） */
+.v6-list-card { display: flex; align-items: center; gap: 20rpx; padding: 24rpx; border-radius: var(--v6-r-card); background: #FFFFFF; box-shadow: var(--v6-shadow-1); }
+.v6-list-thumb { width: 110rpx; height: 110rpx; border-radius: 22rpx; display: flex; align-items: center; justify-content: center; font-size: 48rpx; flex: 0 0 110rpx; }
+.v6-list-body { flex: 1; min-width: 0; }
+.v6-list-title { font-size: 28rpx; font-weight: 700; color: var(--v6-ink); }
+.v6-list-meta { margin-top: 6rpx; font-size: 22rpx; color: var(--v6-ink-soft); }
+.v6-list-date { flex: 0 0 auto; text-align: right; font-size: 22rpx; color: var(--v6-ink-faint); }
+
+/* 4 大功能入口（圆角方形 + emoji + 标签） */
+.v6-func-grid { display: flex; gap: 20rpx; margin: 32rpx 28rpx 0; }
+.v6-func-item { flex: 1; background: #FFFFFF; border-radius: var(--v6-r-card); box-shadow: var(--v6-shadow-1); padding: 28rpx 8rpx 20rpx; text-align: center; }
+.v6-func-ico { width: 80rpx; height: 80rpx; margin: 0 auto 12rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; }
+.v6-func-name { font-size: 22rpx; color: var(--v6-ink); font-weight: 600; letter-spacing: 1rpx; }
+
+/* 渐变 CTA 大卡 */
+.v6-cta-card { margin: 32rpx 28rpx 0; padding: 36rpx 32rpx; border-radius: var(--v6-r-big); background: var(--v6-grad-warm); box-shadow: var(--v6-shadow-2); display: flex; align-items: center; gap: 24rpx; }
+
+/* 票根类型色（淡彩标签底，仿 3D 拟物卡片） */
+.v6-tag-show   { background: var(--v6-grad-card-pink);   color: #C9507A; }
+.v6-tag-movie  { background: var(--v6-grad-card-blue);   color: #4A7A99; }
+.v6-tag-traffic{ background: var(--v6-grad-card-mint);   color: #4F8A6E; }
+.v6-tag-other  { background: var(--v6-grad-card-purple); color: #7B5DB8; }
+
+/* 顶部角色插画占位框（CSS 渐变 + emoji，TODO 由设计提供 SVG/PNG 资源替换） */
+.v6-character {
+  position: relative;
+  width: 100%;
+  height: 420rpx;
+  border-radius: var(--v6-r-big);
+  background:
+    radial-gradient(70% 50% at 20% 80%, rgba(255, 200, 220, 0.55), transparent 60%),
+    radial-gradient(60% 50% at 80% 20%, rgba(180, 200, 240, 0.55), transparent 60%),
+    linear-gradient(160deg, #FFF7F0 0%, #F4ECFB 100%);
+  display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+  box-shadow: var(--v6-shadow-2);
+}
+.v6-character-tag { position: absolute; right: 24rpx; top: 24rpx; padding: 6rpx 18rpx; background: rgba(255,255,255,0.85); border-radius: 20rpx; font-size: 20rpx; color: var(--v6-ink-soft); box-shadow: var(--v6-shadow-1); z-index: 5; }
+
+/* ============================================================
+   主视觉插画：纯 CSS 绘制「男孩 + 柯基 + 行李箱」治愈系场景
+   设计侧交付 3D 插画资源后，整体替换为 image 组件即可
+   ============================================================ */
+.v6-illus { position: relative; width: 100%; height: 100%; }
+
+/* 地面（椭圆软阴影，让角色"站住"） */
+.v6-illus-ground {
+  position: absolute; left: 50%; bottom: 34rpx;
+  transform: translateX(-50%);
+  width: 520rpx; height: 56rpx; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(176, 127, 232, 0.22), transparent 75%);
+}
+/* 背景光晕 */
+.v6-illus-glow {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 380rpx; height: 300rpx; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 214, 232, 0.55), transparent 72%);
+}
+
+/* —— 小男孩 —— */
+.v6-boy { position: absolute; left: 88rpx; bottom: 52rpx; width: 150rpx; height: 250rpx; }
+.v6-boy-hair {
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  width: 122rpx; height: 62rpx; border-radius: 60rpx 60rpx 16rpx 16rpx;
+  background: linear-gradient(160deg, #6B4A32, #4A3120);
+  z-index: 2;
+}
+.v6-boy-head {
+  position: absolute; left: 50%; top: 34rpx; transform: translateX(-50%);
+  width: 120rpx; height: 112rpx; border-radius: 54rpx;
+  background: linear-gradient(165deg, #FFD9BC, #F5BF9A);
+  box-shadow: inset -6rpx -8rpx 14rpx rgba(200, 140, 100, 0.18);
+  z-index: 1;
+}
+.v6-eye {
+  position: absolute; top: 46rpx; width: 13rpx; height: 15rpx;
+  border-radius: 50%; background: #3D2A1C;
+}
+.v6-eye.l { left: 30rpx; }
+.v6-eye.r { right: 30rpx; }
+.v6-blush {
+  position: absolute; top: 68rpx; width: 22rpx; height: 13rpx;
+  border-radius: 50%; background: rgba(255, 138, 152, 0.42);
+}
+.v6-blush.l { left: 16rpx; }
+.v6-blush.r { right: 16rpx; }
+.v6-mouth {
+  position: absolute; left: 50%; top: 74rpx; transform: translateX(-50%);
+  width: 26rpx; height: 13rpx;
+  border-bottom: 4rpx solid #C97B6A; border-radius: 0 0 26rpx 26rpx;
+}
+.v6-boy-body {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 128rpx; height: 118rpx; border-radius: 30rpx 30rpx 22rpx 22rpx;
+  background: linear-gradient(165deg, #FFB3C9, #FF8FAE);
+  box-shadow: inset -8rpx -10rpx 16rpx rgba(200, 90, 130, 0.16);
+}
+.v6-boy-arm {
+  position: absolute; right: 2rpx; bottom: 46rpx;
+  width: 30rpx; height: 84rpx; border-radius: 16rpx;
+  background: linear-gradient(180deg, #F5BF9A, #FFD9BC);
+  transform: rotate(-24deg);
+}
+
+/* —— 柯基 —— */
+.v6-dog { position: absolute; right: 108rpx; bottom: 50rpx; width: 176rpx; height: 172rpx; }
+.v6-dog-ear {
+  position: absolute; top: 40rpx; width: 52rpx; height: 66rpx;
+  background: linear-gradient(165deg, #D89A62, #B87A46);
+  border-radius: 26rpx 26rpx 12rpx 12rpx;
+  z-index: 2;
+}
+.v6-dog-ear.l { left: 8rpx; transform: rotate(-16deg); }
+.v6-dog-ear.r { right: 8rpx; transform: rotate(16deg); }
+.v6-dog-head {
+  position: absolute; left: 50%; top: 36rpx; transform: translateX(-50%);
+  width: 132rpx; height: 112rpx; border-radius: 58rpx 58rpx 48rpx 48rpx;
+  background: linear-gradient(170deg, #F7E2C4, #EBCFA6);
+  z-index: 1;
+}
+.v6-dog-eye {
+  position: absolute; top: 42rpx; width: 15rpx; height: 15rpx;
+  border-radius: 50%; background: #4A3220;
+}
+.v6-dog-eye.l { left: 32rpx; }
+.v6-dog-eye.r { right: 32rpx; }
+.v6-dog-nose {
+  position: absolute; left: 50%; top: 68rpx; transform: translateX(-50%);
+  width: 26rpx; height: 20rpx; border-radius: 50% 50% 46% 46%;
+  background: #4A3220;
+}
+.v6-dog-nose::after {
+  content: ''; position: absolute; left: 50%; top: 18rpx; transform: translateX(-50%);
+  width: 34rpx; height: 16rpx;
+  border-bottom: 4rpx solid #C97B6A; border-radius: 0 0 30rpx 30rpx;
+}
+.v6-dog-body {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 140rpx; height: 76rpx; border-radius: 34rpx 34rpx 20rpx 20rpx;
+  background: linear-gradient(170deg, #F7E2C4, #E2C39A);
+}
+
+/* —— 行李箱 —— */
+.v6-case { position: absolute; right: 14rpx; bottom: 52rpx; width: 96rpx; height: 158rpx; }
+.v6-case-handle {
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  width: 42rpx; height: 24rpx;
+  border: 5rpx solid #8A6BB5; border-bottom: none;
+  border-radius: 12rpx 12rpx 0 0;
+}
+.v6-case-body {
+  position: absolute; left: 0; bottom: 0;
+  width: 96rpx; height: 132rpx; border-radius: 20rpx;
+  background: linear-gradient(160deg, #9B7FD4, #7B5EB8);
+  box-shadow: inset -8rpx -8rpx 16rpx rgba(60, 30, 110, 0.18), 0 8rpx 18rpx rgba(123, 94, 184, 0.26);
+}
+.v6-case-stripe {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 100%; height: 18rpx;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+
+/* 顶部导航栏 4tab 适配 v6 */
+.v6-navbar { background: transparent; }
+
+/* 「时光不回头，票根存温柔」Slogan 容器（首页核心展示位） */
+.v6-slogan-row {
+  display: inline-block; padding: 14rpx 32rpx;
+  background: linear-gradient(90deg, rgba(255, 230, 200, 0.5), rgba(230, 200, 250, 0.4));
+  border-radius: 999rpx;
+  margin-top: 16rpx;
+}
+
+/* =============================================================
+   品牌全案辅助图形系统（2026-09-10 VIS §辅助图形 · 全局公共类）
+   票根齿孔点列 / 邮戳圆环 / 日期印章 / 序列号 / 波浪销票线 /
+   微光星点 / 虚线路径 / 胶带贴纸 —— 统一灰玫/暖褐灰细线呈现
+   ============================================================= */
+
+/* 字体层级（手册 §字体层级：42px Bold 标题 / 20px Regular 正文 / 14px Medium 标注） */
+.b-h1 { font-size: 84rpx; font-weight: 700; color: var(--brown, #6B5B50); line-height: 1.25; }
+.b-h2 { font-size: 40rpx; font-weight: 700; color: var(--brown, #6B5B50); }
+.b-body { font-size: 40rpx; font-weight: 400; color: var(--brown, #6B5B50); }
+.b-cap { font-size: 28rpx; font-weight: 500; color: var(--text2, #A5968A); }
+/* 手写风（AI 文案/问候语：圆润人文无衬线 + 倾斜 + 疏排近似手写） */
+.hand { font-style: italic; letter-spacing: 2rpx; }
+
+/* 邮戳：双圆环 + 虚线外圈 + 内部三行（城市/日期），旁挂波浪销票线由页面组合 */
+.b-stamp {
+  width: 96rpx; height: 96rpx; border-radius: 50%;
+  border: 3rpx dashed rgba(107, 91, 80, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(250, 245, 238, 0.72);
+  box-sizing: border-box;
+}
+.b-stamp-in {
+  width: 76rpx; height: 76rpx; border-radius: 50%;
+  border: 2rpx solid rgba(107, 91, 80, 0.5);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--brown, #6B5B50); line-height: 1.15; box-sizing: border-box;
+}
+.b-stamp-city { font-size: 16rpx; font-weight: 700; letter-spacing: 1rpx; }
+.b-stamp-date { font-size: 14rpx; }
+
+/* 票根齿孔撕裂边：放在白卡底缘，颜色 = 页面背景 → 半圆孔效果 */
+.b-perf {
+  height: 22rpx;
+  background-image: radial-gradient(circle at 22rpx 0rpx, var(--bg, #FAF5EE) 11rpx, transparent 12rpx);
+  background-size: 44rpx 22rpx;
+  background-position: 0 0;
+  background-repeat: repeat-x;
+}
+/* 顶缘齿孔（中心向下的半圆） */
+.b-perf-top {
+  height: 22rpx;
+  background-image: radial-gradient(circle at 22rpx 22rpx, var(--bg, #FAF5EE) 11rpx, transparent 12rpx);
+  background-size: 44rpx 22rpx;
+  background-repeat: repeat-x;
+}
+
+/* 胶带贴纸（鹅黄半透明斜贴） */
+.b-tape {
+  position: absolute; width: 96rpx; height: 40rpx;
+  background: rgba(246, 223, 168, 0.78);
+  border-left: 2rpx dashed rgba(255, 255, 255, 0.9);
+  border-right: 2rpx dashed rgba(255, 255, 255, 0.9);
+  transform: rotate(-8deg);
+  box-shadow: 0 2rpx 6rpx rgba(107, 91, 80, 0.08);
+}
+
+/* 微光星点（四角星）：鹅黄主 + 暖褐辅 */
+.b-spark { display: inline-block; color: var(--butter, #F6DFA8); font-size: 28rpx; line-height: 1; }
+.b-spark.dim { color: rgba(107, 91, 80, 0.35); }
+
+/* 波浪销票线（SVG 平铺：暖褐细线） */
+.b-wave {
+  height: 14rpx;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='14'%3E%3Cpath d='M0 7 Q4.5 1 9 7 T18 7 T27 7 T36 7' fill='none' stroke='%236B5B50' stroke-opacity='.45' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-size: 36rpx 14rpx;
+  background-repeat: repeat-x;
+}
+/* 灰玫粉波浪（图2 明信片款） */
+.b-wave.rose {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='14'%3E%3Cpath d='M0 7 Q4.5 1 9 7 T18 7 T27 7 T36 7' fill='none' stroke='%23D9A0A6' stroke-opacity='.55' stroke-width='1.6'/%3E%3C/svg%3E");
+}
+
+/* 虚线路径（旅行足迹：虚线 + 可接定位点） */
+.b-dash-path {
+  height: 4rpx;
+  background-image: linear-gradient(90deg, rgba(107, 91, 80, 0.5) 0 10rpx, transparent 10rpx 20rpx);
+  background-size: 20rpx 4rpx;
+  background-repeat: repeat-x;
+}
+
+/* 序列号框（No. 078463 虚线描边小票框） */
+.b-serial {
+  display: inline-flex; align-items: center;
+  padding: 6rpx 18rpx;
+  border: 2rpx dashed rgba(107, 91, 80, 0.5);
+  border-radius: 8rpx;
+  color: var(--brown, #6B5B50);
+  font-size: 22rpx; letter-spacing: 2rpx;
+}
+
+/* 收藏心（实心/描边，邮政红点缀） */
+.b-heart { width: 34rpx; height: 34rpx; }
