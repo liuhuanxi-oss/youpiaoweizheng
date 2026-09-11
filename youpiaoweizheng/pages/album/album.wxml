@@ -86,7 +86,7 @@
     <block wx:for="{{groups}}" wx:key="label" wx:for-item="group">
       <view class="ab-sec-title">
         <text class="ab-t">{{group.label}}</text>
-        <text class="ab-s">共 {{group.list.length}} 张</text>
+        <text class="ab-s">共 {{group.total}} 张</text>
       </view>
       <view
         wx:for="{{group.list}}"
@@ -111,6 +111,32 @@
           <text class="ab-date-d">{{t.date ? t.date.slice(8, 10) : '--'}}</text>
           <text class="ab-date-m">{{t.date ? t.date.slice(5, 7) + '月' : '--'}}</text>
         </view>
+      </view>
+
+      <!-- 折叠时的展开入口（v6.6.1 修复：此前每月第 4 张起用户永远看不到） -->
+      <view
+        wx:if="{{group.fold}}"
+        class="ab-fold pressable"
+        hover-class="press-item-hover"
+        data-label="{{group.label}}"
+        bindtap="expandGroup"
+        aria-role="button"
+        aria-label="展开本月剩余票根"
+      >
+        <text class="ab-fold-t">本月还有 {{group.more}} 张</text>
+        <text class="ab-fold-a">点我展开 ›</text>
+      </view>
+      <!-- 展开后可收起（用独立 wx:if 而非 wx:elif，避免中间夹注释影响指令配对） -->
+      <view
+        wx:if="{{!group.fold && group.total > 3}}"
+        class="ab-fold pressable"
+        hover-class="press-item-hover"
+        data-label="{{group.label}}"
+        bindtap="collapseGroup"
+        aria-role="button"
+        aria-label="收起本月票根"
+      >
+        <text class="ab-fold-a">收起 ›</text>
       </view>
     </block>
   </view>

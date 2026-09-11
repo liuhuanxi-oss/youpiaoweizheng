@@ -303,6 +303,9 @@ Page({
   goCollection() { wx.switchTab({ url: '/pages/album/album' }); },
   goMap() { wx.navigateTo({ url: '/pages/map/map' }); },
   goAnnual() { wx.navigateTo({ url: '/pages/annual/annual' }); },
+  // v6.6.1 新增：duo 不是 tab 页，此前 App 内唯一入口是 bind 页那两个必然失败的
+  // wx.switchTab，双人空间/时间线/回忆报告 三页整簇不可达。这里补正常入口。
+  goDuo() { wx.navigateTo({ url: '/pages/duo/duo' }); },
   goRecycle() { wx.showToast({ title: '回收站开发中，敬请期待', icon: 'none' }); },
   goBadges() { wx.showToast({ title: '勋章墙开发中，敬请期待', icon: 'none' }); },
   goSetting() { wx.showToast({ title: '设置项开发中，敬请期待', icon: 'none' }); },

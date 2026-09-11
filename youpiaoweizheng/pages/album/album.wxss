@@ -99,6 +99,18 @@
 .ab-date-d { display: block; font-size: 40rpx; font-weight: 700; color: var(--primary); line-height: 1.1; }
 .ab-date-m { display: block; font-size: 20rpx; color: var(--text2); margin-top: 4rpx; }
 
+/* —— 折叠/展开行（v6.6.1：修复「每月第 4 张起不可见」，统一用主题变量） —— */
+.ab-fold {
+  display: flex; align-items: center; justify-content: center; gap: 12rpx;
+  margin: 0 28rpx 26rpx;
+  padding: 18rpx 24rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: 999rpx;
+  box-shadow: var(--card-shadow, none);
+}
+.ab-fold-t { font-size: 24rpx; color: var(--text2); }
+.ab-fold-a { font-size: 24rpx; font-weight: 700; color: var(--primary); }
+
 /* —— 加载态骨架 ——
    v6.6.0 动效3：与 ab-list-card 像素级一致（thumb 116rpx / 标题 28rpx / 地点 22rpx /
    标签行 36rpx / 右侧日期列 56rpx 宽），呼吸用 tk-skeleton（奶油灰块 opacity 口径） */

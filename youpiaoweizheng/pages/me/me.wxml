@@ -95,6 +95,13 @@
         <text class="me-list-name">我的收藏夹</text>
         <text class="me-list-go">›</text>
       </view>
+      <!-- v6.6.1 新增：duo 不在 tabBar 里，此前 App 内没有任何入口可达，
+           导致 双人空间/时间线/回忆报告 三页整簇进不去 -->
+      <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goDuo" aria-role="button" aria-label="双人空间">
+        <text class="me-list-ico">💞</text>
+        <text class="me-list-name">双人空间</text>
+        <text class="me-list-go">›</text>
+      </view>
       <view class="me-list-item pressable" hover-class="press-item-hover" bindtap="goMap" aria-role="button" aria-label="时光地图">
         <text class="me-list-ico">🗺</text>
         <text class="me-list-name">时光地图</text>

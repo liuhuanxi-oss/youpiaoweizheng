@@ -5,7 +5,8 @@
 //   + 顶部品牌头部（WXML）
 //   + 问候语改按月口径：「九月，你收藏了 X 张时光」
 //   + 时光机未命中 → 「今日时光签」时令短句，永不空转
-//   + 月分组超 4 张折叠，第 4 张半露（peek），点击展开
+//   + 月分组超 3 张折叠，点「还有 N 张」展开（v6.6.1 修复：此前 _expanded 只有读取、
+//     没有赋值入口，导致每月第 4 张起用户永远看不到且无任何提示）
 const mock = require('../../utils/mock.js');
 const store = require('../../utils/store.js');
 const sk = require('../../utils/skeleton.js');
@@ -14,7 +15,7 @@ const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
 const { groupLabel, weekday, todayMD, todaySign } = require('../../utils/date.js');
 
 const MONTHS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
-const PEEK_AFTER = 3; // 每组默认露出 3 张，其余折叠进半张预览
+const PEEK_AFTER = 3; // 每组默认露出 3 张，其余折叠（点「还有 N 张」展开）
 
 // 给原始票根补渲染字段
 function decorate(t) {
@@ -220,8 +221,8 @@ Page({
         return {
           label,
           fold,
+          total: list.length,                              // 本月真实张数（小标题显示用，不受折叠影响）
           list: fold ? list.slice(0, PEEK_AFTER) : list,
-          peekTicket: fold ? list[PEEK_AFTER] : null,
           more: fold ? list.length - PEEK_AFTER : 0
         };
       });
@@ -269,11 +270,33 @@ Page({
     wx.navigateTo({ url: `/pages/detail/detail?id=${tm.ticketId}` });
   },
 
-  // 票根卡片点击 → 详情（自定义 tap 带 id；原生冒泡 tap 无 id，直接忽略防双触发）
+  // 票根卡片点击 → 详情
+  // v6.6.1 修复：卡片用的是原生 view + data-id（见 album.wxml），事件里取 id 必须走
+  // e.currentTarget.dataset；此前误按自定义组件写法读 e.detail.id，恒为 undefined，
+  // 导致本页每一张票根都点不动。
   goDetail(e) {
-    const id = e && e.detail && e.detail.id;
+    const ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    const id = ds.id;
     if (!id) return;
     wx.navigateTo({ url: `/pages/detail/detail?id=${id}` });
+  },
+
+  // 展开某个月的折叠（v6.6.1 新增：补上 _expanded 唯一赋值入口）
+  expandGroup(e) {
+    const label = (e && e.currentTarget && e.currentTarget.dataset || {}).label;
+    if (!label) return;
+    this._expanded = this._expanded || {};
+    this._expanded[label] = true;
+    this.applyFilter(this.data.activeFilter);
+  },
+
+  // 收起某个月：恢复默认 3 张 + 展开入口
+  collapseGroup(e) {
+    const label = (e && e.currentTarget && e.currentTarget.dataset || {}).label;
+    if (!label) return;
+    this._expanded = this._expanded || {};
+    delete this._expanded[label];
+    this.applyFilter(this.data.activeFilter);
   },
 
   // 空态引导（筛选结果为空时展示）

@@ -49,11 +49,13 @@ Page({
     });
   },
 
+  // v6.6.1 修复：duo 不在 tabBar 里，wx.switchTab 只能跳 tab 页，调用必然失败
+  // （fail: can not switch to no-tabBar page），绑定流程到这一步就断了。改走 navigateTo。
   decline() {
-    wx.switchTab({ url: '/pages/duo/duo' });
+    wx.navigateTo({ url: '/pages/duo/duo' });
   },
 
   goDuo() {
-    wx.switchTab({ url: '/pages/duo/duo' });
+    wx.navigateTo({ url: '/pages/duo/duo' });
   }
 });
