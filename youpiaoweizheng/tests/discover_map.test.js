@@ -193,7 +193,48 @@ t('用到的图标名都在 icons.js 里注册', () => {
 });
 t('新增的 close 图标已注册', () => ok(ICONS.has('close'), '缺少 close'));
 
-console.log('\n【六、WXSS 与 WXML 类名对得上、无写死颜色】');
+console.log('\n【六、真地图（水彩 ↔ 微信原生地图切换）】');
+t('图钉坐标来自真实经纬度，不是手摆的', () => {
+  const cities = [
+    { city: '北京', count: 2, lat: 39.90 * 2, lng: 116.40 * 2 }, // refresh 里是累加值，要除以 count
+    { city: '上海', count: 1, lat: 31.23, lng: 121.47 }
+  ];
+  const ms = map.markersOf(cities, { text: '#000', card: '#fff' });
+  ok(ms.length === 2, '图钉数不等于城市数');
+  ok(Math.abs(ms[0].latitude - 39.90) < 1e-6 && Math.abs(ms[0].longitude - 116.40) < 1e-6,
+    '重心算错：' + ms[0].latitude + ',' + ms[0].longitude);
+  ok(typeof ms[1].latitude === 'number' && typeof ms[1].longitude === 'number', '坐标不是数值');
+  ok(ms.every((k) => !/NaN/.test(String(k.latitude) + k.longitude)), '图钉里画出了 NaN');
+});
+t('图钉 id 就是 cities 下标（点标记才找得回是哪座城）', () => {
+  const cities = [{ city: 'A', count: 1, lat: 1, lng: 2 }, { city: 'B', count: 1, lat: 3, lng: 4 }];
+  const ms = map.markersOf(cities, { text: '#000', card: '#fff' });
+  ok(ms.map((k) => k.id).join() === '0,1', 'id 不是连续下标：' + ms.map((k) => k.id).join());
+  ok(ms[1].callout.content.includes('B'), '气泡文案没带城市名：' + ms[1].callout.content);
+});
+t('wxml 有原生 <map>，绑了图钉 / 自动缩放 / 点标记', () => {
+  ok(/<map\s[^>]*markers="\{\{markers\}\}"/.test(wxmlClean), '没绑 markers');
+  ok(/<map\s[^>]*include-points="\{\{mapPts\}\}"/.test(wxmlClean), '没绑 include-points（视野不会自动装下全部图钉）');
+  ok(/<map\s[^>]*bindmarkertap="onMarkerTap"/.test(wxmlClean), '没接点标记');
+  ok(/<map\s[^>]*latitude="\{\{mapLat\}\}"/.test(wxmlClean) && /<map\s[^>]*longitude="\{\{mapLng\}\}"/.test(wxmlClean), '没给中心点');
+});
+t('水彩图层在真地图模式下不再重复渲染（wx:if 互斥）', () => {
+  ok(/wx:if="\{\{view === 'real'\}\}"/.test(wxmlClean), '真地图没做 wx:if');
+  ok(/wx:if="\{\{view !== 'real' && route\}\}"/.test(wxmlClean), '路线图层没跟 view 互斥');
+  ok(/wx:if="\{\{view !== 'real'\}\}"\s+wx:for="\{\{cities\}\}"/.test(wxmlClean), '城市气泡没跟 view 互斥');
+});
+t('切换按钮两个选项都接了 setView，且点击会真的换 view', () => {
+  ['art', 'real'].forEach((v) => {
+    ok(new RegExp('data-view="' + v + '"[^>]*bindtap="setView"').test(wxmlClean), '缺选项：' + v);
+  });
+  ok(/setView\(e\)[\s\S]{0,220}setData\(\{\s*view/.test(js), 'setView 没写回 view');
+});
+t('点图钉走的是 cities[markerId]，与气泡共用同一个面板', () => {
+  ok(/onMarkerTap\(e\)[\s\S]{0,200}cities\[e\.detail\.markerId\]/.test(js), '没按 markerId 找回城市');
+  ok(/onCityTap\(e\)\s*\{\s*this\.openCity\(/.test(js), '气泡没走共用入口 openCity');
+});
+
+console.log('\n【七、WXSS 与 WXML 类名对得上、无写死颜色】');
 t('wxml 里的类名都在 wxss 里有定义（放行全局公共类）', () => {
   const GLOBAL = /^(tk-|press|theme-|card$|b-|skeleton-|ad-|serif$|mono$)/;
   const used = new Set([...wxmlClean.matchAll(/(?:^|\s)class="([^"]*)"/g)]
@@ -241,7 +282,7 @@ t('避让算法用的气泡尺寸 = WXSS 里的实际尺寸（对不上就会互
   ok(map.BUBBLE_H - h < 12, 'BUBBLE_H 比实际高太多（' + (map.BUBBLE_H - h).toFixed(0) + 'rpx），气泡会被白白顶开');
 });
 
-console.log('\n【七、城市票根面板：点气泡看票的主链路】');
+console.log('\n【八、城市票根面板：点气泡看票的主链路】');
 t('点气泡 → 升起面板 → 点票根进详情', () => {
   ok(/bindtap="onCityTap"/.test(wxmlClean), '气泡未绑 onCityTap');
   ok(/data-city="\{\{item\.city\}\}"/.test(wxmlClean), '气泡未带城市名');
@@ -262,7 +303,7 @@ t('票根行的类型色块从 JS 下发，不在 wxss 里写死', () => {
   ok(/ROW_TINT/.test(js) && /tint: ROW_TINT\[/.test(js), '未从 ROW_TINT 取色');
 });
 
-console.log('\n【八、mapArt 产物本身是合法的 data-uri】');
+console.log('\n【九、mapArt 产物本身是合法的 data-uri】');
 const dec = (u) => decodeURIComponent(u.replace(/^data:image\/svg\+xml,/, ''));
 t('landSrc 随主题换纸浆色（深色主题不能烧出亮边）', () => {
   const light = dec(map.landSrc({ soft: '#E9E2D4' }));

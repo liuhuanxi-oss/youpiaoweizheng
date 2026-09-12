@@ -1,6 +1,6 @@
 {
   "name": "youpiaoweizheng-cicd",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "private": true,
   "description": "有票为证 小程序自动化构建/上传/云函数部署/提审发布脚本",
   "scripts": {

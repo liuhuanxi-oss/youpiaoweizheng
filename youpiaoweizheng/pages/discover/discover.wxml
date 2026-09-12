@@ -23,6 +23,14 @@
   <view class="dc-card">
     <view class="dc-card-inner">
 
+      <!-- 看法切换：水彩中国（稿屏7 的默认样子）/ 真地图（微信原生地图，能缩放拖动） -->
+      <view class="dc-view">
+        <view class="dc-view-b {{view === 'art' ? 'on' : ''}} pressable" hover-class="press-item-hover"
+              data-view="art" bindtap="setView" aria-role="button" aria-label="看水彩地图">水彩</view>
+        <view class="dc-view-b {{view === 'real' ? 'on' : ''}} pressable" hover-class="press-item-hover"
+              data-view="real" bindtap="setView" aria-role="button" aria-label="看真实地图">真地图</view>
+      </view>
+
       <!-- 左上：斜贴的邮票 + 波浪排线 -->
       <image class="dc-stamp dc-stamp-l" src="{{stampL}}" mode="aspectFit" aria-hidden="true" />
       <image class="dc-wave dc-wave-l" src="{{deco.wave}}" mode="aspectFit" aria-hidden="true" />
@@ -44,10 +52,16 @@
            宽高由 JS 下发（mapArt.STAGE_W/H）—— 气泡避让算法用的就是这两个数，
            写死在 WXSS 里迟早和算法对不上，气泡就会飘出色块。 -->
       <view class="dc-stage" style="width:{{stageW}}rpx; height:{{stageH}}rpx;">
-        <image class="dc-layer" src="{{land}}" mode="scaleToFill" aria-hidden="true" />
-        <image wx:if="{{route}}" class="dc-layer" src="{{route}}" mode="scaleToFill" aria-hidden="true" />
+        <!-- 真地图：坐标还是那份真经纬度（城市字典 + 腾讯 LBS 算出来的），
+             只是不自己画、交给微信原生地图去投影，点图钉弹的还是同一个城市面板 -->
+        <map wx:if="{{view === 'real'}}" class="dc-map" latitude="{{mapLat}}" longitude="{{mapLng}}"
+             scale="4" markers="{{markers}}" include-points="{{mapPts}}" bindmarkertap="onMarkerTap"
+             enable-zoom enable-scroll show-location="{{false}}" aria-label="足迹地图" />
 
-        <view wx:for="{{cities}}" wx:key="city" class="dc-city" style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
+        <image wx:else class="dc-layer" src="{{land}}" mode="scaleToFill" aria-hidden="true" />
+        <image wx:if="{{view !== 'real' && route}}" class="dc-layer" src="{{route}}" mode="scaleToFill" aria-hidden="true" />
+
+        <view wx:if="{{view !== 'real'}}" wx:for="{{cities}}" wx:key="city" class="dc-city" style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
 
           <!-- 连接杆：气泡被顶开时才有长度，平时被尾巴盖住看不见 -->
           <view class="dc-stem" style="background:{{item.color}}; {{item.stemPos}};"></view>

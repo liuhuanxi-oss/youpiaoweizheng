@@ -41,7 +41,13 @@ Page({
     picked: null,    // 当前选中的城市名
     sheet: [],       // 选中城市的票根
     stageW: mapArt.STAGE_W,
-    stageH: mapArt.STAGE_H
+    stageH: mapArt.STAGE_H,
+    // 两种看法：'art' 水彩中国（稿屏7 的默认）/ 'real' 微信原生地图（可缩放、可拖）
+    view: 'art',
+    markers: [],     // 原生地图的图钉（一城一枚）
+    mapPts: [],      // include-points：让原生地图自动缩放到装下全部图钉
+    mapLat: 35,      // 没数据时的中心（中国中部）
+    mapLng: 105
   },
 
   onShow() {
@@ -139,8 +145,15 @@ Page({
       const ordered = cities.slice().sort((a, b) => String(a.first).localeCompare(String(b.first)));
       const route = mapArt.routeSrc(ordered.map((c) => ({ lng: c.lng / c.count, lat: c.lat / c.count })));
 
+      /* 原生地图的图钉：与水彩图同源（都吃真实经纬度），点标记也走同一套面板 */
+      const markers = mapArt.markersOf(cities, themeUtil.getThemeMeta(themeUtil.getTheme()));
+
       this.setData({
         route,
+        markers,
+        mapPts: markers.map((k) => ({ latitude: k.latitude, longitude: k.longitude })),
+        mapLat: markers.length ? markers[0].latitude : 35,
+        mapLng: markers.length ? markers[0].longitude : 105,
         cities: cities.map((c) => {
           const gap = mapArt.PIN_GAP + c.push;
           const stem = Math.max(0, gap - 11); // 11 = 落点圆环半径，杆从环外起画
@@ -156,13 +169,30 @@ Page({
         noGeo: noGeo
       });
     } catch (e) {
-      this.setData({ cities: [], total: 0, cityCount: 0, noGeo: 0, route: '' });
+      this.setData({ cities: [], markers: [], mapPts: [], total: 0, cityCount: 0, noGeo: 0, route: '' });
     }
+  },
+
+  /** 切换「水彩 / 真地图」 */
+  setView(e) {
+    const v = e.currentTarget.dataset.view;
+    if (!v || v === this.data.view) return;
+    wx.vibrateShort({ type: 'light' });
+    this.setData({ view: v });
   },
 
   /** 点气泡：底部升起这座城的票根面板 */
   onCityTap(e) {
-    const name = e.currentTarget.dataset.city;
+    this.openCity(e.currentTarget.dataset.city);
+  },
+
+  /** 点原生地图的图钉：图钉 id 就是 cities 的下标（见 mapArt.markersOf） */
+  onMarkerTap(e) {
+    const c = this.data.cities[e.detail.markerId];
+    if (c) this.openCity(c.city);
+  },
+
+  openCity(name) {
     const hit = this._byCity && this._byCity.get(name);
     if (!hit || !hit.length) return;
     wx.vibrateShort({ type: 'light' });

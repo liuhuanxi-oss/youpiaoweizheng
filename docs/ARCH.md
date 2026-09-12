@@ -34,7 +34,7 @@
 |---|---|---|---|
 | tab ★ | `pages/home` | 票根墙：搜索 / 分类 / 卡片网格 | store, theme, track, deco, icons |
 | tab ★ | `pages/album` | 时光机：按年份的纵向时间轴 | store, mock, skeleton, theme, icons, deco, date |
-| tab ★ | `pages/discover` | 回忆地图：水彩中国 + 真经纬度落点 | store, theme, icons, deco, mapArt |
+| tab ★ | `pages/discover` | 回忆地图：水彩中国 + 真经纬度落点（可切微信原生地图） | store, theme, icons, deco, mapArt |
 | tab ★ | `pages/me` | 我的：统计卡 + 功能入口 | store, theme, env, pay, icons, deco |
 | 录入 | `pages/scan` | 拍照 / 相册 → 识别 → 确认入库 | env, store, ai, theme, icons, deco, track, mock |
 | 详情 | `pages/detail` | 票面信息、AI 时光手记、天气印记 | store, mock, ai, skeleton, theme, weather, date, track, ads, icons |
@@ -128,7 +128,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 2. 若带场馆名，再调**腾讯地图 LBS**（`apis.map.qq.com` 场馆检索，Key 在 [geocode.js](../youpiaoweizheng/cloudfunctions/saveTicket/geocode.js)）做**场馆级精化**（`geoSource:'venue'`）；
 3. 天气（Open-Meteo）用这个坐标，随票根一起存档。
 
-> 回忆地图页画的是**自绘水彩中国**（`utils/mapArt.js` 做经纬度→舞台投影），不是微信原生地图组件；腾讯地图接口在这条链路里负责「场馆名 → 精确经纬度」。
+> 回忆地图页默认画的是**自绘水彩中国**（`utils/mapArt.js` 做经纬度→舞台投影）；页内可切到**微信原生 `<map>`**（7.1.0 起），两种看法吃的是同一份经纬度（`mapArt.markersOf` 与 `toStage` 同源），点图钉与点气泡共用同一个城市面板。腾讯地图接口在这条链路里负责「场馆名 → 精确经纬度」。
 
 ### 5.2 AI 文案与重绘
 

@@ -389,6 +389,35 @@ function safeColor(v, fallback) {
   return /^#[0-9a-fA-F]{6}$/.test(s) ? s : fallback;
 }
 
+/**
+ * 原生地图（微信 <map> 组件）的图钉：一个城市一枚，坐标取该城票根的重心。
+ * 与水彩图同源——都吃 cities 里的真实经纬度，只是画法不同：
+ *   水彩图 = 自己投影到舞台坐标；原生地图 = 交给微信去投影。
+ * 点标记要用 id 找回城市，故 id 就是 cities 的下标（顺序一一对应，别打乱）。
+ * @param {Array<{city:string,count:number,lat:number,lng:number}>} cities 累计经纬度（要除以 count）
+ * @param {{text:string,card:string}} m 当前主题元数据（气泡配色跟主题走）
+ */
+function markersOf(cities, m) {
+  return cities.map((c, i) => ({
+    id: i,
+    latitude: c.lat / c.count,
+    longitude: c.lng / c.count,
+    iconPath: '/images/map-pin.png',
+    width: 26,
+    height: 34,
+    callout: {
+      content: c.city + ' · ' + c.count + ' 张',
+      color: m.text,
+      bgColor: m.card,
+      fontSize: 12,
+      borderRadius: 8,
+      padding: 6,
+      textAlign: 'center',
+      display: 'ALWAYS'
+    }
+  }));
+}
+
 /** 包一层 svg 根节点并转成可直接塞进 <image src> 的 data-uri */
 function toUri(w, h, body) {
   const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 " + w + ' ' + h +
@@ -402,6 +431,7 @@ module.exports = {
   stampSrc,
   toStage,
   layoutBubbles,
+  markersOf,
   bubbleColor,
   bubbleWidth,
   STAGE_W,

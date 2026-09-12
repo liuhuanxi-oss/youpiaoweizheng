@@ -68,8 +68,21 @@
 .dc-star-b { left: 68rpx; top: 70%; }
 .dc-star-c { right: 54rpx; top: 22%; }
 
+/* —— 看法切换：水彩 / 真地图。靠右放，避开左上角那枚斜贴的邮票 —— */
+.dc-view { display: flex; justify-content: flex-end; gap: 8rpx; padding: 0 24rpx; margin-bottom: 12rpx; }
+.dc-view-b {
+  padding: 6rpx 24rpx;
+  border: 2rpx solid var(--border, #E2D9C7);
+  border-radius: 999rpx;
+  font-size: 22rpx; letter-spacing: 1rpx;
+  color: var(--text2, #8A7E6E);
+}
+.dc-view-b.on { background: var(--primary, #2B2420); border-color: var(--primary, #2B2420); color: var(--on-primary, #FFFFFF); }
+
 /* —— 地图舞台：三层严格同尺寸、同投影 —— */
 .dc-stage { position: relative; margin: 8rpx auto 0; }
+/* 原生地图铺满舞台，尺寸跟着 JS 下发的 stageW/H 走（和水彩图一样大，切换不跳版） */
+.dc-map { width: 100%; height: 100%; border-radius: 18rpx; }
 .dc-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 
 /* 城市单元：0 尺寸锚点，子元素各自相对「落点」定位 —— 落点即真实经纬度 */
