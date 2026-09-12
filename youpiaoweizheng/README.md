@@ -121,7 +121,7 @@ youpiaoweizheng/
 
 | 字段 | 说明 |
 |---|---|
-| `code` | 4 位邀请码（字符集去 0O1IL，7 天过期） |
+| `code` | 4 位邀请码（字符集去 0O1IL；**不过期**，重复创建复用同一码直到绑定成功） |
 | `members` | `[openid, openid]`，waiting 时只有 1 个 |
 | `names` | `{openid: 称呼}`，绑定时各自填写 |
 | `status / createdAt / boundAt` | waiting→bound / 创建时间 / 绑定时间 |
