@@ -21,6 +21,8 @@ const couple = require('../../utils/couple.js');
 const { USE_CLOUD } = require('../../utils/env.js');       // 4.17.0：演示模式不带码
 const track = require('../../utils/track.js');             // 4.17.0：拉新埋点
 const pay = require('../../utils/pay.js');                 // 4.20.3：署名（昵称 → 卡面落款）
+const { iconSrc } = require('../../utils/icons.js');       // 稿屏6：按钮与空态图标（全页无 emoji）
+const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外那几处手绘点缀
 
 const W = 600, H = 960;
 const LS_SHARE = 'sp_share_count'; // 时光信使勋章：分享/导出计数（本地）
@@ -106,6 +108,41 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x + w, y + h, x, y + h, r);
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/**
+ * 齿孔矩形 → Canvas 路径（闭合，顺时针）。
+ * 与 utils/deco.js 的 pinkedPath 是同一套走齿逻辑，区别只在这里产出的是画笔路径、
+ * 那边产出的是 SVG 的 d 串——卡面要导出成图，只能画在画布上。
+ * @param {number} tooth 齿距  @param {number} amp 齿高（半个峰谷）
+ */
+function pinkedRect(ctx, x, y, w, h, tooth, amp) {
+  const cmds = [];
+  /**
+   * 沿一条边走齿：每一齿用一段二次曲线，控制点探到边外/边内 ±amp 交替 ——
+   * 齿顶被磨圆，读起来是「手撕的毛边」而不是「锯齿」。
+   * （deco.js 的 pinkedPath 走的是折线版本：那边是细描边的画框，圆角反而糊。）
+   */
+  const seg = (ax, ay, bx, by) => {
+    const dx = bx - ax, dy = by - ay;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const n = Math.max(2, Math.round(len / tooth));
+    const nx = (-dy / len) * amp, ny = (dx / len) * amp;
+    for (let i = 0; i < n; i++) {
+      const k = i % 2 ? -1 : 1;
+      cmds.push(['Q',
+        ax + (dx * (i + 0.5)) / n + nx * k, ay + (dy * (i + 0.5)) / n + ny * k,
+        ax + (dx * (i + 1)) / n, ay + (dy * (i + 1)) / n]);
+    }
+  };
+  seg(x, y, x + w, y);
+  seg(x + w, y, x + w, y + h);
+  seg(x + w, y + h, x, y + h);
+  seg(x, y + h, x, y);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  cmds.forEach((c) => ctx.quadraticCurveTo(c[1], c[2], c[3], c[4]));
   ctx.closePath();
 }
 
@@ -596,14 +633,368 @@ function drawJournal(ctx, t, quote, img, duo, same, qr) {
   ctx.fillText('有票为证 · 让时光有迹可循', W / 2, 894);
 }
 
-const DRAWERS = { classic: drawClassic, poster: drawPoster, journal: drawJournal, daily: drawDaily };
+// ---------- 第五套风格：齿边明信片（品牌全案 · 稿屏6，现为默认风格） ----------
+// 卡面一律是 JS 画出来的，读不到 CSS 变量 —— 所以品牌固定色只能写死在这里。
+// 这组色与 app.wxss 的 --cream/--peach/--butter/--rose/--sage/--brown/--stamp 同源。
+const PC = {
+  paper: '#FBF6E8',                      // 卡片纸底
+  edge: 'rgba(196,168,116,0.85)',        // 齿孔线的墨
+  ink: '#4A3B2E',                        // 正文墨（深褐，比纯黑软）
+  soft: '#8A7B66',                       // 次级文字
+  rose: '#D98E9B',                       // 玫瑰：编号标签描边、三道波浪、爱心
+  deep: '#C26B5E',                       // 深玫瑰：品牌标渐变的下端
+  gold: '#E2B85C',                       // 金：星点、花心
+  butter: '#F6DFA8',                     // 奶油黄：编号标签底
+  leaf: '#A9C3A6',                       // 叶
+  petal: '#E8AFA8',                      // 花瓣
+  frame: 'rgba(196,168,116,0.55)'        // 白框/码框的边
+};
+const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+/** 四角星（金）：稿里散在卡面的小星点 */
+function drawStar4(ctx, x, y, r, color) {
+  const w = r * 0.34;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.quadraticCurveTo(x + w, y - w, x + r, y);
+  ctx.quadraticCurveTo(x + w, y + w, x, y + r);
+  ctx.quadraticCurveTo(x - w, y + w, x - r, y);
+  ctx.quadraticCurveTo(x - w, y - w, x, y - r);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** 小爱心（玫瑰）：稿里散在卡面的点缀 */
+function drawHeart(ctx, x, y, r, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y + r * 0.72);
+  ctx.bezierCurveTo(x - r * 1.5, y - r * 0.35, x - r * 0.5, y - r * 1.15, x, y - r * 0.28);
+  ctx.bezierCurveTo(x + r * 0.5, y - r * 1.15, x + r * 1.5, y - r * 0.35, x, y + r * 0.72);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * 花枝（绿叶 + 粉花）：稿里长在卡角上的那两枝。
+ * @param {number} len 茎长  @param {number} angle 茎的朝向（弧度）
+ * @param {boolean} flip 左右镜像（右上/右下角那枝用）
+ */
+function drawSprig(ctx, x, y, len, angle, flip) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (flip) ctx.scale(-1, 1);
+  ctx.rotate(angle);
+  ctx.strokeStyle = PC.leaf;
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(len * 0.45, -len * 0.16, len, -len * 0.5);
+  ctx.stroke();
+  // 三对叶：沿茎两侧交替，越往上越小
+  ctx.fillStyle = PC.leaf;
+  [[0.28, 1], [0.52, -1], [0.74, 1]].forEach(([k, side]) => {
+    const lx = len * k, ly = -len * (k * 0.5);
+    const r = len * 0.15 * (1 - k * 0.45);
+    ctx.beginPath();
+    ctx.ellipse(lx + side * r * 0.7, ly - r * 0.5, r, r * 0.58, side * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // 顶端一朵五瓣小花 + 金心
+  ctx.fillStyle = PC.petal;
+  for (let i = 0; i < 5; i++) {
+    ctx.save();
+    ctx.translate(len, -len * 0.5);
+    ctx.rotate((i * Math.PI * 2) / 5);
+    ctx.beginPath();
+    ctx.ellipse(0, -len * 0.09, len * 0.07, len * 0.095, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle = PC.gold;
+  ctx.beginPath(); ctx.arc(len, -len * 0.5, len * 0.055, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * 稿屏6 的卡面：齿边明信片（编号标签 / 邮戳 / 注销波浪 / 齿边照片 / 标题 + 三道波浪 /
+ * 城市·日期 / 虚线 / 品牌标 + 二维码）。
+ * 版式按「卡片高 960」等比排：y 值全部是实测稿内比例换算，改一处要连着看下一条会不会撞。
+ */
+function drawPostcard(ctx, t, quote, img, duo, same, qr, sig) {
+  const M = 74;                 // 内容左右边距
+  const iw = W - M * 2;         // 内容可用宽（452）
+  // ① 纸底 + 齿孔线（整张卡就是一枚从整版上撕下来的齿孔明信片）
+  ctx.fillStyle = PC.paper;
+  ctx.fillRect(0, 0, W, H);
+  // 两团极淡的水彩，给纸面一点温度（不抢正文）
+  watercolorBlob(ctx, W - 110, 150, 210, 'rgba(244,198,180,0.16)');
+  watercolorBlob(ctx, 90, H - 120, 190, 'rgba(169,195,166,0.14)');
+  ctx.strokeStyle = PC.edge;
+  ctx.lineWidth = 2.4;
+  ctx.lineJoin = 'round';
+  pinkedRect(ctx, 15, 15, W - 30, H - 30, 22, 5.5);
+  ctx.stroke();
+
+  // ② 左上角编号标签（奶油黄底 + 虚线边，微微歪着贴上去）
+  const no = 'No.' + String(t.id || '').slice(-6).toUpperCase();
+  ctx.save();
+  ctx.translate(M, 84);
+  ctx.rotate(-0.035);
+  ctx.fillStyle = PC.butter;
+  roundRect(ctx, -20, -23, 168, 46, 8);
+  ctx.fill();
+  ctx.strokeStyle = PC.rose;
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([5, 4]);
+  roundRect(ctx, -13, -16, 154, 32, 6);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = PC.ink;
+  ctx.font = '700 21px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(no, 0, 8);
+  ctx.restore();
+
+  // ③ 右上角邮戳：双圈 + 弧形城市名 + 日/月/年三行 + 注销波浪
+  const pmX = W - 152, pmY = 118, pmR = 52;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(150,120,80,0.72)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(pmX, pmY, pmR, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([4, 5]);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(pmX, pmY, pmR - 10, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  // 城市名逐字排上圆弧（与时光机页的邮戳同一套算法：先按角度自转，再沿自身「上」方推半径）
+  const city = String(t.city || '票根').slice(0, 4);
+  ctx.fillStyle = 'rgba(120,95,62,0.9)';
+  ctx.font = '600 15px sans-serif';
+  ctx.textAlign = 'center';
+  if (city.length > 1) {
+    const spread = 0.5 * (city.length - 1);          // 弧度制：2 字 0.5rad、4 字 1.5rad
+    const step = spread / (city.length - 1);
+    city.split('').forEach((ch, i) => {
+      const a = -spread / 2 + step * i;
+      ctx.save();
+      ctx.translate(pmX, pmY);
+      ctx.rotate(a);
+      ctx.fillText(ch, 0, -pmR + 15);
+      ctx.restore();
+    });
+  } else {
+    ctx.fillText(city, pmX, pmY - pmR + 19);
+  }
+  // 日 / 月 / 年（邮戳里的三行排法：日在上、月居中、年在下）
+  const dp = String(t.date || '').split('-');
+  const pmLines = [
+    { s: dp[2] || '--', f: '700 19px sans-serif', dy: -10 },
+    { s: MON[(Number(dp[1]) || 1) - 1] || '', f: '600 13px sans-serif', dy: 10 },
+    { s: dp[0] || '----', f: '700 18px sans-serif', dy: 30 }
+  ];
+  ctx.fillStyle = 'rgba(120,95,62,0.95)';
+  pmLines.forEach((l) => { ctx.font = l.f; ctx.fillText(l.s, pmX, pmY + l.dy); });
+  // 底部小星 + 序号末两位（稿里的 ☆ 6）
+  drawStar4(ctx, pmX - 16, pmY + pmR - 12, 7, 'rgba(150,120,80,0.8)');
+  ctx.font = '600 13px sans-serif';
+  ctx.fillText(String(t.id || '').slice(-2), pmX + 6, pmY + pmR - 7);
+  ctx.restore();
+  // 注销波浪：邮戳右侧三道，长度递减
+  ctx.save();
+  ctx.strokeStyle = 'rgba(150,120,80,0.65)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    const y0 = pmY - 20 + i * 20;
+    const x0 = pmX + pmR + 6;
+    const x1 = W - 44 - i * 8;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    for (let x = x0; x < x1; x += 8) {
+      ctx.quadraticCurveTo(x + 4, y0 + (i % 2 ? 5 : -5), Math.min(x + 8, x1), y0);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ④ 票根照片：齿边白框（像一枚邮票），框内 cover 裁切
+  const fw = 456, fh = 312, fcx = W / 2, fcy = 346;
+  ctx.save();
+  ctx.translate(fcx, fcy);
+  ctx.rotate(-0.012);
+  ctx.shadowColor = 'rgba(74,59,46,0.20)';
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 9;
+  ctx.fillStyle = '#FFFFFF';
+  pinkedRect(ctx, -fw / 2, -fh / 2, fw, fh, 20, 4);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  const px = -fw / 2 + 15, py = -fh / 2 + 15, pw = fw - 30, ph = fh - 30;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(px, py, pw, ph);
+  ctx.clip();
+  if (img) {
+    const iw2 = img.width || 600, ih2 = img.height || 800;
+    const s = Math.max(pw / iw2, ph / ih2);
+    try { ctx.drawImage(img, px + (pw - iw2 * s) / 2, py + (ph - ih2 * s) / 2, iw2 * s, ih2 * s); } catch (e) { /* 图异常落占位 */ }
+  }
+  if (!img) {
+    ctx.fillStyle = '#F2EAD9';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = '#C9BB9F';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('票根照片 · 待补拍', px + 24, py + ph / 2 - 10);
+    drawBarcode(ctx, px + 24, py + ph / 2 + 10, Math.min(pw - 48, 240), 18, '#D5C8AC');
+  }
+  ctx.restore();
+  // 绑定态 → 照片右下角双人头像徽章；未绑定不盖品牌印（稿屏6 的邮戳已在右上角，再盖一个就重了）
+  if (duo) drawDuoBadge(ctx, fw / 2 - 42, fh / 2 - 42, 28, duo);
+  // 4.11.0：同场角标（照片左下）
+  drawSameBadge(ctx, -fw / 2 + 42, fh / 2 - 42, same, false);
+  ctx.restore();
+
+  // ⑤ 标题（最多两行）+ 右侧三道玫瑰波浪 + 城市·日期
+  ctx.textAlign = 'left';
+  ctx.fillStyle = PC.ink;
+  ctx.font = '900 40px sans-serif';
+  const titleLines = wrapText(ctx, t.title || '这张票根', fw - 30, 2);
+  const titleY = 566;
+  titleLines.forEach((l, i) => ctx.fillText(l, M, titleY + i * 46));
+  const cityY = titleY + (titleLines.length - 1) * 46 + 62;
+  // 三道波浪：右对齐，长度递减，与城市行同一个视觉带（稿里就在「上海 · 日期」右侧）
+  ctx.save();
+  ctx.strokeStyle = PC.rose;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  [100, 84, 68].forEach((len, i) => {
+    const y0 = cityY - 30 + i * 12;
+    ctx.beginPath();
+    ctx.moveTo(W - M - len, y0);
+    for (let x = W - M - len; x < W - M; x += 12) {
+      ctx.quadraticCurveTo(x + 6, y0 + 4, Math.min(x + 12, W - M), y0);
+    }
+    ctx.stroke();
+  });
+  ctx.restore();
+  ctx.fillStyle = PC.soft;
+  ctx.font = '21px sans-serif';
+  ctx.fillText([t.city, (t.date || '').replace(/-/g, '.')].filter(Boolean).join(' · '), M, cityY);
+
+  // ⑥ 虚线分隔
+  const sepY = cityY + 44;
+  ctx.save();
+  ctx.strokeStyle = PC.frame;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([7, 6]);
+  ctx.beginPath();
+  ctx.moveTo(M, sepY);
+  ctx.lineTo(W - M, sepY);
+  ctx.stroke();
+  ctx.restore();
+
+  // ⑦ 左下品牌标 + 右下二维码
+  const QR = 118, qrX = W - M - QR, qrY = sepY + 30;
+  if (qr) {
+    // 码框也是齿边（与卡片、照片同一套「从整版撕下来」的语汇）
+    ctx.save();
+    ctx.fillStyle = '#FFFFFF';
+    pinkedRect(ctx, qrX, qrY, QR, QR, 13, 3);
+    ctx.fill();
+    ctx.strokeStyle = PC.frame;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.restore();
+    try { ctx.drawImage(qr, qrX + 13, qrY + 13, QR - 26, QR - 26); } catch (e) { /* 码图异常则只留白衬 */ }
+    ctx.fillStyle = PC.soft;
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('扫码看我的时光档案', qrX + QR / 2, qrY + QR + 26);
+  }
+  // 品牌标：圆角方 + 桃→玫瑰渐变 + 白色票根剪影（与 Tab/启动图的标一致）
+  const lgY = sepY + 34, lgS = 64;
+  ctx.save();
+  const lg = ctx.createLinearGradient(M, lgY, M + lgS, lgY + lgS);
+  lg.addColorStop(0, '#F4C6B4');
+  lg.addColorStop(1, PC.deep);
+  ctx.fillStyle = lg;
+  roundRect(ctx, M, lgY, lgS, lgS, 18);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  roundRect(ctx, M + 14, lgY + 20, lgS - 28, 24, 5);
+  ctx.fill();
+  ctx.fillStyle = PC.deep;
+  ctx.fillRect(M + 19, lgY + 29, lgS - 38, 2.4);
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  drawStar4(ctx, M + lgS - 14, lgY + 14, 6, 'rgba(255,255,255,0.95)');
+  ctx.restore();
+  ctx.fillStyle = PC.ink;
+  ctx.font = '800 32px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('有票为证', M + 80, lgY + 30);
+  ctx.fillStyle = PC.soft;
+  ctx.font = '16px sans-serif';
+  ctx.fillText((sig ? sig + ' · ' : '') + '让时光有迹可循', M + 80, lgY + 56);
+
+  // ⑧ 卡面点缀：金星星 / 玫瑰心 / 两枝花（稿里撒在卡边的那几处）
+  //    只往左右两条边距里放 —— 正文区（M..W-M）一律不碰，标题换行也不会撞上
+  drawStar4(ctx, 46, 288, 11, PC.gold);
+  drawStar4(ctx, W - 42, 430, 9, 'rgba(226,184,92,0.85)');
+  drawStar4(ctx, 50, sepY + 96, 8, 'rgba(226,184,92,0.75)');
+  drawHeart(ctx, W - 50, sepY + 74, 10, 'rgba(217,142,155,0.85)');
+  // 两枝都收在卡片底部的两个角上：文案居中占的是 x 104..496，左右各留出一条空当，
+  // 花枝竖着长正好嵌进去，标题换行、二维码有无都不会撞
+  drawSprig(ctx, 36, H - 24, 72, -1.15, false);
+  drawSprig(ctx, W - 36, H - 24, 72, -1.15, true);
+
+  // ⑨ AI 文案（换一版文案在这里生效；放最下面一行，不挤正文）
+  if (quote) {
+    ctx.fillStyle = PC.soft;
+    ctx.font = 'italic 18px serif';
+    ctx.textAlign = 'center';
+    const qLines = wrapText(ctx, `「${quote}」`, iw - 60, 2);
+    qLines.forEach((l, i) => ctx.fillText(l, W / 2, H - 84 + i * 26));
+  }
+}
+
+const DRAWERS = { postcard: drawPostcard, classic: drawClassic, poster: drawPoster, journal: drawJournal, daily: drawDaily };
 
 // ---------- 页面 ----------
 Page({
 
   onShow() {
     themeUtil.apply(this);
+    this.buildArt();
     this._loadSignature(); // 4.20.3：署名异步到货后重绘（首绘不等它，不卡首屏）
+  },
+
+  /**
+   * 按当前主题把这一页要用的图形编译成实色 data-uri（主题切换后必须重编）。
+   * 卡外那几处点缀（花枝 / 四角星 / 小粉心）取品牌固定色而非主题 primary——
+   * 它们是「实物」，六套主题下色相不变；纸感主题的 primary 近乎全黑，会画成一丛黑枝。
+   */
+  buildArt() {
+    const m = themeUtil.getThemeMeta(themeUtil.getTheme());
+    this.setData({
+      ic: {
+        back: iconSrc('back', m.text, 0.85),
+        share: iconSrc('share', '#FFF8F2', 0, 1.8),
+        download: iconSrc('download', m.text, 0.85, 1.7),
+        empty: iconSrc('ticket', m.text, 0.28, 1.4)
+      },
+      art: {
+        sprig: decoUtil.decoSrc('sprig', Object.assign({}, m, { primary: '#A9C3A6', accent: '#E8AFA8' })),
+        star: decoUtil.decoSrc('star4', Object.assign({}, m, { accent: '#E2B85C' })),
+        heart: decoUtil.decoSrc('heartsmall', Object.assign({}, m, { accent: '#E8AFA8' }))
+      }
+    });
   },
 
   /** 4.20.3 署名：昵称截 10 字防落款溢出；云失败/未设置 → 空串，落款保持品牌原样 */
@@ -619,20 +1010,18 @@ Page({
     theme: "a", legacyTheme: "a",
     t: null,
     quote: '',
-    style: 'classic',
+    // 稿屏6 的齿边明信片是默认风格；其余四套搬到右上角「···」里，主界面只留该有的两枚按钮
+    style: 'postcard',
     signature: '', // 4.20.3：卡面落款署名（昵称，截 10 字；空=不署名）
     styles: [
+      { key: 'postcard', label: '齿边明信片' },
       { key: 'classic', label: '经典纸感' },
       { key: 'poster', label: '演出海报' },
       { key: 'journal', label: '手账水彩' },
       { key: 'daily', label: '每日日签' }
     ],
-    // v5.1 S3：分享文案 3 模板（onShareAppMessage 按 e.target.dataset.tpl 选用）
-    shareTpls: [
-      { key: 'sentiment', label: '文艺' },
-      { key: 'showoff', label: '晒票' },
-      { key: 'invite', label: '邀约' }
-    ],
+    ic: {},   // 单色图标（buildArt 编译）
+    art: {},  // 卡外点缀（花枝 / 四角星 / 小粉心，buildArt 编译）
     exporting: false,
     redoing: false,
     // 4.19.1 空态：票根未命中（过期 id / 云库异常 / 分享落地）——整页内容都挂在
@@ -800,8 +1189,27 @@ Page({
     return this._qrPend;
   },
 
-  pickStyle(e) {
-    this.setData({ style: e.currentTarget.dataset.key }, () => this.draw());
+  /** 切换卡片风格（画布重绘；导出与分享都按当前风格走） */
+  pickStyle(key) {
+    if (!DRAWERS[key] || key === this.data.style) return;
+    this.setData({ style: key }, () => this.draw());
+  },
+
+  /**
+   * 卡片风格：主界面只留「保存图片 / 分享给好友」两枚按钮（稿屏6 的版式），
+   * 五套风格塞不下也摆不开，故走系统 ActionSheet —— 不额外造弹层，
+   * 也就不必再维护一套浮层样式、遮罩与手势。
+   */
+  onStyle() {
+    const cur = this.data.style;
+    wx.showActionSheet({
+      itemList: this.data.styles.map((s) => (s.key === cur ? s.label + ' · 当前' : s.label)),
+      success: (r) => {
+        const s = this.data.styles[r.tapIndex];
+        if (s) this.pickStyle(s.key);
+      },
+      fail: () => {}
+    });
   },
 
   /** 换一版 AI 文案（仅当前画布生效，详情页保存为准；4.11.0 跟随详情页风格记忆 + 周年语气） */
@@ -949,19 +1357,12 @@ Page({
     });
   },
 
-  onShareAppMessage(e) {
+  onShareAppMessage() {
     this._incrShare();
     const t = this.data.t || {};
-    const name = String(t.title || '这张票');
-    // v5.1 S3：3 套分享文案模板（按钮 data-tpl 区分；无 tpl 走默认）
-    const TP = {
-      sentiment: `「${name}」的票根还在，那天的风也还在 · 有票为证`,
-      showoff: `我的票根收藏 +1 ·「${name}」值得好好收着`,
-      invite: `一起看过的「${name}」，我都替你收进时光册了`
-    };
-    const tpl = (e && e.target && e.target.dataset && e.target.dataset.tpl) || '';
     const payload = {
-      title: TP[tpl] || `${name} · 让时光有票为证`,
+      // 稿屏6 只有一枚「分享给好友」，卡片页不再分语气模板（v5.1 的三套文案已收）
+      title: `${String(t.title || '这张票')} · 让时光有票为证`,
       path: `/pages/detail/detail?id=${t.id || ''}`
     };
     // v5.0 S1：分享卡片图用当前画布导出（promise 需 3 秒内返回；失败降级默认截图）

@@ -1,8 +1,5 @@
 {
   "navigationBarTitleText": "纪念卡片",
-  "navigationBarBackgroundColor": "#17120E",
-  "navigationBarTextStyle": "white",
-  "backgroundColor": "#17120E",
   "usingComponents": {
     "privacy-sheet": "/components/privacy-sheet/index"
   }
