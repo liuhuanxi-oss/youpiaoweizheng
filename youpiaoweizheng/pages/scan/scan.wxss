@@ -1,335 +1,326 @@
-/* pages/scan/scan.wxss —— 6.4.0 品牌稿第三屏「拍照上传」
-   布局：相机全屏舞台 + 白虚线取景框四角白角标 + 相册/快门/翻转三钮
-        + 底部白面板「✦ AI智能处理中」识别→修复→重绘→入档四步        */
+/* pages/scan/scan.wxss —— 扫描票根（品牌全案 · 稿屏3 一比一）
+   布局：装饰带 → 内嵌取景框（玫瑰 L 角标）→ 相册/快门/翻转三钮
+        → 撕边纸的「AI 智能处理中」四步卡 → 页脚装饰
+   颜色一律读 --*；品牌固定色（四步圆底 / 白图标）由 scan.js 下发，
+   和 utils/icons.js 顶部说的一样：SVG 是独立文档，wxml 里写 var() 会失效。 */
 
 .sc-page { min-height: 100vh; background: var(--cream, #FAF5EE); }
 
 /* ============================================================
-   取景态 / 处理态：相机舞台（100vh 纵向 flex：舞台 + 白面板）
+   取景态 / 处理态：整屏纵向 flex（取景框吃掉剩余高度）
    ============================================================ */
 .cam-wrap {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--cream, #FAF5EE);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16rpx);
+  box-sizing: border-box;
 }
-.cam-stage {
-  flex: 1;
+
+/* ═══ ① 装饰带：邮戳 / 小粉心 / 星点 / 邮票 ═══ */
+.sc-deco {
   position: relative;
-  overflow: hidden;
-  min-height: 0;
+  flex-shrink: 0;
+  height: 152rpx;
+  margin: 0 24rpx;
 }
-.cam { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sc-deco image { position: absolute; }
+.sc-postmark { left: 4rpx; top: 6rpx; width: 172rpx; height: 140rpx; transform: rotate(-4deg); }
+.sc-deco-heart { left: 45%; top: 52rpx; width: 38rpx; height: 38rpx; }
+.sc-deco-spark { left: 66%; top: 30rpx; width: 40rpx; height: 40rpx; }
+.sc-deco-stamp { right: 12rpx; top: 0; width: 122rpx; height: 134rpx; transform: rotate(4deg); }
+
+/* ═══ ② 取景框：内嵌圆角框（不是全屏相机）═══ */
+.sc-frame {
+  position: relative;
+  flex: 1;
+  min-height: 460rpx;
+  margin: 0 24rpx;
+  border-radius: 32rpx;
+  overflow: hidden;
+  background: var(--soft, #E9E2D4);
+  box-shadow: 0 10rpx 30rpx rgba(var(--text-rgb, 107, 91, 80), 0.12);
+}
+.sc-cam { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.sc-shot { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 
 /* —— 相机不可用降级（权限拒绝/被占用）—— */
-.cam-fb {
-  background: linear-gradient(170deg, var(--bg), var(--soft));
+.sc-fb {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 14rpx;
-  padding: 0 80rpx;
+  padding: 0 70rpx;
   text-align: center;
+  background: linear-gradient(170deg, var(--bg, #F5F0E6), var(--soft, #E9E2D4));
 }
-.fb-ico { font-size: 84rpx; line-height: 1; opacity: 0.85; }
-.fb-t { font-size: 32rpx; font-weight: 700; color: var(--brown, #6B5B50); }
-.fb-s { font-size: 24rpx; color: var(--text2, #A5968A); line-height: 1.7; }
-.fb-btn {
-  margin-top: 18rpx;
+.sc-fb-ic { width: 92rpx; height: 92rpx; }
+.sc-fb-t { font-size: 30rpx; font-weight: 700; color: var(--text, #6B5B50); }
+.sc-fb-s { font-size: 23rpx; color: var(--text2, #A5968A); line-height: 1.7; }
+.sc-fb-btn {
+  margin-top: 16rpx;
   padding: 20rpx 56rpx;
   border-radius: 999rpx;
   background: var(--rose, #D9A0A6);
-  color: var(--on-primary);
+  color: var(--on-primary, #FFFFFF);
   font-size: 28rpx;
   font-weight: 600;
   letter-spacing: 2rpx;
-  box-shadow: 0 10rpx 24rpx var(--rose);
 }
-.fb-set { margin-top: 6rpx; font-size: 23rpx; color: var(--text2, #A5968A); text-decoration: underline; }
+.sc-fb-set { margin-top: 8rpx; display: flex; align-items: center; gap: 4rpx; }
+.sc-fb-set-t { font-size: 23rpx; color: var(--text2, #A5968A); text-decoration: underline; }
+.sc-fb-set-ic { width: 22rpx; height: 22rpx; }
 
-/* —— 稿内：白色虚线取景框 + 四角白角标 —— */
-.vf {
+/* —— 处理态：扫描光条 —— */
+.sc-scanline {
   position: absolute;
-  left: 50%;
-  top: 20%;
-  transform: translateX(-50%);
-  width: 580rpx;
-  height: 400rpx;
-  border: 3rpx dashed rgba(255, 255, 255, 0.92);
-  border-radius: 28rpx;
-  box-shadow: 0 0 0 8rpx rgba(var(--text-rgb), 0.08);
-}
-.vf-c {
-  position: absolute;
-  width: 52rpx;
-  height: 52rpx;
-  border: 6rpx solid #FFFFFF;
-}
-.c1 { top: -6rpx; left: -6rpx;  border-right: none;  border-bottom: none; border-radius: 20rpx 0 0 0; }
-.c2 { top: -6rpx; right: -6rpx; border-left: none;   border-bottom: none; border-radius: 0 20rpx 0 0; }
-.c3 { bottom: -6rpx; left: -6rpx;  border-right: none; border-top: none;  border-radius: 0 0 0 20rpx; }
-.c4 { bottom: -6rpx; right: -6rpx; border-left: none;  border-top: none;  border-radius: 0 0 20rpx 0; }
-
-/* —— 处理态：照片盖进取景框 + 扫描光条 —— */
-.vf-photo { overflow: hidden; background: var(--brown, #6B5B50); }
-.vf-img { width: 100%; height: 100%; }
-.scanline {
-  position: absolute;
-  left: 6%;
-  right: 6%;
+  left: 6%; right: 6%;
   height: 6rpx;
   top: 18%;
   border-radius: 6rpx;
   background: linear-gradient(90deg, transparent, var(--butter, #F6DFA8), transparent);
-  box-shadow: 0 0 36rpx 8rpx var(--butter);
-  animation: scan 2.2s ease-in-out infinite;
+  box-shadow: 0 0 36rpx 8rpx var(--butter, #F6DFA8);
+  animation: sc-scan 2.2s ease-in-out infinite;
   z-index: 3;
 }
-@keyframes scan {
+@keyframes sc-scan {
   0%, 100% { top: 14%; }
   50% { top: 84%; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .sc-scanline { animation: none; top: 50%; }
+}
 
-/* —— 稿内导航栏右侧 ⚡/?：闪光灯 + 拍摄技巧 —— */
-.cam-tools {
+/* —— 框内顶部一行：提示胶囊 + 闪光灯/技巧 ——
+   稿里 ⚡/? 在导航栏右侧，真机那个位置是微信胶囊按钮，放不下，
+   故挪进取景框内的同一行；胶囊占满剩余宽度、文字居中。 */
+.sc-topbar {
   position: absolute;
-  top: 24rpx;
-  right: 28rpx;
+  left: 20rpx; right: 20rpx; top: 20rpx;
   display: flex;
-  gap: 16rpx;
+  align-items: center;
+  gap: 12rpx;
   z-index: 5;
 }
-.tool-dot {
-  width: 76rpx;
-  height: 76rpx;
+.sc-capsule {
+  flex: 1;
+  min-width: 0;
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  background: rgba(58, 48, 42, 0.62);
+  color: var(--on-primary, #FFFFFF);
+  font-size: 23rpx;
+  letter-spacing: 1rpx;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-tool {
+  flex: 0 0 56rpx;
+  width: 56rpx; height: 56rpx;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6rpx 18rpx rgba(var(--text-rgb), 0.18);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4rpx 14rpx rgba(var(--text-rgb, 107, 91, 80), 0.2);
+  transition: background 160ms ease;
 }
-.tool-dot.on { background: var(--butter, #F6DFA8); }
-.fl-ico {
-  width: 22rpx;
-  height: 36rpx;
-  background: var(--brown, #6B5B50);
-  clip-path: polygon(62% 0, 16% 56%, 44% 56%, 34% 100%, 86% 36%, 55% 36%, 84% 0);
-}
-.tool-dot.on .fl-ico { background: #B98F2E; }
-.tool-q { font-size: 36rpx; font-weight: 700; color: var(--brown, #6B5B50); line-height: 1; }
+.sc-tool.on { background: var(--butter, #F6DFA8); }
+.sc-tool-ic { width: 30rpx; height: 30rpx; }
 
-/* ============================================================
-   三钮排：相册 / 快门（灰玫粉大圆）/ 翻转
-   ============================================================ */
-.ctrl-row {
+/* —— 四角玫瑰 L 角标（稿内是实心粗角，不是白虚线框）—— */
+.sc-corner {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 40rpx;
+  width: 60rpx; height: 60rpx;
+  border: 7rpx solid var(--rose, #D9A0A6);
+  z-index: 4;
+}
+.sc-frame .c1 { top: 14rpx; left: 14rpx;     border-right: none; border-bottom: none; border-radius: 16rpx 0 0 0; }
+.sc-frame .c2 { top: 14rpx; right: 14rpx;    border-left: none;  border-bottom: none; border-radius: 0 16rpx 0 0; }
+.sc-frame .c3 { bottom: 14rpx; left: 14rpx;  border-right: none; border-top: none;    border-radius: 0 0 0 16rpx; }
+.sc-frame .c4 { bottom: 14rpx; right: 14rpx; border-left: none;  border-top: none;    border-radius: 0 0 16rpx 0; }
+
+/* ═══ ③ 三钮排：相册 / 快门 / 翻转 ═══ */
+.sc-ctrl {
+  position: relative;
+  flex-shrink: 0;
+  height: 208rpx;
+  margin: 0 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 92rpx;
-  z-index: 5;
+  gap: 60rpx;
 }
-.ctrl-btn {
-  width: 96rpx;
-  height: 96rpx;
+.sc-btn {
+  width: 96rpx; height: 96rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8rpx 22rpx rgba(var(--text-rgb), 0.22);
+  background: var(--soft, #E9E2D4);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 160ms ease;
 }
-.ctrl-btn:active { transform: scale(0.92); }
-/* v6.6.0 动效2：快门凸起圆钮——按下 0.94/100ms，抬起 250ms 弹性回冲 + box-shadow 呼吸实感 */
-.shutter {
-  width: 132rpx;
-  height: 132rpx;
+.sc-btn-ic { width: 44rpx; height: 44rpx; }
+
+/* 快门：玫瑰大圆。按下 0.94/100ms，抬起 250ms 弹性回冲 + 呼吸阴影 */
+.sc-shutter {
+  width: 180rpx; height: 180rpx;
   border-radius: 50%;
   background: var(--rose, #D9A0A6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 12rpx 30rpx var(--rose);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12rpx 30rpx rgba(var(--text-rgb, 107, 91, 80), 0.22);
   transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* idle 极淡呼吸（悬起时阴影微微起伏），hover 按下时打断、抬起后重启=「回弹叠加呼吸」 */
-  animation: shutter-breath 2.6s ease-in-out 1s infinite;
+  animation: sc-breath 2.6s ease-in-out 1s infinite;
 }
-.shutter:active { transform: scale(0.94); }
+.sc-shutter-ic { width: 84rpx; height: 84rpx; }
+.sc-shutter:active { transform: scale(0.94); }
 .shutter-hover {
   transform: scale(0.94);
-  /* 按下：阴影收紧贴底，模拟「压下去」的实感 */
-  box-shadow: 0 4rpx 10rpx var(--rose);
+  box-shadow: 0 4rpx 10rpx rgba(var(--text-rgb, 107, 91, 80), 0.24);
   transition: transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 100ms ease-out;
   animation: none;
 }
-@keyframes shutter-breath {
-  0%, 100% { box-shadow: 0 12rpx 30rpx var(--rose); }
-  50% { box-shadow: 0 14rpx 38rpx var(--rose); }
+@keyframes sc-breath {
+  0%, 100% { box-shadow: 0 12rpx 30rpx rgba(var(--text-rgb, 107, 91, 80), 0.22); }
+  50% { box-shadow: 0 14rpx 38rpx rgba(var(--text-rgb, 107, 91, 80), 0.28); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .shutter { animation: none; transition: box-shadow 150ms ease-out; }
+  .sc-shutter { animation: none; transition: box-shadow 150ms ease-out; }
   .shutter-hover { transform: none; }
 }
 
-/* 快门内白色描线相机（CSS 绘制） */
-.sh-ico {
-  width: 48rpx;
-  height: 34rpx;
-  border: 4rpx solid #FFFFFF;
-  border-radius: 9rpx;
-  position: relative;
-}
-.sh-ico::before {
-  content: '';
+/* 两侧点缀：左＝星点＋花枝，右＝虚线圈＋小粉心 */
+.sc-ctrl-l, .sc-ctrl-r {
   position: absolute;
-  top: -10rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 18rpx;
-  height: 6rpx;
-  background: #FFFFFF;
-  border-radius: 4rpx 4rpx 0 0;
+  top: 0; bottom: 0;
+  width: 190rpx;
+  pointer-events: none;
 }
-.sh-ico::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 15rpx;
-  height: 15rpx;
-  border: 4rpx solid #FFFFFF;
-  border-radius: 50%;
+.sc-ctrl-l { left: 0; }
+.sc-ctrl-r { right: 0; }
+.sc-ctrl-l image, .sc-ctrl-r image { position: absolute; }
+.sc-ctrl-spark { left: 34rpx; top: 34rpx; width: 40rpx; height: 40rpx; }
+.sc-ctrl-sprig { left: 6rpx; top: 84rpx; width: 104rpx; height: 70rpx; }
+.sc-ctrl-dots {
+  position: absolute; right: 26rpx; top: 78rpx;
+  display: flex; gap: 8rpx;
 }
+.sc-ctrl-dot {
+  width: 8rpx; height: 8rpx; border-radius: 50%;
+  background: var(--rose, #D9A0A6); opacity: 0.55;
+}
+.sc-ctrl-heart { right: 40rpx; top: 30rpx; width: 36rpx; height: 36rpx; }
 
-/* 相册钮描线图标（CSS 绘制：方框+太阳+山） */
-.ab-ico {
-  width: 42rpx;
-  height: 34rpx;
-  border: 4rpx solid var(--brown, #6B5B50);
-  border-radius: 8rpx;
+/* ═══ ④ AI 处理面板：撕边纸卡 ═══ */
+.sc-ai {
   position: relative;
-  overflow: hidden;
-}
-.ab-sun {
-  position: absolute;
-  top: 5rpx;
-  left: 7rpx;
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background: var(--rose, #D9A0A6);
-}
-.ab-mtn {
-  position: absolute;
-  bottom: -3rpx;
-  right: 2rpx;
-  width: 0;
-  height: 0;
-  border-left: 15rpx solid transparent;
-  border-right: 15rpx solid transparent;
-  border-bottom: 16rpx solid var(--sage, #A9C3A6);
-}
-.flip-ico { font-size: 44rpx; line-height: 1; color: var(--brown, #6B5B50); font-weight: 600; }
-
-/* ============================================================
-   底部白色面板：✦ AI智能处理中 + 四步流程（识别/修复/重绘/入档）
-   ============================================================ */
-.ai-panel {
   flex-shrink: 0;
+  margin: 0 24rpx;
+  padding: 30rpx 32rpx 26rpx;
   background: var(--card-bg, var(--card));
-  border-radius: 44rpx 44rpx 0 0;
-  padding: 34rpx 44rpx calc(env(safe-area-inset-bottom) + 40rpx);
-  box-shadow: 0 -10rpx 34rpx rgba(var(--text-rgb), 0.10);
+  border-radius: 28rpx;
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb, 107, 91, 80), 0.08));
   backdrop-filter: var(--card-blur, none);
   -webkit-backdrop-filter: var(--card-blur, none);
 }
-.ai-head {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  font-size: 28rpx;
-  font-weight: 700;
-  color: var(--brown, #6B5B50);
-  letter-spacing: 1rpx;
+/* 上沿齿孔：一排页面底色的小圆咬口。
+   稿子里是手撕边，真撕边得现拼一条 SVG 路径 —— 为一条装饰边养一个生成器不值，
+   这里回落到品牌本来的「邮票齿孔」语言（与票根详情页的邮票框同一套）。 */
+.sc-ai-tear {
+  position: absolute;
+  /* 左右让开卡片自身的 28rpx 圆角，否则齿孔会把圆角「切方」 */
+  left: 30rpx; right: 30rpx; top: -1rpx;
+  height: 16rpx;
+  background-image: radial-gradient(circle at 16rpx 0, var(--cream, #FAF5EE) 15rpx, transparent 15rpx);
+  background-size: 32rpx 16rpx;
+  background-repeat: repeat-x;
 }
-.ai-spark { color: #E8C87E; font-size: 28rpx; } /* 稿内 ✦ 暖金（鹅黄体系深化，保证白底可读） */
-.ai-title { flex: 1; }
-.ai-manual {
-  font-size: 23rpx;
-  font-weight: 400;
-  color: var(--text2, #A5968A);
-  letter-spacing: 1rpx;
-  padding: 6rpx 0 6rpx 12rpx;
+.sc-ai-head {
+  display: flex; align-items: center; justify-content: center; gap: 12rpx;
+  padding-top: 8rpx;
+}
+.sc-ai-spark { width: 28rpx; height: 28rpx; opacity: 0.9; }
+.sc-ai-title {
+  font-size: 30rpx; font-weight: 700; color: var(--text, #6B5B50);
+  letter-spacing: 2rpx;
 }
 
-/* 四步：图标方块（rose/butter/sage/brown 浅底）+ 步骤名 + → 箭头 */
-.ai-steps {
-  margin-top: 30rpx;
+/* 四步：识别 →（点）→ 修复 →（›）→ 重绘 →（点）→ 入档 */
+.sc-ai-steps {
+  margin-top: 26rpx;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
 }
-.ai-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* 分隔（点 / ›）与步骤同为直接子元素：分隔吃满剩余宽度，四步被均匀撑开 */
+.sc-ai-sep {
+  flex: 1;
+  height: 84rpx;                     /* 与图标圆同高，点/箭头对齐圆心 */
+  display: flex; align-items: center; justify-content: center; gap: 8rpx;
+}
+.sc-ai-dot {
+  width: 8rpx; height: 8rpx; border-radius: 50%;
+  background: var(--text2, #A5968A); opacity: 0.5;
+}
+.sc-ai-sep-ic { width: 26rpx; height: 26rpx; }
+
+.sc-ai-step {
+  flex: 0 0 104rpx;
+  display: flex; flex-direction: column; align-items: center;
   gap: 14rpx;
-  width: 104rpx;
 }
-.ai-ico {
-  width: 92rpx;
-  height: 92rpx;
-  border-radius: 26rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 42rpx;
+.sc-ai-ico {
+  width: 84rpx; height: 84rpx;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
-.ico-rose   { background: var(--rose); }
-.ico-butter { background: var(--butter); }
-.ico-sage   { background: var(--sage); }
-.ico-brown  { background: rgba(var(--text-rgb), 0.10); }
-/* 当前进行中步骤：轻微放大 + 品牌描边强调（稿内四步全彩常显，on 为状态层） */
-.ai-step.on .ai-ico {
-  transform: scale(1.08);
-  box-shadow: 0 0 0 4rpx var(--card-bg, var(--card)), 0 0 0 7rpx var(--rose);
+.sc-ai-ico-img { width: 40rpx; height: 40rpx; }
+/* 走到这一步：放大 + 品牌描边。稿内四步全彩常显，on 只是状态层 */
+.sc-ai-step.on .sc-ai-ico {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 4rpx var(--card-bg, var(--card)), 0 0 0 7rpx var(--rose, #D9A0A6);
 }
-.ai-lb { font-size: 22rpx; color: var(--text2, #A5968A); letter-spacing: 2rpx; }
-.ai-step.on .ai-lb { color: var(--brown, #6B5B50); font-weight: 700; }
-.ai-arrow {
-  flex: 1;
-  text-align: center;
-  line-height: 92rpx;
-  font-size: 26rpx;
-  color: var(--brown, #6B5B50);
-  opacity: 0.55;
-}
-.ai-cap {
-  margin-top: 24rpx;
+.sc-ai-lb { font-size: 22rpx; color: var(--text2, #A5968A); letter-spacing: 2rpx; }
+.sc-ai-step.on .sc-ai-lb { color: var(--text, #6B5B50); font-weight: 700; }
+
+.sc-ai-cap {
+  margin-top: 22rpx;
   text-align: center;
   font-size: 21rpx;
   letter-spacing: 1rpx;
   color: var(--text2, #A5968A);
-  min-height: 30rpx;
 }
-.demo-note {
-  margin-top: 14rpx;
-  font-size: 20rpx;
-  color: var(--text2, #A5968A);
-  line-height: 1.6;
+.sc-demo {
+  margin-top: 12rpx;
   text-align: center;
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: var(--text2, #A5968A);
   opacity: 0.85;
 }
+.sc-manual {
+  margin-top: 18rpx;
+  display: flex; align-items: center; justify-content: center; gap: 4rpx;
+}
+.sc-manual-t { font-size: 23rpx; color: var(--text2, #A5968A); letter-spacing: 1rpx; }
+.sc-manual-ic { width: 22rpx; height: 22rpx; }
+
+/* ═══ ⑤ 页脚装饰 ═══ */
+.sc-foot {
+  position: relative;
+  flex-shrink: 0;
+  height: 124rpx;
+  margin: 0 24rpx;
+}
+.sc-foot image { position: absolute; }
+.sc-foot-wave { left: 10rpx; bottom: 16rpx; width: 128rpx; height: 60rpx; opacity: 0.7; }
+.sc-foot-sprig { left: 118rpx; bottom: 22rpx; width: 96rpx; height: 64rpx; }
+.sc-foot-heart { left: 214rpx; bottom: 26rpx; width: 34rpx; height: 34rpx; }
+.sc-foot-stamp { right: 0; bottom: 4rpx; width: 128rpx; height: 138rpx; transform: rotate(5deg); }
 
 /* ============================================================
-   done · 确认表单态（稿外必要态，沿用既有结构）
+   确认表单态（稿外必要态，沿用既有结构）
    ============================================================ */
 .frame {
   margin: 24rpx 32rpx 0;
@@ -373,6 +364,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16rpx;
   padding: 24rpx 0;
   border-bottom: 1rpx solid var(--border, #EFE5D8);
 }
@@ -389,10 +381,10 @@
   white-space: nowrap;
 }
 .f-row .v.blank { color: var(--text2, #A5968A); font-weight: 400; }
+/* 类型行末尾的细箭头（原来是字符 ▾，换成线性图标） */
+.f-go { flex: 0 0 24rpx; width: 24rpx; height: 24rpx; margin-left: -8rpx; }
 
-.safe-bottom { height: 80rpx; }
-
-/* —— M4.5 类型选择弹出层选项 —— */
+/* —— 类型选择弹出层选项 —— */
 .type-opt {
   display: flex;
   align-items: center;
@@ -403,7 +395,13 @@
   background: var(--chip, #F7EBE3);
 }
 .type-opt.on { background: var(--soft); }
-.type-opt .t-icon { font-size: 36rpx; }
+.type-opt .t-ico {
+  flex: 0 0 64rpx; width: 64rpx; height: 64rpx;
+  border-radius: 50%;
+  background: var(--card-bg, var(--card));
+  display: flex; align-items: center; justify-content: center;
+}
+.type-opt .t-ico-img { width: 34rpx; height: 34rpx; }
 .type-opt .t-label {
   flex: 1;
   font-size: 28rpx;
@@ -411,7 +409,7 @@
   letter-spacing: 2rpx;
 }
 .type-opt.on .t-label { color: var(--primary, #D9A0A6); font-weight: 700; }
-.type-opt .t-check { color: var(--primary, #D9A0A6); font-size: 30rpx; font-weight: 700; }
+.type-opt .t-check { flex: 0 0 30rpx; width: 30rpx; height: 30rpx; }
 
 /* —— 识别完成盖戳（盖下→停留→淡出） —— */
 .stamp-over {
@@ -441,7 +439,7 @@
   100% { opacity: 0; transform: scale(1.06) rotate(-5deg); }
 }
 
-/* —— 保存成功「入档」浮层（v6.6.0 动效4：Canvas 对勾+粒子 → 上移淡出） —— */
+/* —— 保存成功「入档」浮层（Canvas 对勾+粒子 → 上移淡出） —— */
 .stamp-overlay {
   position: fixed;
   inset: 0;
@@ -453,7 +451,6 @@
   gap: 30rpx;
   background: var(--bg);
 }
-/* 内层负责上移淡出（外层类名保持 4.13 断言口径）；200ms ease-out */
 .stamp-inner {
   display: flex;
   flex-direction: column;
@@ -507,7 +504,7 @@
   border: 4rpx solid var(--cream, #FAF5EE);
   box-shadow: 0 16rpx 44rpx rgba(44, 44, 44, 0.28);
   background: var(--card-bg, var(--card));
-  animation: fly-home 400ms 120ms cubic-bezier(0.55, 0, 0.85, 0.36) both; /* v6.6.0：适配新时序（600ms 处浮层开始上移淡出） */
+  animation: fly-home 400ms 120ms cubic-bezier(0.55, 0, 0.85, 0.36) both;
   pointer-events: none;
 }
 @keyframes fly-home {
@@ -517,7 +514,7 @@
   100% { opacity: 0; transform: translate(150rpx, 980rpx) scale(0.14) rotate(16deg); }
 }
 
-/* v6.6.0 动效4：保存失败 → 主按钮红色抖动一次（不播成功浮层） */
+/* 保存失败 → 主按钮红色抖动一次（不播成功浮层） */
 .btn-main.shake-err {
   animation: shake-err 300ms ease-out 1;
   background: var(--stamp, #C26B5E);

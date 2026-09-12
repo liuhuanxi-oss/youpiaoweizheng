@@ -10,11 +10,30 @@ const { USE_CLOUD } = require('../../utils/env.js');
 const store = require('../../utils/store.js');
 const ai = require('../../utils/ai.js');
 const themeUtil = require("../../utils/theme.js");
+const { iconSrc } = require('../../utils/icons.js');
+const deco = require('../../utils/deco.js');
 const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
 const { TYPE_TEXT } = require('../../utils/mock.js');
 
 const TYPE_KEYS = ['show', 'movie', 'traffic'];
 const TYPE_LABELS = TYPE_KEYS.map((k) => TYPE_TEXT[k]);
+/** 类型选择用的图标名（蓝色稿屏3 全页无 emoji，图标一律走 utils/icons.js） */
+const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train' };
+
+/**
+ * AI 四步（稿屏3 的 识别 → 修复 → 重绘 → 入档）。
+ * 圆形底色是品牌固定色、六主题不变，白描线图标压在上面；
+ * 故和 landSrc 一样由 JS 下发，WXSS 里只留尺寸（详见 utils/icons.js 顶部）。
+ */
+const STEPS = [
+  { lb: '识别', bg: '#D98C8A', ic: 'scanface' },
+  { lb: '修复', bg: '#B9A79A', ic: 'wand' },
+  { lb: '重绘', bg: '#A9C3A6', ic: 'palette' },
+  { lb: '入档', bg: '#B9A79A', ic: 'folder' }
+];
+
+/** 压在水彩实底上的字/图标色：恒白，品牌常量，故不走主题变量 */
+const ON_TINT = '#FFFFFF';
 
 // 演示模式回填的示例草稿（与云函数 parser 输出同结构，实际数据以用户修改为准）
 const DEMO_DRAFT = {
@@ -33,8 +52,48 @@ Page({
 
   onShow() {
     themeUtil.apply(this);
+    this.buildArt();
     // v6.6.0：prefers-reduced-motion 探测（减弱动效时入档只画终帧、浮层只做 opacity 过渡）
     this._probeReduce();
+  },
+
+  /**
+   * 编译本页全部图形。主题一变就得重来 ——
+   * SVG 是独立文档，页面 CSS 变量不会继承进去，var() 一律失效（见 utils/icons.js 顶部）。
+   */
+  buildArt() {
+    const m = themeUtil.getThemeMeta(themeUtil.getTheme());
+    this.setData({
+      ic: {
+        back: iconSrc('back', m.text, 0.85),
+        spark: iconSrc('sparkle', m.accent),
+        sparkSm: iconSrc('sparkle', m.accent, 0.7, 1.3),
+        flash: iconSrc('flash', m.text, 0.75),
+        help: iconSrc('help', m.text, 0.75),
+        album: iconSrc('image', m.text, 0.8),
+        camera: iconSrc('camera', ON_TINT, 1, 1, true),
+        refresh: iconSrc('refresh', m.text, 0.8),
+        sep: iconSrc('chevron', m.text, 0.45),
+        empty: iconSrc('ticket', m.text, 0.3),
+        check: iconSrc('check', m.accent, 1, 2),
+        close: iconSrc('close', m.text, 0.6)
+      },
+      deco: {
+        postmark: deco.decoSrc('postmark', m),
+        stamp: deco.decoSrc('stamp', m),
+        sprig: deco.decoSrc('sprig', m),
+        wave: deco.decoSrc('wavelines', m),
+        heart: deco.decoSrc('heartsmall', m)
+      },
+      // 四步的图标：白描线压在品牌色圆上，宽度统一 1.7
+      steps: STEPS.map((s) => ({ lb: s.lb, bg: s.bg, src: iconSrc(s.ic, ON_TINT, 1, 1.7) })),
+      // 类型选择：同上，白图标压在 --soft 底上会看不见，故底色随主题、图标随底色
+      typeOptions: TYPE_KEYS.map((k) => ({
+        key: k,
+        label: TYPE_TEXT[k],
+        src: iconSrc(TYPE_ICONS[k], m.text, 0.75)
+      }))
+    });
   },
 
   /** v6.6.0：reduced-motion 探测（支持则精确降级；API 不可用 fail-open 照常播放） */
@@ -73,14 +132,14 @@ Page({
     // —— v5.1 E2 上传中阶段进度（scanning 态进度条）——
     prog: 0,
     progText: '',
-    // —— M4.5 类型选择弹出层 ——
+    // —— M4.5 类型选择弹出层（内容由 buildArt 编译：Emoji 换成了线性图标）——
     typeSheet: false,
-    typeOptions: [
-      { key: 'show', icon: '🎤', label: '演出' },
-      { key: 'movie', icon: '🎬', label: '电影' },
-      { key: 'traffic', icon: '🚄', label: '交通' }
-    ],
-    // —— 6.4.0 品牌稿第三屏「拍照上传」：相机取景态 ——
+    typeOptions: [],
+    // —— 稿屏3「扫描票根」：图形与四步流程（buildArt 编译）——
+    ic: {},
+    deco: {},
+    steps: [],
+    // —— 6.4.0 品牌稿第三屏：相机取景态 ——
     devicePos: 'back',  // 翻转摄像头：back / front
     flash: 'off',       // 闪光灯：off / on
     camErr: false,      // 相机不可用（权限拒绝/被占用）→ 降级引导
@@ -136,7 +195,7 @@ Page({
   showHelp() {
     wx.showModal({
       title: '拍得更清楚的小技巧',
-      content: '光线亮一点 · 票根平放对齐白色虚线框 · 日期和座位拍清楚',
+      content: '光线亮一点 · 票根平放、四角对齐取景框 · 日期和座位拍清楚',
       confirmText: '知道了',
       showCancel: false
     });

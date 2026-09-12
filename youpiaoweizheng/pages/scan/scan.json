@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "拍照上传",
+  "navigationBarTitleText": "扫描票根",
   "usingComponents": {
     "bottom-sheet": "/components/bottom-sheet/index",
     "privacy-sheet": "/components/privacy-sheet/index"
