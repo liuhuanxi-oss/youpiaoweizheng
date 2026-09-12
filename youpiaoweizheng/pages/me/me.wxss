@@ -1,158 +1,247 @@
-/* pages/me/me.wxss —— v6.5 我的页（六主题变量化，禁止写死色值） */
+/* pages/me/me.wxss —— 品牌全案 · 稿屏11 个人中心
+   结构：品牌行 → hero → 票根造型统计卡 → 5 张独立功能卡
+   注：本页所有色值一律走主题令牌（app.wxss 的六套 .theme-*）；
+   稿内手绘装饰是 <image> 直出的 SVG data-uri，颜色由 me.js 按主题编译成实色。 */
 
-/* —— 顶部 hero（tk-hero 提供蓝天白云 → 主题底） —— */
+.me-page { min-height: 100vh; }
+
+/* 本页卡片统一走稿内圆角（--card-r 在 paper 主题只有 4px，直接吃会变直角） */
+.me-page { --me-r: 28rpx; }
+
+/* ===== ① 顶部品牌行（右对齐） ===== */
+.me-brand {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 14rpx;
+  padding: 20rpx 44rpx 0;
+}
+.me-brand-logo {
+  width: 56rpx; height: 56rpx;
+  border-radius: 16rpx;
+}
+.me-brand-name {
+  font-size: 32rpx; font-weight: 700;
+  color: var(--brown, #6B5B50);
+  letter-spacing: 1rpx;
+}
+.me-brand-gear { padding: 6rpx; margin-left: 8rpx; }
+.me-brand-gear-ic { width: 40rpx; height: 40rpx; display: block; }
+
+/* ===== ② Hero ===== */
 .me-hero {
   position: relative;
-  padding: 48rpx 32rpx 32rpx;
-  overflow: hidden;
-  border-radius: 0 0 36rpx 36rpx;
+  display: flex; align-items: center;
+  gap: 30rpx;
+  padding: 26rpx 44rpx 0;
 }
-.me-bg {
-  position: absolute; inset: 0;
-  background: radial-gradient(40% 30% at 80% 0%, var(--soft), transparent 60%);
+
+/* 头像：水彩圆底 + 左右各两道放射短线 */
+.me-avatar-wrap { position: relative; flex: 0 0 152rpx; width: 152rpx; height: 152rpx; }
+.me-avatar-btn {
+  width: 152rpx; height: 152rpx;
+  padding: 0; margin: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: transparent;
+  line-height: normal;
+}
+.me-avatar-btn::after { border: none; display: none; }
+.me-avatar { width: 152rpx; height: 152rpx; border-radius: 50%; display: block; }
+
+.me-ray {
+  position: absolute;
+  width: 18rpx; height: 4rpx;
+  border-radius: 2rpx;
+  background: var(--brown, #6B5B50);
+  opacity: 0.45;
+}
+.me-ray-l1 { left: -14rpx; top: 56rpx;  transform: rotate(-16deg); }
+.me-ray-l2 { left: -22rpx; top: 84rpx;  transform: rotate(14deg); width: 24rpx; }
+.me-ray-r1 { right: -14rpx; top: 56rpx; transform: rotate(16deg); }
+.me-ray-r2 { right: -22rpx; top: 84rpx; transform: rotate(-14deg); width: 24rpx; }
+
+/* 右侧：手写标题 + slogan + 手绘下划线 */
+.me-hero-body { position: relative; flex: 1; min-width: 0; }
+.me-nick-row { display: flex; align-items: center; gap: 10rpx; }
+.me-nick {
+  flex: 0 1 auto; min-width: 0;
+  font-family: var(--font-title, inherit);
+  font-size: 50rpx; font-weight: 700;
+  color: var(--brown, #6B5B50);
+  letter-spacing: 1rpx;
+  line-height: 1.2;
+}
+.me-nick-ph { color: var(--text2, #A5968A); font-weight: 700; }
+.me-hero-star { flex: 0 0 30rpx; width: 30rpx; height: 30rpx; }
+
+.me-sub-row { display: flex; align-items: center; gap: 10rpx; margin-top: 8rpx; }
+.me-sub { font-size: 28rpx; color: var(--text2, #A5968A); }
+.me-hero-heart { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; }
+
+/* 手绘下划线：压在 slogan 下方，两端渐隐 */
+.me-underline {
+  width: 260rpx; height: 6rpx;
+  margin-top: 8rpx;
+  border-radius: 3rpx;
+  background: linear-gradient(90deg, transparent, var(--rose, #D9A0A6) 18%, var(--brown, #6B5B50) 82%, transparent);
+  opacity: 0.5;
+  transform: rotate(-1.2deg);
+}
+
+.me-nick-go {
+  display: inline-block;
+  margin-top: 12rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 999rpx;
+  border: 1rpx dashed var(--rose, #D9A0A6);
+  color: var(--rose, #D9A0A6);
+  font-size: 22rpx;
+}
+
+/* 花枝：溢出到页面右缘（稿内压在屏幕边上） */
+.me-hero-sprig {
+  position: absolute;
+  right: -18rpx; top: -6rpx;
+  width: 150rpx; height: 100rpx;
   pointer-events: none;
 }
-.me-row {
-  position: relative; display: flex; align-items: center; gap: 24rpx;
-  z-index: 1;
-}
-.me-avatar-btn {
-  width: 128rpx; height: 128rpx; padding: 0;
-  background: transparent; border: 4rpx solid var(--card); border-radius: 50%;
-  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.08));
-  flex: 0 0 128rpx;
-  overflow: hidden;
-}
-.me-avatar-btn::after { border: none; }
-.me-avatar { width: 100%; height: 100%; border-radius: 50%; }
-.me-info { flex: 1; min-width: 0; }
-.me-nick-row { display: flex; align-items: center; gap: 16rpx; }
-.me-nick {
-  font-size: 36rpx; font-weight: 800; color: var(--text);
-  letter-spacing: 2rpx; min-height: 50rpx; line-height: 1.2;
-}
-.me-nick-ph { color: var(--text2); font-weight: 600; }
-.me-lv {
-  padding: 6rpx 16rpx; border-radius: 999rpx;
-  background: var(--primary); color: var(--on-primary);
-  font-size: 20rpx; font-weight: 700; letter-spacing: 1rpx;
-}
-.me-nick-go {
-  margin-left: 12rpx; padding: 8rpx 20rpx;
-  background: var(--primary); color: var(--on-primary);
-  border-radius: 999rpx; font-size: 22rpx; font-weight: 600;
-}
-.me-sub {
-  margin-top: 8rpx; font-size: 22rpx; color: var(--text2);
-  letter-spacing: 1rpx;
-}
-.me-stat-row {
-  position: relative; z-index: 1;
-  display: flex; justify-content: space-around; gap: 12rpx;
-  margin-top: 28rpx;
-  background: var(--card-bg, var(--card));
-  border-radius: var(--card-r, 32rpx);
-  padding: 24rpx 16rpx;
-  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
-}
-.me-stat { text-align: center; flex: 1; }
-.me-stat-n { font-size: 52rpx; font-weight: 900; color: var(--primary); line-height: 1.1; }
-.me-stat-k { font-size: 20rpx; color: var(--accent); font-weight: 700; margin-left: 4rpx; }
-.me-stat-l { display: block; font-size: 23rpx; color: var(--text2); margin-top: 4rpx; }
 
-/* —— 通用卡片容器 —— */
-.me-card {
-  margin: 24rpx 28rpx 0; padding: 24rpx 28rpx;
-  background: var(--card-bg, var(--card)); border-radius: var(--card-r, 32rpx);
-  border: var(--card-border, none);
-  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
-  backdrop-filter: var(--card-blur, none);
-  -webkit-backdrop-filter: var(--card-blur, none);
+/* ===== ③ 统计卡（票根造型：左右齿孔 + 米白纸面） =====
+   齿孔用 radial-gradient 挖出页面底色，做在左右两条伪元素上 */
+.me-stat-card {
+  position: relative;
+  display: flex; align-items: stretch;
+  margin: 40rpx 44rpx 0;
+  padding: 26rpx 8rpx 22rpx;
+  background: var(--cream, #FAF5EE);
+  border: 1rpx solid var(--border, #EFE5D8);
+  border-radius: 4rpx;
 }
-.me-section-title {
-  font-size: 28rpx; font-weight: 700; color: var(--text);
-  margin-bottom: 18rpx; letter-spacing: 1rpx;
+.me-stat-card::before,
+.me-stat-card::after {
+  content: '';
+  position: absolute; top: -1rpx; bottom: -1rpx;
+  width: 15rpx;
+  background-image: radial-gradient(circle at 50% 50%, var(--bg, #FAF5EE) 7rpx, transparent 7rpx);
+  background-size: 15rpx 24rpx;
+  background-repeat: repeat-y;
+  pointer-events: none;
+}
+.me-stat-card::before { left: -1rpx; }
+.me-stat-card::after { right: -1rpx; }
+
+.me-stat {
+  position: relative;
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: center;
+}
+/* 列间竖虚线（除第一列外） */
+.me-stat + .me-stat::before {
+  content: '';
+  position: absolute; left: 0; top: 10rpx; bottom: 10rpx;
+  width: 2rpx;
+  background-image: linear-gradient(180deg, var(--border, #EFE5D8) 60%, transparent 0);
+  background-size: 2rpx 12rpx;
+  background-repeat: repeat-y;
 }
 
-/* —— 主题切换入口（v6.2：跳转独立选择页 pages/theme） —— */
-.me-theme-entry {
-  display: flex; align-items: center; gap: 20rpx;
-}
-.me-theme-pv {
-  width: 120rpx; height: 88rpx; border-radius: 20rpx;
-  position: relative; overflow: hidden;
+.me-stat-h { display: flex; align-items: center; gap: 8rpx; }
+.me-stat-ic { flex: 0 0 32rpx; width: 32rpx; height: 32rpx; }
+.me-stat-l { font-size: 24rpx; color: var(--brown, #6B5B50); }
+
+/* 大数字压在水彩椭圆色块上，两侧各一道放射短线 */
+.me-stat-figure {
+  position: relative;
+  width: 100%; height: 96rpx;
+  margin-top: 10rpx;
   display: flex; align-items: center; justify-content: center;
-  flex: 0 0 120rpx;
 }
-.me-theme-pv-card {
-  width: 76%; height: 62rpx; border-radius: 12rpx;
-  display: flex; flex-direction: column; gap: 6rpx;
-  padding: 10rpx 12rpx; justify-content: center;
-  box-shadow: var(--card-shadow, 0 4rpx 8rpx rgba(var(--text-rgb), 0.08));
+.me-blob {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 130rpx; height: 74rpx;
+  margin: -37rpx 0 0 -65rpx;
+  border-radius: 50%;
+  opacity: 0.55;
 }
-.me-theme-pv-bar { height: 8rpx; border-radius: 4rpx; width: 70%; opacity: 0.9; }
-.me-theme-pv-bar.thin { width: 40%; height: 6rpx; opacity: 0.4; }
-.me-theme-body { flex: 1; min-width: 0; }
-.me-theme-name { font-size: 28rpx; font-weight: 700; color: var(--text); }
-.me-theme-desc { margin-top: 6rpx; font-size: 22rpx; color: var(--text2); line-height: 1.5; }
-.me-theme-go { font-size: 32rpx; color: var(--text2); flex: 0 0 auto; }
-/* 三主题小圆点预览（非卡片缩略，纯色点，一眼看出差异） */
-.me-theme-dots { display: flex; gap: 10rpx; margin-top: 12rpx; }
-.me-theme-dot {
-  width: 40rpx; height: 16rpx; border-radius: 8rpx;
+.me-blob-rose   { background: radial-gradient(ellipse at 50% 50%, var(--rose, #D9A0A6) 0%, transparent 72%); }
+.me-blob-sage   { background: radial-gradient(ellipse at 50% 50%, var(--sage, #A9C3A6) 0%, transparent 72%); }
+.me-blob-butter { background: radial-gradient(ellipse at 50% 50%, var(--butter, #F6DFA8) 0%, transparent 72%); }
+.me-stat-n {
+  position: relative;
+  font-size: 54rpx; font-weight: 700;
+  color: var(--brown, #6B5B50);
+  line-height: 1;
 }
-
-/* —— 次数包 / 额度 —— */
-.me-quota { padding: 8rpx 0; }
-.me-quota-big {
-  font-size: 64rpx; font-weight: 900;
-  color: var(--primary);
-  letter-spacing: 2rpx; line-height: 1.1;
+.me-stat-figure::before,
+.me-stat-figure::after {
+  content: '';
+  position: absolute; top: 50%;
+  width: 16rpx; height: 4rpx;
+  margin-top: -2rpx;
+  border-radius: 2rpx;
+  background: rgba(var(--text-rgb, 107, 91, 80), 0.3);
 }
-.me-quota-cap { font-size: 22rpx; color: var(--text2); margin-top: 4rpx; }
-.me-quota-bar {
-  margin-top: 18rpx; height: 14rpx; border-radius: 14rpx;
-  background: var(--soft);
-  overflow: hidden;
+/* 每侧两道短线：box-shadow 无位移偏移伪造第二道（两线同色同形，只是下移） */
+.me-stat-figure::before {
+  left: 12rpx; transform: rotate(-14deg);
+  box-shadow: 0 16rpx 0 rgba(var(--text-rgb, 107, 91, 80), 0.3);
 }
-.me-quota-fill {
-  height: 100%; border-radius: 14rpx;
-  background: var(--primary);
-  transition: width 400ms ease;
-}
-.me-quota-label { margin-top: 12rpx; font-size: 22rpx; color: var(--text2); }
-
-/* —— 功能列表 —— */
-.me-list { display: flex; flex-direction: column; }
-.me-list-item {
-  display: flex; align-items: center; gap: 18rpx;
-  padding: 22rpx 4rpx;
-  border-bottom: 1rpx solid var(--border);
-}
-.me-list-item:last-child { border-bottom: none; }
-.me-list-ico {
-  width: 56rpx; height: 56rpx; line-height: 56rpx; text-align: center;
-  font-size: 30rpx;
-  background: var(--chip);
-  border-radius: 18rpx;
-  flex: 0 0 56rpx;
-}
-.me-list-name { flex: 1; font-size: 28rpx; color: var(--text); }
-.me-list-go { font-size: 32rpx; color: var(--text2); }
-
-.me-foot {
-  margin: 40rpx 0 0;
-  text-align: center;
-  font-size: 22rpx; color: var(--text2);
-  letter-spacing: 2rpx;
+.me-stat-figure::after {
+  right: 12rpx; transform: rotate(14deg);
+  box-shadow: 0 16rpx 0 rgba(var(--text-rgb, 107, 91, 80), 0.3);
 }
 
-/* ICP 备案展示（4.22.2 合规要求：小程序底部标注备案号；点击复制） */
-.me-icp {
-  margin: 32rpx 28rpx 0; text-align: center;
-  font-size: 22rpx; color: var(--text2);
+.me-stat-u {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--text2, #A5968A);
+}
+
+/* ===== ④ 5 张独立功能卡 ===== */
+.me-entries { margin-top: 40rpx; }
+.me-entry {
+  position: relative;
+  display: flex; align-items: center;
+  gap: 24rpx;
+  height: 104rpx;
+  margin: 0 44rpx 18rpx;
+  padding: 0 26rpx 0 22rpx;
+  background: var(--card, #FFFFFF);
+  border: 1rpx solid var(--border, #EFE5D8);
+  border-radius: var(--me-r);
+  box-shadow: 0 6rpx 20rpx rgba(var(--text-rgb, 107, 91, 80), 0.05);
+}
+/* 卡两侧手绘装饰：压在卡缘上、小幅溢出（稿屏11 的手账感），一律不吃点击 */
+.me-entry-deco-l,
+.me-entry-deco-r {
+  position: absolute;
+  top: 50%;
+  pointer-events: none;
+  opacity: 0.9;
+}
+.me-entry-deco-l { left: -22rpx;  width: 78rpx;  height: 56rpx; margin-top: -28rpx; }
+.me-entry-deco-r { right: 76rpx;  width: 84rpx;  height: 40rpx; margin-top: -20rpx; }
+
+/* 圆形水彩底 + 白色线性图标 */
+.me-entry-ico {
+  flex: 0 0 94rpx; width: 94rpx; height: 94rpx;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.me-entry-ico-img { width: 44rpx; height: 44rpx; display: block; }
+
+.me-entry-name {
+  flex: 1; min-width: 0;
+  font-size: 34rpx; font-weight: 600;
+  color: var(--brown, #6B5B50);
   letter-spacing: 1rpx;
-  padding: 14rpx;
-  background: var(--chip);
-  border-radius: 999rpx;
+}
+.me-entry-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; opacity: 0.55; }
+
+/* ===== ICP 备案（工信部要求，点击复制） ===== */
+.me-icp {
+  margin: 40rpx 44rpx 0;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--text2, #A5968A);
 }

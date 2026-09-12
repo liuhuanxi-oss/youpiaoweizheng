@@ -1,0 +1,117 @@
+/* pages/setting/setting.wxss —— 设置（v7.0 新建）
+   收纳原「我的」页的主题卡 / 额度卡 / 勋章墙 / 二级入口；样式沿用同一套主题令牌。 */
+
+.st-page { min-height: 100vh; padding-top: 24rpx; }
+
+.st-card {
+  margin: 0 32rpx 28rpx;
+  padding: 26rpx 26rpx 24rpx;
+  background: var(--card, #FFFFFF);
+  border: 1rpx solid var(--border, #EFE5D8);
+  border-radius: var(--card-r, 24rpx);
+  box-shadow: 0 6rpx 22rpx rgba(var(--text-rgb, 107, 91, 80), 0.05);
+}
+
+.st-title {
+  font-size: 30rpx; font-weight: 700;
+  color: var(--brown, #6B5B50);
+  letter-spacing: 1rpx;
+}
+.st-head { display: flex; align-items: baseline; justify-content: space-between; }
+.st-count { font-size: 24rpx; color: var(--text2, #A5968A); }
+
+/* ===== 外观主题入口 ===== */
+.st-theme { display: flex; align-items: center; gap: 20rpx; margin-top: 20rpx; }
+.st-theme-pv {
+  flex: 0 0 88rpx; width: 88rpx; height: 88rpx;
+  border-radius: 18rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.st-theme-pv-card {
+  width: 62rpx; height: 62rpx;
+  border-radius: 12rpx;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 8rpx; padding: 0 10rpx;
+}
+.st-theme-pv-bar { height: 8rpx; border-radius: 4rpx; }
+.st-theme-pv-bar.thin { height: 5rpx; opacity: 0.55; }
+.st-theme-body { flex: 1; min-width: 0; }
+.st-theme-name { font-size: 29rpx; font-weight: 600; color: var(--brown, #6B5B50); }
+.st-theme-desc {
+  margin-top: 6rpx;
+  font-size: 23rpx; color: var(--text2, #A5968A);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.st-theme-dots { display: flex; gap: 8rpx; margin-top: 12rpx; }
+.st-theme-dot { width: 20rpx; height: 20rpx; border-radius: 50%; }
+.st-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; opacity: 0.5; }
+
+/* ===== 额度卡 ===== */
+.st-quota { margin-top: 18rpx; }
+.st-quota-big {
+  font-size: 72rpx; font-weight: 700; line-height: 1;
+  color: var(--brown, #6B5B50);
+}
+.st-quota-cap { margin-top: 8rpx; font-size: 24rpx; color: var(--text2, #A5968A); }
+.st-quota-bar {
+  margin-top: 18rpx;
+  height: 12rpx; border-radius: 6rpx;
+  background: var(--soft, #F5EDE2);
+  overflow: hidden;
+}
+.st-quota-fill { height: 12rpx; border-radius: 6rpx; background: var(--sage, #A9C3A6); }
+.st-quota-label { margin-top: 12rpx; font-size: 23rpx; color: var(--text2, #A5968A); }
+
+/* ===== 勋章墙 ===== */
+.st-badges {
+  display: flex; flex-wrap: wrap;
+  gap: 18rpx 0;
+  margin-top: 22rpx;
+}
+.st-badge {
+  flex: 0 0 33.333%;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 8rpx;
+  text-align: center;
+}
+.st-badge-ic {
+  width: 64rpx; height: 64rpx;
+  padding: 12rpx;
+  border-radius: 50%;
+  background: var(--soft, #F5EDE2);
+  box-sizing: content-box;
+}
+.st-badge.on .st-badge-ic { background: var(--sage-soft, #E9F0E6); }
+.st-badge-name {
+  margin-top: 12rpx;
+  font-size: 23rpx; font-weight: 600;
+  color: var(--brown, #6B5B50);
+}
+.st-badge-desc {
+  margin-top: 4rpx;
+  font-size: 20rpx; line-height: 1.4;
+  color: var(--text2, #A5968A);
+}
+
+/* ===== 更多入口 ===== */
+.st-list { margin-top: 10rpx; }
+.st-row {
+  display: flex; align-items: center; gap: 20rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid var(--border, #EFE5D8);
+}
+.st-row:last-child { border-bottom: none; }
+.st-row-ic { flex: 0 0 40rpx; width: 40rpx; height: 40rpx; }
+.st-row-name {
+  flex: 1; min-width: 0;
+  font-size: 29rpx;
+  color: var(--brown, #6B5B50);
+}
+
+/* ===== ICP 备案（工信部要求，点击复制） ===== */
+.st-icp {
+  margin: 16rpx 32rpx 0;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--text2, #A5968A);
+}

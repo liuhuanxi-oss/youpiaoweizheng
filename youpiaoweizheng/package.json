@@ -4,6 +4,7 @@
   "private": true,
   "description": "有票为证 小程序自动化构建/上传/云函数部署/提审发布脚本",
   "scripts": {
+    "test": "node scripts/dev/run-tests.js",
     "preview": "node scripts/ci/preview.js",
     "preview:deco": "node scripts/dev/preview-deco.js",
     "upload": "node scripts/ci/upload.js",

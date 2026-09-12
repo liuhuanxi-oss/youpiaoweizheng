@@ -167,13 +167,48 @@ const DECO = {
     '<circle cx="12" cy="14" r="5" ' + fillOf(c.primary, '#2B2420', 0.7) + '/>' +
     '<circle cx="26" cy="26" r="6" ' + fillOf(c.accent, '#C26B5E', 0.8) + '/>' +
     '<circle cx="42" cy="12" r="4.5" ' + fillOf(c.primary, '#2B2420', 0.5) + '/>' +
-    '<circle cx="54" cy="26" r="6" ' + fillOf(c.accent, '#C26B5E', 0.6) + '/>'
+    '<circle cx="54" cy="26" r="6" ' + fillOf(c.accent, '#C26B5E', 0.6) + '/>',
+
+  // ——— 我的页（稿屏11）：花枝 / 波浪排线 / 小粉心 / 四角星 ———
+  // 花枝：一根斜茎 + 三片叶 + 顶端三朵五瓣小花（压在卡片边缘外做手绘感）
+  sprig: (c) =>
+    '<path d="M8 40Q16 26 30 16T52 8" fill="none" ' +
+      strokeOf(c.primary, '#A9C3A6', 2.2, '') + ' stroke-linecap="round"/>' +
+    '<path d="M20 27Q12 24 10 16Q20 16 24 24Z" ' + fillOf(c.primary, '#A9C3A6', 0.75) + '/>' +
+    '<path d="M32 18Q28 10 32 4Q40 8 38 17Z" ' + fillOf(c.primary, '#A9C3A6', 0.6) + '/>' +
+    '<path d="M42 13Q42 6 48 3Q54 8 50 15Z" ' + fillOf(c.primary, '#A9C3A6', 0.7) + '/>' +
+    '<circle cx="52" cy="8" r="5" ' + fillOf(c.accent, '#F6DFA8') + '/>' +
+    '<circle cx="52" cy="8" r="1.8" fill="#FFF6DF"/>' +
+    '<circle cx="61" cy="14" r="3.6" ' + fillOf(c.accent, '#F6DFA8', 0.85) + '/>',
+
+  // 波浪排线：三道粗细递减的手绘波浪（稿里成组出现在卡片左右外侧）
+  wavelines: (c) =>
+    '<path d="M2 6Q10 1 18 6T34 6T50 6T62 6" fill="none" ' +
+      strokeOf(c.primary, '#C26B5E', 2.4, '') + ' stroke-linecap="round"/>' +
+    '<path d="M2 14Q10 9 18 14T34 14T50 14T62 14" fill="none" ' +
+      strokeOf(c.primary, '#C26B5E', 2, '', 0.7) + ' stroke-linecap="round"/>' +
+    '<path d="M2 22Q10 17 18 22T34 22T50 22T62 22" fill="none" ' +
+      strokeOf(c.primary, '#C26B5E', 1.6, '', 0.45) + ' stroke-linecap="round"/>',
+
+  // 小粉心（稿里点缀在卡片右上/花枝旁）
+  heartsmall: (c) =>
+    '<path d="M16 26C8 20 3 15 3 9.6A6.6 6.6 0 0 1 16 5.6a6.6 6.6 0 0 1 13 4c0 5.4-5 10.4-13 16.4Z" ' +
+      fillOf(c.accent, '#E8AFA8', 0.85) + '/>',
+
+  // 金色四角星（稿里散布在标题与卡片上，比 sparkle 更胖更钝）
+  star4: (c) =>
+    '<path d="M16 2c1.6 6.4 3.6 8.4 10 10-6.4 1.6-8.4 3.6-10 10-1.6-6.4-3.6-8.4-10-10 6.4-1.6 8.4-3.6 10-10Z" ' +
+      fillOf(c.accent, '#F5C86A') + '/>'
 };
 
 /** 每款装饰各自的 viewBox（宽高比不同，靠它让 image 的 aspectFit 算出正确比例） */
 const DECO_VIEWBOX = {
   wave: '0 0 64 20',
-  dots: '0 0 64 40'
+  dots: '0 0 64 40',
+  sprig: '0 0 66 44',
+  wavelines: '0 0 64 28',
+  heartsmall: '0 0 32 32',
+  star4: '0 0 32 24'
 };
 const DECO_VIEWBOX_DEFAULT = '0 0 64 44';
 

@@ -1,0 +1,72 @@
+<!-- pages/setting/setting.wxml —— 设置（v7.0 新建）
+     稿屏11 的「我的」页只画 5 个入口，原来堆在该页的外观主题 / 免费额度 / 双人空间 /
+     回收站 / 勋章 / 隐私协议 全部迁到这里，顺带把只算了不显示的勋章墙真正落地。 -->
+<scroll-view class="tk-page theme-{{theme}} st-page" scroll-y enhanced show-scrollbar="{{false}}">
+
+  <!-- ① 外观主题（从「我的」迁入） -->
+  <view class="st-card">
+    <view class="st-title">外观主题</view>
+    <view class="st-theme pressable" hover-class="press-item-hover" bindtap="goTheme"
+          aria-role="button" aria-label="切换外观主题，当前 {{curTheme.name}}">
+      <view class="st-theme-pv" style="background: {{curTheme.bg}};">
+        <view class="st-theme-pv-card" style="background: {{curTheme.card}};">
+          <view class="st-theme-pv-bar" style="background: {{curTheme.primary}};"></view>
+          <view class="st-theme-pv-bar thin" style="background: {{curTheme.text}};"></view>
+        </view>
+      </view>
+      <view class="st-theme-body">
+        <view class="st-theme-name">{{curTheme.name}}</view>
+        <view class="st-theme-desc">{{curTheme.tagline}}</view>
+        <view class="st-theme-dots">
+          <view class="st-theme-dot" wx:for="{{themeDots}}" wx:key="key"
+                style="background: {{item.primary}}; opacity: {{item.key === theme ? 1 : 0.35}};"></view>
+        </view>
+      </view>
+      <image class="st-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+    </view>
+  </view>
+
+  <!-- ② 免费额度（从「我的」迁入） -->
+  <view class="st-card" wx:if="{{quotaLeftNum >= 0}}">
+    <view class="st-title">AI 重绘额度</view>
+    <view class="st-quota">
+      <view class="st-quota-big">{{quotaLeftNum}}</view>
+      <view class="st-quota-cap">本月剩余（次）</view>
+      <view class="st-quota-bar">
+        <view class="st-quota-fill" style="width: {{quotaLeftNum >= 0 ? (quotaLeftNum / 3 * 100) : 0}}%;"></view>
+      </view>
+      <view class="st-quota-label">{{quotaLabel}}</view>
+    </view>
+  </view>
+
+  <!-- ③ 我的勋章（v7.0：computeBadges 此前只算不显示，这里真正渲染出来） -->
+  <view class="st-card">
+    <view class="st-head">
+      <view class="st-title">我的勋章</view>
+      <text class="st-count">已点亮 {{unlocked}} / {{badges.length}}</text>
+    </view>
+    <view class="st-badges">
+      <view class="st-badge {{item.unlocked ? 'on' : ''}}" wx:for="{{badges}}" wx:key="id">
+        <image class="st-badge-ic" src="{{item.src}}" mode="aspectFit" aria-hidden="true" />
+        <text class="st-badge-name">{{item.name}}</text>
+        <text class="st-badge-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ④ 其他入口（从「我的」迁入） -->
+  <view class="st-card">
+    <view class="st-title">更多</view>
+    <view class="st-list">
+      <view class="st-row pressable" hover-class="press-item-hover" wx:for="{{rows}}" wx:key="key"
+            data-key="{{item.key}}" bindtap="onRow" aria-role="button" aria-label="{{item.name}}">
+        <image class="st-row-ic" src="{{item.ico}}" mode="aspectFit" aria-hidden="true" />
+        <text class="st-row-name">{{item.name}}</text>
+        <image class="st-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+      </view>
+    </view>
+  </view>
+
+  <view class="st-icp" bindtap="copyIcp" aria-role="button" aria-label="复制ICP备案号">粤ICP备20010271号-11X</view>
+  <view class="tk-safe-bottom"></view>
+</scroll-view>

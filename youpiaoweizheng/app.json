@@ -15,6 +15,7 @@
     "pages/annual/annual",
     "pages/protocol/protocol",
     "pages/theme/theme",
+    "pages/setting/setting",
     "pages/art/art"
   ],
   "__usePrivacyCheck__": true,

@@ -157,21 +157,24 @@ const timeMachine = {
 // 勋章定义（M4 接入自动触发；当前静态展示。
 // 对齐原型「时光勋章 已解锁 4 / 12」的 12 枚盘子 + 4.17.0 拉新新增第 13 枚「时光同谋」，
 // 演示数据诚实解锁 1 枚）
+// v7.0：icon 字段从 emoji 改为 utils/icons.js 的图标名。
+//   原因同上——emoji 是彩色位图，三端造型不一，且无法随主题置灰；
+//   改成图标名后由 utils/badges.js + 页面用 iconSrc() 编译成实色 SVG。
 const badges = [
-  { id: 'b1', icon: '🎫', name: '第一张票', desc: '万事开头', unlocked: true },
-  { id: 'b2', icon: '🔥', name: '十场现场', desc: '还差 6 场', unlocked: false },
-  { id: 'b3', icon: '🎆', name: '跨年现场', desc: '在歌声中跨年', unlocked: false },
-  { id: 'b4', icon: '∞', name: '双人同行', desc: '绑定搭档', unlocked: false },
-  { id: 'b5', icon: '🎬', name: '观影百部', desc: '还差 98 部', unlocked: false },
-  { id: 'b6', icon: '✈️', name: '十城之路', desc: '还差 7 座', unlocked: false },
-  { id: 'b7', icon: '🌙', name: '深夜场', desc: '散场已是凌晨', unlocked: false },
-  { id: 'b8', icon: '🚄', name: '环线旅人', desc: '十次远行', unlocked: false },
-  { id: 'b9', icon: '🎤', name: '返场狂人', desc: '同一乐队三见', unlocked: false },
-  { id: 'b10', icon: '🏟️', name: '巡游五城', desc: '五城观演', unlocked: false },
-  { id: 'b11', icon: '💌', name: '时光信使', desc: '分享 10 张卡片', unlocked: false },
-  { id: 'b12', icon: '🗺️', name: '足迹地图', desc: '点亮 3 座城市', unlocked: false },
+  { id: 'b1', icon: 'ticket', name: '第一张票', desc: '万事开头', unlocked: true },
+  { id: 'b2', icon: 'music', name: '十场现场', desc: '还差 6 场', unlocked: false },
+  { id: 'b3', icon: 'sparkle', name: '跨年现场', desc: '在歌声中跨年', unlocked: false },
+  { id: 'b4', icon: 'users', name: '双人同行', desc: '绑定搭档', unlocked: false },
+  { id: 'b5', icon: 'film', name: '观影百部', desc: '还差 98 部', unlocked: false },
+  { id: 'b6', icon: 'pin', name: '十城之路', desc: '还差 7 座', unlocked: false },
+  { id: 'b7', icon: 'moon', name: '深夜场', desc: '散场已是凌晨', unlocked: false },
+  { id: 'b8', icon: 'train', name: '环线旅人', desc: '十次远行', unlocked: false },
+  { id: 'b9', icon: 'disc', name: '返场狂人', desc: '同一乐队三见', unlocked: false },
+  { id: 'b10', icon: 'map', name: '巡游五城', desc: '五城观演', unlocked: false },
+  { id: 'b11', icon: 'share', name: '时光信使', desc: '分享 10 张卡片', unlocked: false },
+  { id: 'b12', icon: 'compass', name: '足迹地图', desc: '点亮 3 座城市', unlocked: false },
   // 4.17.0 M2 拉新勋章：邀请是双人情谊的自然延伸，不诱导（分享本身已是行为门槛）
-  { id: 'b13', icon: '🤝', name: '时光同谋', desc: '把双人空间分享给 TA', unlocked: false }
+  { id: 'b13', icon: 'heart', name: '时光同谋', desc: '把双人空间分享给 TA', unlocked: false }
 ];
 
 // M4.9.6：演示票 id 集合（云模式下兜底展示的是这批票，
