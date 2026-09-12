@@ -1,114 +1,222 @@
-/* pages/discover/discover.wxss —— v6.5 发现·时光地图（六主题变量化） */
-.dc-scroll { min-height: 100vh; }
+/* pages/discover/discover.wxss —— 回忆地图（品牌全案 · 稿屏7 一比一）
+   六主题变量化：颜色一律读 --*，写死的只有「品牌固定色」——
+   那些色在六套主题下都不变（气泡五色 / 票根行四色 / 陆地三色），
+   且都从 JS 下发（见 discover.js 的 BUBBLE、ROW_TINT），WXSS 里不该出现十六进制。 */
+.dc-page { min-height: 100vh; }
 
-/* —— 顶部 hero —— */
-.dc-hero { padding: 40rpx 28rpx 24rpx; }
-.dc-top-title {
-  font-size: 52rpx; font-weight: 900; color: var(--text);
-  letter-spacing: 6rpx; line-height: 1.1;
-}
-.dc-slogan {
-  margin-top: 12rpx; font-size: 24rpx; color: var(--text2);
-  letter-spacing: 1rpx;
-}
-
-/* —— 地图占位（主题色渐变 + 装饰） —— */
-.dc-map {
-  position: relative; margin-top: 24rpx; height: 380rpx;
-  border-radius: var(--card-r, 36rpx);
-  background: linear-gradient(160deg, var(--soft) 0%, var(--chip) 60%, var(--bg) 100%);
-  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
-  overflow: hidden;
-}
-.dc-map-bg {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(40% 30% at 30% 40%, rgba(255, 255, 255, 0.45), transparent 70%),
-    radial-gradient(35% 30% at 70% 70%, rgba(255, 255, 255, 0.30), transparent 70%);
-}
-.dc-map-pin {
-  position: absolute; font-size: 28rpx; line-height: 1;
-  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.20));
-}
-/* 纸飞机装饰（内联 SVG 读变量） */
-.dc-map-plane {
-  position: absolute; top: 24rpx; right: 32rpx;
-  width: 88rpx; height: 60rpx;
-  transform: rotate(-14deg);
-}
-.dc-map-emoji {
-  position: absolute; right: 18rpx; bottom: 16rpx;
-  font-size: 40rpx; opacity: 0.7;
-}
-
-/* —— 地图统计行 —— */
-.dc-map-stats {
-  display: flex; align-items: center; gap: 24rpx;
-  margin-top: 20rpx;
-  background: var(--card-bg, var(--card)); border-radius: var(--card-r, 32rpx);
-  padding: 22rpx 28rpx;
-  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
-}
-.dc-stat { display: flex; align-items: baseline; gap: 8rpx; }
-.dc-stat-n { font-size: 44rpx; font-weight: 900; color: var(--primary); }
-.dc-stat-k { font-size: 22rpx; color: var(--text2); }
-.dc-stat-go { margin-left: auto; font-size: 22rpx; color: var(--primary); }
-
-/* —— 时间轴小标题 —— */
-.dc-time-head {
-  display: flex; align-items: baseline; gap: 16rpx;
-  padding: 32rpx 32rpx 16rpx;
-}
-.dc-time-head .dc-t { font-size: 30rpx; font-weight: 700; color: var(--text); }
-.dc-time-head .dc-s { font-size: 22rpx; color: var(--text2); }
-
-/* —— 时间轴分组（左小圆点 + 右内容） —— */
-.dc-time-grp {
-  display: flex; gap: 18rpx;
-  padding: 8rpx 32rpx 16rpx;
-}
-.dc-time-dot {
-  width: 16rpx; height: 16rpx; border-radius: 50%;
-  background: var(--primary);
-  margin-top: 14rpx;
-  box-shadow: 0 0 0 6rpx var(--soft);
-  flex: 0 0 16rpx;
-}
-.dc-time-body { flex: 1; min-width: 0; }
-.dc-time-label {
-  font-size: 26rpx; font-weight: 700; color: var(--text);
-  letter-spacing: 1rpx; margin-bottom: 12rpx;
-}
-.dc-time-card {
-  display: flex; align-items: center; gap: 18rpx;
-  margin-bottom: 14rpx;
-  padding: 18rpx 20rpx;
-  background: var(--card-bg, var(--card)); border-radius: var(--card-r, 28rpx);
-  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
-}
-.dc-time-thumb {
-  width: 84rpx; height: 84rpx; border-radius: 22rpx;
+/* ═══ ① 标题行 ═══ */
+.dc-head {
+  position: relative;
   display: flex; align-items: center; justify-content: center;
-  font-size: 38rpx;
-  flex: 0 0 84rpx;
-  background: var(--chip);
+  padding: 26rpx 28rpx 10rpx;
 }
-.dc-time-info { flex: 1; min-width: 0; }
-.dc-time-title { font-size: 26rpx; font-weight: 600; color: var(--text); }
-.dc-time-meta { margin-top: 4rpx; font-size: 20rpx; color: var(--text2); }
+.dc-title-wrap { position: relative; display: flex; align-items: center; gap: 14rpx; }
+.dc-title {
+  font-size: 48rpx; font-weight: 900; color: var(--text);
+  letter-spacing: 8rpx; line-height: 1.15;
+}
+.dc-title-spark { width: 30rpx; height: 30rpx; }
+.dc-title-spark-r { transform: scale(0.8); opacity: 0.8; }
+/* 手写标题下的玫瑰笔触 */
+.dc-title-brush {
+  position: absolute; left: 50%; bottom: -8rpx;
+  width: 200rpx; height: 10rpx; border-radius: 999rpx;
+  transform: translateX(-50%) rotate(-1.2deg);
+  background: var(--stamp, #C26B5E); opacity: 0.32;
+}
+.dc-brand {
+  position: absolute; right: 28rpx; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; gap: 8rpx;
+}
+.dc-brand-logo { width: 44rpx; height: 44rpx; border-radius: 12rpx; }
+.dc-brand-name { font-size: 24rpx; font-weight: 700; color: var(--text); letter-spacing: 1rpx; }
 
-.dc-time-more {
-  margin: 24rpx 32rpx 0; padding: 22rpx 0;
-  text-align: center; color: var(--primary);
-  background: var(--card-bg, var(--card)); border-radius: 999rpx;
-  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb), 0.06));
-  font-size: 24rpx; letter-spacing: 1rpx;
+/* ═══ ② 地图卡 ═══ */
+.dc-card {
+  margin: 20rpx 24rpx 0;
+  padding: 16rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 32rpx);
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb, 107, 91, 80), 0.06));
+}
+/* 稿子里卡片内还套了一圈虚线内框 —— 手账贴纸的「边界线」 */
+.dc-card-inner {
+  position: relative;
+  padding: 18rpx 0 0;
+  border: 2rpx dashed var(--border, #E2D9C7);
+  border-radius: 22rpx;
 }
 
-/* —— 0 票根空态 —— */
-.dc-empty-emoji { font-size: 96rpx; line-height: 1; }
+/* —— 卡面装饰：邮票 / 波浪 / 花枝 / 心 / 星点（纯装饰，位置固定，不随数据变） —— */
+.dc-stamp { position: absolute; }
+.dc-stamp-l { left: 22rpx; top: 22rpx; width: 128rpx; height: 150rpx; transform: rotate(-7deg); }
+.dc-stamp-r { right: 20rpx; bottom: 74rpx; width: 116rpx; height: 136rpx; transform: rotate(6deg); }
+.dc-wave { position: absolute; opacity: 0.55; }
+.dc-wave-l { left: 164rpx; top: 34rpx; width: 126rpx; height: 56rpx; }
+.dc-wave-r { right: 146rpx; bottom: 96rpx; width: 116rpx; height: 52rpx; }
 
-/* 票根类型缩略底色 + 类型标签（分类辅助色） */
-.dc-tag-show    { background: var(--soft); }
-.dc-tag-movie   { background: var(--cat-movie, var(--chip)); }
-.dc-tag-traffic { background: var(--cat-transport, var(--chip)); }
+.dc-sprig { position: absolute; width: 118rpx; height: 80rpx; opacity: 0.9; }
+.dc-sprig-a { left: 8rpx; top: 46%; }
+.dc-sprig-b { right: 6rpx; top: 58%; transform: scaleX(-1); }
+
+.dc-heart { position: absolute; width: 34rpx; height: 34rpx; opacity: 0.85; }
+.dc-heart-a { left: 170rpx; top: 112rpx; }
+.dc-heart-b { right: 36rpx; top: 39%; width: 40rpx; height: 40rpx; }
+
+.dc-star { position: absolute; width: 26rpx; height: 26rpx; opacity: 0.75; }
+.dc-star-a { left: 40rpx; top: 30%; }
+.dc-star-b { left: 68rpx; top: 70%; }
+.dc-star-c { right: 54rpx; top: 22%; }
+
+/* —— 地图舞台：三层严格同尺寸、同投影 —— */
+.dc-stage { position: relative; margin: 8rpx auto 0; }
+.dc-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+
+/* 城市单元：0 尺寸锚点，子元素各自相对「落点」定位 —— 落点即真实经纬度 */
+.dc-city { position: absolute; width: 0; height: 0; }
+
+/* 连接杆：气泡被避让顶开时，用它牵回落点 */
+.dc-stem {
+  position: absolute; left: 0; width: 3rpx; margin-left: -1.5rpx;
+  border-radius: 2rpx; opacity: 0.65;
+}
+
+/* 落点：白芯 + 气泡同色圆环 */
+.dc-pin {
+  position: absolute; left: 0; top: 0;
+  width: 22rpx; height: 22rpx; margin: -11rpx 0 0 -11rpx;
+  box-sizing: border-box;
+  border: 5rpx solid;
+  border-radius: 50%;
+  background: var(--card-bg, var(--card));
+  box-shadow: 0 2rpx 6rpx rgba(var(--text-rgb, 107, 91, 80), 0.2);
+}
+.dc-pin-name {
+  position: absolute; left: 0; top: 16rpx;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 20rpx; color: var(--text); letter-spacing: 1rpx;
+}
+
+/* 气泡：水彩实底 + 白字，尾巴用旋转方块（background: inherit 直接吃内联色） */
+.dc-bubble {
+  position: absolute; left: 0;
+  transform: translateX(-50%);
+  min-width: 96rpx;
+  padding: 10rpx 18rpx 12rpx;
+  border-radius: 26rpx;
+  display: flex; flex-direction: column; align-items: center;
+  box-shadow: 0 6rpx 16rpx rgba(var(--text-rgb, 107, 91, 80), 0.22);
+}
+.dc-bubble::after {
+  content: '';
+  position: absolute; left: 50%;
+  width: 15rpx; height: 15rpx; margin-left: -7.5rpx;
+  background: inherit;
+  border-radius: 2rpx;
+  transform: rotate(45deg);
+}
+.dc-bubble.up::after { bottom: -6rpx; }
+.dc-bubble.down::after { top: -6rpx; }
+/* 气泡文字恒为白色（压在水彩实底上）。白色是品牌常量、不是主题色，
+   和气泡底色一样由 JS 下发 —— WXSS 里只留字号字重，不出现十六进制。 */
+.dc-bubble-n { font-size: 26rpx; font-weight: 700; line-height: 1.2; }
+.dc-bubble-c { font-size: 21rpx; opacity: 0.85; line-height: 1.2; }
+
+/* —— 底部署名 —— */
+.dc-foot {
+  display: flex; align-items: center; gap: 10rpx;
+  padding: 14rpx 26rpx 20rpx;
+}
+.dc-foot-rule {
+  flex: 1; height: 2rpx; border-radius: 2rpx;
+  background: var(--border, #E2D9C7);
+}
+.dc-foot-spark { width: 20rpx; height: 20rpx; opacity: 0.7; }
+.dc-foot-txt {
+  font-size: 22rpx; color: var(--text2); letter-spacing: 1rpx;
+  white-space: nowrap;
+}
+
+/* ═══ ③ 空态 ═══ */
+.dc-empty {
+  display: flex; flex-direction: column; align-items: center;
+  margin: 24rpx 24rpx 0; padding: 40rpx 24rpx;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 32rpx);
+  box-shadow: var(--card-shadow, 0 8rpx 24rpx rgba(var(--text-rgb, 107, 91, 80), 0.06));
+}
+.dc-empty-ic { width: 96rpx; height: 96rpx; margin-bottom: 16rpx; }
+.dc-empty-t { font-size: 30rpx; font-weight: 700; color: var(--text); }
+.dc-empty-s { margin-top: 8rpx; font-size: 23rpx; color: var(--text2); }
+
+/* ═══ ④ 缺坐标提示 ═══ */
+.dc-tip {
+  margin: 16rpx 40rpx 0; text-align: center;
+  font-size: 21rpx; color: var(--text2); opacity: 0.8; line-height: 1.5;
+}
+
+/* ═══ ⑤ 城市票根面板 ═══ */
+.dc-mask {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.34);
+  z-index: 20;
+  animation: dc-fade 0.22s ease both;
+}
+@keyframes dc-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.dc-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 21;
+  max-height: 68vh;
+  display: flex; flex-direction: column;
+  background: var(--card-bg, var(--card));
+  border-radius: 34rpx 34rpx 0 0;
+  box-shadow: 0 -8rpx 32rpx rgba(var(--text-rgb, 107, 91, 80), 0.18);
+  transform: translateY(110%);
+  transition: transform 0.28s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+.dc-sheet.on { transform: translateY(0); }
+.dc-sheet-bar {
+  width: 68rpx; height: 8rpx; border-radius: 999rpx; margin: 14rpx auto 4rpx;
+  background: var(--border, #E2D9C7);
+}
+.dc-sheet-head {
+  display: flex; align-items: center; gap: 8rpx;
+  padding: 14rpx 28rpx 16rpx;
+  border-bottom: 2rpx solid var(--border, #E2D9C7);
+}
+.dc-sheet-pin { width: 30rpx; height: 30rpx; }
+.dc-sheet-city { font-size: 34rpx; font-weight: 900; color: var(--text); letter-spacing: 2rpx; }
+.dc-sheet-n { font-size: 22rpx; color: var(--text2); }
+.dc-sheet-x {
+  margin-left: auto; width: 56rpx; height: 56rpx;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--soft, #E9E2D4);
+}
+.dc-sheet-x-ic { width: 26rpx; height: 26rpx; }
+
+.dc-sheet-body { flex: 1; min-height: 0; padding: 12rpx 24rpx 0; }
+.dc-row {
+  display: flex; align-items: center; gap: 18rpx;
+  padding: 16rpx 16rpx;
+  margin-bottom: 12rpx;
+  border-radius: 24rpx;
+  background: var(--soft, #E9E2D4);
+}
+.dc-row-ic {
+  flex: 0 0 76rpx; width: 76rpx; height: 76rpx; border-radius: 22rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.dc-row-ic-img { width: 38rpx; height: 38rpx; }
+.dc-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }
+.dc-row-title {
+  font-size: 27rpx; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dc-row-meta {
+  font-size: 21rpx; color: var(--text2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dc-row-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; }
