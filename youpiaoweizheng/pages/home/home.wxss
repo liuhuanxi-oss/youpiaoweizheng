@@ -2,7 +2,6 @@
    颜色一律读 --*；写死的十六进制只允许出现在 var(--x, #兜底) 里。
    齿边卡片的 viewBox 尺寸由 home.js 编译，与这里的盒子必须一致：
    .hc-card 310×240。 */
-.tk-page { position: relative; }
 
 /* —— 品牌行 —— */
 .hc-head {
