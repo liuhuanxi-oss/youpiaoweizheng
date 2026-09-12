@@ -252,7 +252,9 @@ t('共同场次 / 共同城市的口径来自 duoData，本页不自己拼键', 
 });
 t('合并数据带 img（票根卡的照片），云函数与演示两条路都要有', () => {
   ok((duoData.match(/img: t\.img \|\| ''/g) || []).length === 2, 'duoData 的两条分支没都补 img');
-  ok(/img: t\.img \|\| '',\s*\/\/ 稿屏10/.test(cloudFn), '云函数 duoStats 没补 img');
+  // 只在 duoStatsAction 内部找，不钉注释位置（7.0.1 把行尾注释挪到了字段上方，钉注释=假报警）
+  const duoFn = cloudFn.slice(cloudFn.indexOf('async function duoStatsAction'), cloudFn.indexOf('async function eventStatsAction'));
+  ok(/img: t\.img \|\| ''/.test(duoFn), '云函数 duoStats 没补 img');
   ok(/img: t\.img \|\| ''/.test(jsClean), '本页没把 img 传进卡面');
 });
 t('转发带邀请码直达绑定页', () => {
