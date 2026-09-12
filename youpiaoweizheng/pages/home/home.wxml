@@ -1,131 +1,153 @@
-<!-- pages/home/home.wxml —— v6.4 时光档案墙（品牌全案 · 小程序核心三屏之一）
-     结构：logo+名称+个人中心 → 问候语+星光 → 搜索框 → 分类 chips → 2 列瀑布流票卡
-     配色：品牌 7 色（奶油白 #FAF5EE 底 / 灰玫粉 #D9A0A6 选中 / 邮政红 #C26B5E 点缀）
-     邮戳/齿孔/胶带/波浪线/星点 = app.wxss 品牌辅助图形公共类（b-*） -->
+<!-- 票根卡：左右两列共用同一段模板（旧版把这段抄了两遍，改一处必漏一处） -->
+<template name="hcTicket">
+  <view
+    class="hc-card"
+    data-id="{{item.id}}"
+    bindtap="goDetail"
+    aria-role="button"
+    aria-label="查看票根 {{item.title}}"
+  >
+    <image class="hc-card-bg" src="{{art.card}}" mode="aspectFit" aria-hidden="true" />
+
+    <!-- 右上角邮戳：圆环与注销线是图形，城市与年月是真文本叠上去的
+         （弧排文字在小程序里做不到，硬塞进 SVG 又会遇到中文字形回落，见 utils/deco.js） -->
+    <view class="hc-pm">
+      <image class="hc-pm-ring" src="{{art.pmRing}}" mode="aspectFit" aria-hidden="true" />
+      <image class="hc-pm-wave" src="{{art.pmWave}}" mode="aspectFit" aria-hidden="true" />
+      <view class="hc-pm-in">
+        <text class="hc-pm-city">{{item.stampCity}}</text>
+        <text class="hc-pm-year">{{item.stampYear}}</text>
+      </view>
+    </view>
+
+    <!-- 卡顶那排小圆点：稿里的印刷装饰，不承载数据 -->
+    <view class="hc-card-dots" aria-hidden="true">
+      <view class="hc-card-dot is-on"></view>
+      <view class="hc-card-dot"></view>
+      <view class="hc-card-dot is-on"></view>
+      <view class="hc-card-dot"></view>
+      <view class="hc-card-dot"></view>
+    </view>
+
+    <view class="hc-shot">
+      <view class="hc-shot-frame">
+        <image wx:if="{{item.img}}" class="hc-shot-img" src="{{item.img}}" mode="aspectFill" lazy-load />
+        <image wx:else class="hc-shot-fb" src="{{item.ico}}" mode="aspectFit" aria-hidden="true" />
+      </view>
+      <!-- 照片角上那朵小白花与支出来的一枝绿叶（探出照片外，所以裁圆角的是内层 frame） -->
+      <image class="hc-shot-bloom" src="{{art.bloom}}" mode="aspectFit" aria-hidden="true" />
+      <image class="hc-shot-sprig" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+    </view>
+
+    <view class="hc-title serif">{{item.title}}</view>
+
+    <view class="hc-meta">
+      <image class="hc-meta-ic" src="{{ic.pin}}" mode="aspectFit" aria-hidden="true" />
+      <text class="hc-meta-t">{{item.city || '未记地点'}} · {{item.dateText}}</text>
+      <view
+        class="hc-fav"
+        catchtap="toggleFav"
+        data-id="{{item.id}}"
+        hover-class="press-hover"
+        aria-role="button"
+        aria-label="{{item.fav ? '取消收藏' : '收藏这张票根'}}"
+      >
+        <image class="hc-fav-ic" src="{{item.fav ? ic.heartOn : ic.heartOff}}" mode="aspectFit" aria-hidden="true" />
+      </view>
+    </view>
+  </view>
+</template>
+
 <view class="tk-page theme-{{theme}}">
-<scroll-view
-  class="fa-scroll"
-  scroll-y
-  enhanced
-  show-scrollbar="{{false}}"
-  refresher-enabled
-  refresher-default-style="none"
-  refresher-background="transparent"
-  bindrefresherrefresh="onPullDownRefresh"
->
+  <!-- 4.10.1 重装饰层：纸面噪点 -->
+  <view class="grain"></view>
 
-  <!-- ===== 顶部：logo + 名称 + 个人中心 ===== -->
-  <view class="fa-head">
-    <image class="fa-logo" src="/images/brand-logo.png" mode="aspectFill"/>
-    <text class="fa-brand">有票为证</text>
-    <view class="fa-user" bindtap="goProfile" hover-class="press-item-hover" aria-role="button" aria-label="个人中心">
-      <view class="fa-user-ico"></view>
+  <!-- ============ 品牌行：logo + 有票为证 + 个人中心 ============ -->
+  <view class="hc-head">
+    <view class="hc-logo">
+      <image class="hc-logo-img" src="/images/brand-logo.png" mode="aspectFit" aria-hidden="true" />
+    </view>
+    <text class="hc-brand serif">有票为证</text>
+    <view class="hc-user" bindtap="goProfile" hover-class="press-item-hover" aria-role="button" aria-label="个人中心">
+      <image class="hc-user-ic" src="{{ic.brand}}" mode="aspectFit" aria-hidden="true" />
     </view>
   </view>
 
-  <!-- ===== 问候语（手写风两行 + 星光） ===== -->
-  <view class="fa-greet">
-    <view class="fa-greet-txt hand">
-      <text>愿这些票根，</text>
-      <text>都是你热爱生活的证据</text>
+  <!-- ============ 问候语：左侧花枝、右侧金星与波浪 ============ -->
+  <view class="hc-greet">
+    <image class="hc-greet-daisy" src="{{art.daisy}}" mode="aspectFit" aria-hidden="true" />
+    <view class="hc-greet-txt hand">
+      <text class="hc-greet-l1">愿这些票根，</text>
+      <view class="hc-greet-l2">
+        <text class="hc-greet-t">都是你热爱生活的证据</text>
+        <image class="hc-greet-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+      </view>
     </view>
-    <text class="b-spark fa-greet-star">✦</text>
+    <image class="hc-greet-wave" src="{{art.wave}}" mode="aspectFit" aria-hidden="true" />
   </view>
 
-  <!-- ===== 搜索框（点击 → 票夹页搜索） ===== -->
-  <view class="fa-search" bindtap="goSearch" hover-class="press-item-hover" aria-role="searchbox" aria-label="搜索票根">
-    <view class="fa-search-ico"></view>
-    <text class="fa-search-ph">搜索演出、电影、城市...</text>
+  <!-- ============ 搜索 ============ -->
+  <view class="hc-search" bindtap="goSearch" hover-class="press-hover" aria-role="searchbox" aria-label="搜索票根">
+    <image class="hc-search-ic" src="{{ic.search}}" mode="aspectFit" aria-hidden="true" />
+    <text class="hc-search-ph">搜索演出、电影、城市...</text>
   </view>
 
-  <!-- ===== 分类 chips（演出/电影/交通/旅行，选中灰玫粉实底） ===== -->
-  <view class="fa-chips">
+  <!-- ============ 分类胶囊 ============ -->
+  <view class="hc-chips">
     <view
+      class="hc-chip {{active === item.key ? 'on' : ''}}"
       wx:for="{{filters}}"
       wx:key="key"
-      class="fa-chip {{active === item.key ? 'on' : ''}}"
-      hover-class="press-item-hover"
-      bindtap="onFilter"
       data-key="{{item.key}}"
+      bindtap="onFilter"
+      hover-class="press-hover"
       aria-role="button"
-      aria-label="{{item.name}}"
+      aria-label="{{item.name}}分类"
     >
-      <image class="fa-chip-ico" src="{{active === item.key ? item.srcOn : item.srcOff}}" mode="aspectFit" />
-      <text>{{item.name}}</text>
+      <image class="hc-chip-ic" src="{{active === item.key ? item.srcOn : item.srcOff}}" mode="aspectFit" aria-hidden="true" />
+      <text class="hc-chip-t">{{item.name}}</text>
     </view>
   </view>
 
-  <!-- ===== 2 列瀑布流票卡（数据到位 → 200ms 淡入替换骨架） ===== -->
-  <view class="fa-masonry fade-in-200" wx:if="{{!loading && (colA.length || colB.length)}}">
-    <view class="fa-col">
-      <view class="fa-card" wx:for="{{colA}}" wx:key="idx" bindtap="goDetail" data-id="{{item.id}}" hover-class="press-item-hover">
-        <view class="fa-cover">
-          <image wx:if="{{item.img}}" src="{{item.img}}" mode="aspectFill" class="fa-cover-img" lazy-load/>
-          <view wx:else class="fa-cover-fb fa-cat-{{item.type}}"><text>{{item.icon}}</text></view>
-          <view class="b-stamp fa-stamp">
-            <view class="b-stamp-in">
-              <text class="b-stamp-city">{{item.stampCity}}</text>
-              <text class="b-stamp-date">{{item.stampD}}</text>
-              <text class="b-stamp-date">{{item.stampMY}}</text>
-            </view>
-          </view>
-          <view class="fa-no"><text class="fa-no-heart">♥</text><text>{{item.idx}}</text></view>
-        </view>
-        <view class="fa-title">{{item.title}}</view>
-        <view class="fa-meta">
-          <text class="fa-meta-loc">📍 {{item.city || '未记地点'}} · {{item.dateText}}</text>
-          <text class="fa-heart {{item.fav ? 'on' : ''}}" catchtap="toggleFav" data-id="{{item.id}}">{{item.fav ? '♥' : '♡'}}</text>
-        </view>
+  <!-- ============ 票根墙：两列 ============ -->
+  <view class="hc-grid" wx:if="{{!loading && (colA.length || colB.length)}}">
+    <view class="hc-col">
+      <block wx:for="{{colA}}" wx:key="id">
+        <template is="hcTicket" data="{{item: item, art: art, ic: ic}}" />
+      </block>
+    </view>
+    <view class="hc-col">
+      <block wx:for="{{colB}}" wx:key="id">
+        <template is="hcTicket" data="{{item: item, art: art, ic: ic}}" />
+      </block>
+    </view>
+  </view>
+
+  <!-- ============ 骨架屏 ============ -->
+  <view class="hc-grid" wx:if="{{loading}}">
+    <view class="hc-col">
+      <view class="hc-sk-card" wx:for="{{[1,2,3]}}" wx:key="*this">
+        <view class="hc-sk-shot tk-skeleton"></view>
+        <view class="hc-sk-title tk-skeleton"></view>
+        <view class="hc-sk-meta tk-skeleton"></view>
       </view>
     </view>
-    <view class="fa-col">
-      <view class="fa-card" wx:for="{{colB}}" wx:key="idx" bindtap="goDetail" data-id="{{item.id}}" hover-class="press-item-hover">
-        <view class="fa-cover">
-          <image wx:if="{{item.img}}" src="{{item.img}}" mode="aspectFill" class="fa-cover-img" lazy-load/>
-          <view wx:else class="fa-cover-fb fa-cat-{{item.type}}"><text>{{item.icon}}</text></view>
-          <view class="b-stamp fa-stamp">
-            <view class="b-stamp-in">
-              <text class="b-stamp-city">{{item.stampCity}}</text>
-              <text class="b-stamp-date">{{item.stampD}}</text>
-              <text class="b-stamp-date">{{item.stampMY}}</text>
-            </view>
-          </view>
-          <view class="fa-no"><text class="fa-no-heart">♥</text><text>{{item.idx}}</text></view>
-        </view>
-        <view class="fa-title">{{item.title}}</view>
-        <view class="fa-meta">
-          <text class="fa-meta-loc">📍 {{item.city || '未记地点'}} · {{item.dateText}}</text>
-          <text class="fa-heart {{item.fav ? 'on' : ''}}" catchtap="toggleFav" data-id="{{item.id}}">{{item.fav ? '♥' : '♡'}}</text>
-        </view>
+    <view class="hc-col">
+      <view class="hc-sk-card" wx:for="{{[4,5,6]}}" wx:key="*this">
+        <view class="hc-sk-shot tk-skeleton"></view>
+        <view class="hc-sk-title tk-skeleton"></view>
+        <view class="hc-sk-meta tk-skeleton"></view>
       </view>
     </view>
   </view>
 
-  <!-- 加载骨架（v6.6.0 动效3：与 fa-card 像素级一致——同 padding/圆角/两列栅格，
-       照片区 380rpx（照片卡）/320rpx（分类兜底卡）交替，标题行+地点行同高；数据到位 fade-in-200 替换） -->
-  <view class="fa-sk" wx:if="{{loading}}">
-    <view class="fa-col">
-      <view class="fa-sk-card" wx:for="{{[1,2]}}" wx:key="*this">
-        <view class="fa-sk-cover {{index === 0 ? '' : 'short'}} tk-skeleton"></view>
-        <view class="fa-sk-title tk-skeleton"></view>
-        <view class="fa-sk-meta tk-skeleton"></view>
-      </view>
-    </view>
-    <view class="fa-col">
-      <view class="fa-sk-card" wx:for="{{[3,4]}}" wx:key="*this">
-        <view class="fa-sk-cover {{index === 0 ? 'short' : ''}} tk-skeleton"></view>
-        <view class="fa-sk-title tk-skeleton"></view>
-        <view class="fa-sk-meta tk-skeleton"></view>
-      </view>
-    </view>
+  <!-- ============ 空态：这一分类还没票 ============ -->
+  <view class="tk-empty hc-empty" wx:if="{{!loading && !colA.length && !colB.length}}">
+    <image class="hc-empty-ic" src="{{ic.emptyIc}}" mode="aspectFit" aria-hidden="true" />
+    <view class="hc-empty-t">这里还没贴上票根</view>
+    <view class="hc-empty-s">拍一张，让它成为这一页的第一张</view>
+    <view class="hc-empty-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="拍一张票根">拍一张票根</view>
   </view>
 
-  <!-- 空态 -->
-  <view class="tk-empty fa-empty" wx:if="{{!loading && !colA.length && !colB.length}}">
-    <text class="tk-empty-title">还没有这类票根</text>
-    <view class="tk-empty-cta pressable" bindtap="goScan" hover-class="press-item-hover" aria-role="button" aria-label="去拍一张">📷 去拍一张</view>
-  </view>
-
-  <view class="tk-safe-bottom"></view>
-</scroll-view>
+  <view class="hc-foot-space"></view>
 </view>

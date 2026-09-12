@@ -232,6 +232,29 @@ const DECO = {
     }
     s += '<circle cx="62" cy="46" r="3.2" ' + fillOf(core, '#F6DFA8', 0.9) + '/>';
     return s;
+  },
+
+  // ——— 首页票根墙（稿屏2）：照片角上那一小朵花 ———
+  // 稿里每张票根卡的照片左下角都压着一朵小白花、右边支着一片叶子。
+  // 和 daisy 的差别只在"没有主茎、只有一个花头"，所以不复用它改参数 —— 参数一多就没人看得懂了。
+  bloom: (c) => {
+    const petal = c.paper || '#FFFDF8';
+    const leaf = c.leaf || '#A9C3A6';
+    const core = c.core || '#EFB7AE';
+    const edge = c.text || '#6B5B50';
+    let s =
+      // 短茎 + 一片叶
+      '<path d="M24 52Q25 40 24 30" fill="none" ' + strokeOf(leaf, '#A9C3A6', 1.6, '') + ' stroke-linecap="round"/>' +
+      '<path d="M25 42Q14 41 9 33Q21 32 26 39Z" ' + fillOf(leaf, '#A9C3A6', 0.7) + '/>';
+    // 5 片花瓣绕中心
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 72 - 90) * Math.PI / 180;
+      const x = round2(24 + Math.cos(a) * 8), y = round2(18 + Math.sin(a) * 8);
+      s += '<ellipse cx="' + x + '" cy="' + y + '" rx="6.2" ry="4.4" transform="rotate(' + (i * 72) + ' ' + x + ' ' + y + ')" ' +
+        'fill="' + petal + '" stroke="' + edge + '" stroke-opacity="0.2" stroke-width="0.8"/>';
+    }
+    s += '<circle cx="24" cy="18" r="4.2" ' + fillOf(core, '#EFB7AE') + '/>';
+    return s;
   }
 };
 
@@ -246,7 +269,8 @@ const DECO_VIEWBOX = {
   wavelines: '0 0 64 28',
   heartsmall: '0 0 32 32',
   star4: '0 0 32 24',
-  daisy: '0 0 80 104'
+  daisy: '0 0 80 104',
+  bloom: '0 0 48 56'
 };
 const DECO_VIEWBOX_DEFAULT = '0 0 64 44';
 
