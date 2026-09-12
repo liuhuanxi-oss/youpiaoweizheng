@@ -7,7 +7,7 @@
 |---|---|
 | `youpiaoweizheng/` | **小程序工程本体** —— 微信开发者工具打开这个目录，上传发版也是它 |
 | `有票为证最新品牌全案设计/` | 品牌全案与精修 10 屏设计稿（`精修/` 子目录），改版按它对稿 |
-| `docs/` | 需求基线 `PRD.md` ＋ 项目体检报告 `HEALTH.md` ＋ 代码审查报告 `REVIEW.md` |
+| `docs/` | 需求基线 `PRD.md` ＋ 架构与数据流 `ARCH.md` ＋ 项目体检报告 `HEALTH.md` ＋ 代码审查报告 `REVIEW.md` |
 | 根目录其余文件 | 品牌素材（logo / 海报 / 参考图）与早期方案文档，**不计入小程序包** |
 
 ## 接手先读（顺序别乱）
@@ -15,6 +15,8 @@
 1. [youpiaoweizheng/README.md](youpiaoweizheng/README.md) —— 当前版本、里程碑、如何跑起来
 2. [youpiaoweizheng/CODEBUDDY.md](youpiaoweizheng/CODEBUDDY.md) —— **项目宪法**：技术栈 / 多主题系统 / 禁区 / 编码规范（AI 改动前必读）
 3. [youpiaoweizheng/CHANGELOG.md](youpiaoweizheng/CHANGELOG.md) —— 版本史，**最新一条就是最近做了什么**
+4. [docs/ARCH.md](docs/ARCH.md) —— 架构与数据流：页面 → 数据层 → 云函数 → 集合，改东西动哪个文件
+5. [docs/PRD.md](docs/PRD.md) —— 需求基线：做什么、给谁做、优先级
 
 ## 跑起来 / 跑测试
 
