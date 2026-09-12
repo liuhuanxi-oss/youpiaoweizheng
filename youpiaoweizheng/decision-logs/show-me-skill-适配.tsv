@@ -20,3 +20,4 @@ ts	phase	decision	why	evidence	result
 2026-09-12T09:05:00Z	verify	发现并记录合并版边缘行为：verify_unpaid 终态单不可被 CAS 复活发货	微信推送先于状态可见的时序里查单可能瞬时 unpaid；保守不复活是对的（payConfirm/对账仍可救真实支付），但需在交付说明标注	verify_unpaid 不在 CAS 白名单	documented
 2026-09-12T09:44:00Z	push	三文件推入 main：index.js(e48d28ac) pay.js(ffb343f1) package.json(7460d2e6)	index.js 曾在 push_files 中因同 path 双子项被后段覆盖，须走全量单子项重推；其余两文件一次成功	commit 81f96aa + f006f20，远程 blob SHA 与本地 git hash-object 逐一比对一致	adopted
 2026-09-12T09:44:20Z	deploy	saveTicket 7.0.1 部署至 cloud1-d5gpnyzjw64a60ac7	合并版六项语义已本地 163 断言通过，须落到线上才算交付	miniprogram-ci cloud.uploadFunction → DEPLOY-SUCCESS {"filesCount":9,"packSize":41146}，云函数状态 Active	adopted
+2026-09-12T09:54:16Z	upload	小程序 v7.0.1 开发版本上传微信后台（6.6.2~7.0.1 前端积压 43 文件首发）	6.6.4/6.6.5 两轮只部署了云函数，前端停在 6.6.1；P0 级前端修复（等级显示/隐私授权/日期渲染）用户真机一直看不到	miniprogram-ci upload：95 文件 / zip 517693B / robot 1 / 上传成功，待后台提交审核发布	adopted
