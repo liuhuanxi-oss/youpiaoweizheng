@@ -13,12 +13,40 @@ const track = require('../../utils/track.js'); // 4.19.0：图版埋点（art_ge
 const { USE_CLOUD } = require('../../utils/env.js');
 const pay = require('../../utils/pay.js'); // 4.20.0：额度查询 + 次数包购买
 const ads = require('../../utils/ads.js'); // 4.21.0：激励视频（流量主变现：看视频免费补 1 幅）
+const { iconSrc } = require('../../utils/icons.js');
+const deco = require('../../utils/deco.js');
 
 const LS_QUOTA = 'sp_art_quota'; // { ym: 'YYYY-MM', used: n }
 const LS_TOTAL = 'sp_art_total'; // 藏品编号（全局第几幅，跳号不回收）
 const FREE_PER_MONTH = 3;
 const POLL_MS = 4000;            // 轮询间隔
 const POLL_MAX = 40;             // 40 × 4s ≈ 160s 上限（生图 10-60s，余量充足）
+
+/**
+ * 重绘卡内框尺寸（rpx）。
+ * 齿边描边是**贴着框边走一圈**的闭合线 —— 框的比例一变，齿就得跟着重算，
+ * 否则 <image> 的 aspectFit 会先等比缩放再居中，齿孔线立刻偏离框边。
+ * 所以宽高由这里下发、WXSS 里写死同样的数，两边由 tests/art_repaint.test.js 盯着。
+ */
+const FRAME_W = 586;   // 卡宽 630 − 左右各 22 的内边距
+const FRAME_H = 330;
+
+/**
+ * 品牌固定色：金（星点 / 齿边）与玫瑰粉（标题左侧那颗星）。
+ * 它们是「印上去的油墨」不是主题色 —— 六套主题下这几颗星的色相不变，
+ * 故不读主题变量，由 JS 编译成实色（WXSS 里不许出现十六进制）。
+ */
+const GOLD = '#E2B85C';
+const ROSE = '#E0A3AB';
+/**
+ * 花枝的叶与花：稿屏5 的花枝是**绿的叶 + 粉的花**，六套主题下都这色。
+ * 花枝和胶带一样是「插画里的实物」——不跟着主题换色相，故直接取品牌标准色的
+ * 鼠尾草绿与玫瑰粉（app.wxss 的 --sage / --rose 就是这个值）。
+ */
+const LEAF = '#A9C3A6';
+const PETAL = '#E8AFA8';
+/** 主按钮（玫瑰底）上的图标色：SVG 不认 CSS 变量，只能把实色写死在这里 */
+const ON_ROSE = '#FFF8F2';
 
 function ymNow() {
   const d = new Date();
@@ -44,10 +72,56 @@ Page({
     msg: '',
     imgUrl: '',       // 生成图临时 URL（展示 + Canvas 合成共用，24h 有效）
     saving: false,
-    waiting: false    // artRestyle 已发出（防重复点击）
+    waiting: false,   // artRestyle 已发出（防重复点击）
+    // —— 稿屏5：主/次按钮的文案随 phase 走。
+    //    做成 phase → 文案的映射表，是为了让散落各处的 setData({phase}) 不用逐个补文案，
+    //    漏一处就会出现「正在作画中，按钮还写着保存重绘」。 ——
+    ctaText: {
+      loading: '载入中…', idle: '为它画一幅图版', failed: '再画一次',
+      running: '正在作画…', done: '保存重绘'
+    },
+    subText: {
+      loading: '返回详情', idle: '返回详情', failed: '返回详情',
+      running: '先返回详情', done: '再画一张'
+    },
+    ic: {},  // 单色图标（主题色，buildArt 编译）
+    art: {}  // 装饰图形（花枝 / 波浪 / 星点 / 齿边画框 / 花邮票，buildArt 编译）
   },
 
-  onShow() { themeUtil.apply(this); },
+  onShow() {
+    themeUtil.apply(this);
+    this.buildArt();
+  },
+
+  /** 按当前主题把这一页要用的图形全部编译成实色 data-uri（主题切换后必须重编） */
+  buildArt() {
+    const m = themeUtil.getThemeMeta(themeUtil.getTheme());
+    const gold = Object.assign({}, m, { accent: GOLD });
+    const rose = Object.assign({}, m, { accent: ROSE });
+    this.setData({
+      art: {
+        sprig: deco.decoSrc('sprig', Object.assign({}, m, { primary: LEAF, accent: PETAL })),
+        // 注销波浪是「邮戳的墨」不是「正文的字」，用 text2 而不是 primary——
+        // 纸感主题的 primary 近乎全黑，画出来是四道黑板子，而不是稿里那几笔暖褐
+        wave: deco.decoSrc('wavelines', Object.assign({}, m, { primary: m.text2 })),
+        star: deco.decoSrc('star4', gold),
+        sparkPink: deco.decoSrc('star4', rose),
+        frame: deco.artFrame(m, FRAME_W, FRAME_H, GOLD),
+        stamp: deco.flowerStamp(Object.assign({}, m, {
+          soft: '#FBE3E7', primary: '#D98E9B', petal: '#E8AFA8', center: GOLD
+        }))
+      },
+      ic: {
+        ticket: iconSrc('ticket', m.text, 0.3, 1.4),
+        camera: iconSrc('camera', m.text, 0.3, 1.4),
+        wand: iconSrc('wand', m.accent, 0.9),
+        starIc: iconSrc('sparkle', m.accent, 0.8),
+        download: iconSrc('download', ON_ROSE, 0, 1.8),
+        play: iconSrc('play', m.accent, 0.9, 1.8),
+        chevron: iconSrc('chevron', m.text2, 0.7)
+      }
+    });
+  },
 
   async onLoad(options) {
     const id = (options && options.id) || '';
@@ -358,6 +432,24 @@ Page({
 
   /** done → 换一张：重新作画（同样扣额度，新图会替换票根上的图版） */
   again() { this.setData({ phase: 'idle', msg: '' }); },
+
+  /**
+   * 主按钮（稿屏5 那颗玫瑰胶囊）：
+   *   画完 = 保存重绘 → save()；没画 = 为它画一幅图版 → start()；
+   *   作画中/载入中 = 空转（按钮同时是 .dis 视觉态，点它不该有反应）。
+   */
+  onCta() {
+    const p = this.data.phase;
+    if (p === 'done') return this.save();
+    if (p === 'idle' || p === 'failed') return this.start();
+    return undefined;
+  },
+
+  /** 次按钮：画完是「再画一张」，其余状态是「返回详情」 */
+  onSub() {
+    if (this.data.phase === 'done') return this.again();
+    return this.goBack();
+  },
 
   goBack() {
     wx.navigateBack({

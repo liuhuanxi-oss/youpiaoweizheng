@@ -1,204 +1,226 @@
-/* 4.19.0 票根博物志 —— 纸质博物馆风（v6.5 六主题令牌变量化） */
+/* pages/art/art.wxss —— AI 艺术重绘（品牌全案 · 稿屏5 一比一）
+   六主题变量化：颜色一律读 --*；写死的十六进制只允许出现在 var(--x, #兜底) 里。
+   品牌固定色（金星 / 玫瑰星 / 齿边墨 / 花邮票）不在这里，由 art.js 随图形一起下发。 */
+.ar-page { min-height: 100vh; }
+.ar-scroll { height: 100vh; }
+.ar-wrap { position: relative; padding: 0 60rpx 20rpx; }
 
-/* 根容器：随 6 套主题换底/换字（paper/glass/collage/literary/minimal 浅底，film 深底） */
-page { background: var(--bg, var(--paper)); }
-.page { background: var(--bg, var(--paper)); color: var(--text, var(--ink)); }
+/* ═══ ① 题头 ═══ */
+.ar-head { position: relative; padding: 30rpx 0 0; }
+.ar-title-wrap { position: relative; display: flex; align-items: center; justify-content: center; gap: 16rpx; }
+.ar-title {
+  font-size: 46rpx; font-weight: 900; color: var(--text);
+  letter-spacing: 6rpx; line-height: 1.25;
+}
+/* 四角星（deco.star4 的 viewBox 是 32×24，宽高比 4:3） */
+.ar-spark { width: 28rpx; height: 21rpx; }
+.ar-spark.is-r { transform: scale(0.86); }
+.ar-brush {
+  position: absolute; left: 50%; bottom: -4rpx;
+  width: 150rpx; height: 9rpx; border-radius: 999rpx;
+  background: var(--stamp, #C26B5E); opacity: 0.35;
+  transform: translateX(-50%) rotate(-1.4deg);
+}
+/* 题头两侧的手绘点缀：左上花枝、右上注销波浪，各探出内边距一点，贴着屏幕边 */
+.ar-deco-sprig { position: absolute; left: -40rpx; bottom: -36rpx; width: 96rpx; height: 64rpx; }
+.ar-deco-wave { position: absolute; right: -34rpx; bottom: -32rpx; width: 98rpx; height: 43rpx; transform: rotate(-8deg); opacity: 0.7; }
 
-.wrap { padding: 0 32rpx 80rpx; }
-
-/* —— 题头 —— */
-.head { padding: 30rpx 8rpx 0; }
-.h-title {
-  font-size: 46rpx;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 3rpx;
-}
-.h-sub { margin-top: 10rpx; font-size: 24rpx; color: var(--text2); }
-/* 4.21.0 额度可视化：免费 3 格印章格（实心=已用）——额度先被看见，才被珍惜 */
-.quota {
-  display: inline-flex;
-  align-items: center;
-  gap: 14rpx;
-  flex-wrap: wrap;
-  margin-top: 22rpx;
-  font-size: 22rpx;
-  color: var(--accent);
-  background: var(--soft);
-  border: 1rpx solid var(--border);
-  border-radius: 999rpx;
-  padding: 8rpx 24rpx;
-}
-.q-pips { display: inline-flex; gap: 8rpx; align-items: center; }
-.pip {
-  width: 18rpx;
-  height: 18rpx;
-  border-radius: 50%;
-  border: 2rpx solid var(--accent); /* 空心 = 可用 */
-  background: transparent;
-}
-.pip.used {
-  background: var(--accent); /* 实心 = 已用（印章落下） */
-  border-color: var(--accent);
-}
-.q-paid {
-  font-size: 20rpx;
-  color: var(--accent);
-  background: var(--chip);
-  border-radius: 999rpx;
-  padding: 4rpx 14rpx;
-}
-.q-txt { font-size: 22rpx; }
-
-/* —— 4.21.0 品牌化付费墙（bottom-sheet 内容区）—— */
-.pw { padding: 8rpx 8rpx 20rpx; }
-.pw-plate {
-  border: 2rpx dashed var(--border);
-  border-radius: var(--card-r, 20rpx);
-  background: var(--soft);
-  padding: 40rpx 30rpx;
-  text-align: center;
-}
-.pw-plate-t { margin-top: 10rpx; font-size: 32rpx; font-weight: 700; color: var(--text); letter-spacing: 4rpx; }
-.pw-plate-d { margin-top: 10rpx; font-size: 23rpx; color: var(--text2); line-height: 1.7; }
-.pw-opt {
-  margin-top: 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 26rpx 28rpx;
-  border-radius: var(--card-r, 20rpx);
-  background: var(--card-bg, var(--card));
-  border: 2rpx solid var(--border);
-}
-.pw-opt.pw-buy { border-color: var(--accent); } /* 主推出路：品牌描边 */
-.pw-opt-t { font-size: 27rpx; font-weight: 600; color: var(--text); }
-.pw-opt-s { margin-top: 6rpx; font-size: 21rpx; color: var(--text2); }
-.pw-go { font-size: 34rpx; color: var(--text2); line-height: 1; }
-.pw-go.accent { color: var(--accent); font-weight: 700; }
-.pw-note { margin-top: 20rpx; text-align: center; font-size: 20rpx; color: var(--text2); letter-spacing: 2rpx; }
-
-.stage { padding: 30rpx 0 20rpx; }
-
-/* —— idle：空白画框（虚线卡纸感） —— */
-.plate-blank {
-  border: 2rpx dashed var(--border);
-  border-radius: var(--card-r, 24rpx);
-  background: var(--card-bg, var(--card));
-  padding: 88rpx 44rpx;
-  text-align: center;
-}
-.pb-star { font-size: 46rpx; color: var(--accent); }
-.pb-t { margin-top: 18rpx; font-size: 38rpx; font-weight: 700; color: var(--text); letter-spacing: 4rpx; }
-.pb-d { margin-top: 16rpx; font-size: 25rpx; color: var(--text2); line-height: 1.9; }
-.pb-no { margin-top: 26rpx; font-size: 21rpx; color: var(--text2); letter-spacing: 3rpx; }
-
-.fail-msg {
-  margin-top: 26rpx;
-  font-size: 24rpx;
-  color: var(--stamp);
-  line-height: 1.7;
-  text-align: center;
-}
-
-.btn-main { margin-top: 42rpx; }
-.btn-main.dis { opacity: 0.6; }
-.btn-sub {
-  margin-top: 24rpx;
-  text-align: center;
-  font-size: 25rpx;
-  color: var(--text2);
-  padding: 12rpx 0;
-}
-
-/* —— running：作画中 —— */
-.painting {
+/* ═══ ② 卡片公共：白卡 + 从顶边探出的玫瑰标签 ═══ */
+.ar-card {
   position: relative;
-  height: 560rpx;
-  border-radius: var(--card-r, 24rpx);
+  padding: 34rpx 22rpx 26rpx;
   background: var(--card-bg, var(--card));
-  border: 2rpx solid var(--border);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 24rpx;
+  box-shadow: 0 14rpx 34rpx rgba(var(--text-rgb, 107, 91, 80), 0.14);
 }
-.halo {
-  position: absolute;
-  width: 340rpx;
-  height: 340rpx;
-  border-radius: 50%;
+.ar-card-src { margin-top: 52rpx; }
+.ar-card-art { margin-top: 0; padding: 22rpx; }
+.ar-tab {
+  position: absolute; left: 18rpx; top: -22rpx;
+  padding: 10rpx 26rpx; border-radius: 16rpx;
+  background: var(--rose, #D9A0A6); color: var(--on-primary, #F5F0E6);
+  font-size: 28rpx; font-weight: 700; letter-spacing: 3rpx; line-height: 1.2;
+  box-shadow: 0 6rpx 16rpx rgba(var(--text-rgb, 107, 91, 80), 0.18);
+}
+
+/* 原票根照片：contain 完整呈现（与「图归图」导出口径一致，不裁切票根） */
+.ar-photo {
+  height: 300rpx; border-radius: 14rpx; overflow: hidden;
+  background: var(--soft, #E9E2D4);
+}
+.ar-photo-img { width: 100%; height: 100%; }
+
+/* ═══ ③ 前后分隔：奶油圆 + 金星 + 笑弧，两侧各两道短光线 ═══ */
+.ar-sep { display: flex; align-items: center; justify-content: center; gap: 16rpx; padding: 28rpx 0 34rpx; }
+.ar-sep-ball {
+  width: 104rpx; height: 104rpx; border-radius: 50%;
+  background: var(--soft, #E9E2D4);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4rpx;
+}
+.ar-sep-star { width: 46rpx; height: 35rpx; }
+/* 笑弧：只留底边框 + 底角圆化，一条向下鼓的弧（上边框不画，所以上半截是空的） */
+.ar-sep-smile {
+  width: 26rpx; height: 12rpx;
+  border-bottom: 4rpx solid var(--stamp, #C26B5E);
+  border-radius: 0 0 999rpx 999rpx;
+  opacity: 0.7;
+}
+.ar-rays { display: flex; flex-direction: column; align-items: flex-end; gap: 14rpx; }
+.ar-rays.is-r { align-items: flex-start; }
+.ar-ray { width: 34rpx; height: 5rpx; border-radius: 5rpx; background: var(--stamp, #C26B5E); opacity: 0.5; transform: rotate(-14deg); }
+.ar-ray.is-b { width: 24rpx; opacity: 0.38; transform: rotate(14deg); }
+
+/* ═══ ④ 艺术重绘：齿边画框 ═══
+   框 586×330rpx 与 art.js 的 FRAME_W / FRAME_H 同源：齿孔是贴着框边跑的闭合线，
+   两边对不上时齿边会缩在中间（image 的 aspectFit 先等比缩放再居中）。
+   tests/art_repaint.test.js 有断言盯着这两个数。 */
+.ar-frame { position: relative; width: 586rpx; height: 330rpx; }
+.ar-frame-line { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+/* 画芯：让开齿孔（齿边 path 内缩 5 单位），底色用卡片色，contain 留白读作「装裱边」 */
+.ar-art-img {
+  position: absolute; left: 16rpx; top: 16rpx; width: 554rpx; height: 298rpx;
+  border-radius: 8rpx; background: var(--card-bg, var(--card));
+}
+
+/* —— 画框上的点缀（与阶段无关，三种状态都在） —— */
+.ar-stamp { position: absolute; right: 30rpx; top: 34rpx; width: 66rpx; height: 66rpx; transform: rotate(5deg); }
+/* 注销线与邮票同一条水平中心（邮票 34 + 66/2 = 67 → 波浪 67 − 46/2 = 44） */
+.ar-stamp-wave { position: absolute; right: 92rpx; top: 44rpx; width: 104rpx; height: 46rpx; opacity: 0.65; }
+.ar-star { position: absolute; width: 34rpx; height: 26rpx; opacity: 0.9; }
+.ar-star.is-a { left: 34rpx; top: 58rpx; }
+.ar-star.is-b { right: 46rpx; bottom: 48rpx; transform: scale(0.8); }
+.ar-frame-sprig { position: absolute; width: 92rpx; height: 61rpx; }
+.ar-frame-sprig.is-l { left: -22rpx; bottom: -26rpx; }
+/* 右侧那枝要压在画框右沿的中段：再往上会和右上角的花邮票叠在一起 */
+.ar-frame-sprig.is-r { right: -18rpx; top: 150rpx; transform: scaleX(-1) scale(0.84); }
+
+/* —— running：作画中（晕染呼吸 + 转星） —— */
+.ar-busy {
+  position: absolute; left: 16rpx; top: 16rpx; width: 554rpx; height: 298rpx;
+  border-radius: 8rpx; overflow: hidden; background: var(--card-bg, var(--card));
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ar-halo {
+  position: absolute; width: 240rpx; height: 240rpx; border-radius: 50%;
   /* 暖光晕随主题反色（浅底=暖褐柔光，film 暗底=暖白柔光） */
-  background: radial-gradient(circle, rgba(var(--text-rgb), 0.18), rgba(var(--text-rgb), 0) 70%);
-  animation: art-halo 2.4s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(var(--text-rgb, 107, 91, 80), 0.18), rgba(var(--text-rgb, 107, 91, 80), 0) 70%);
+  animation: ar-halo 2.4s ease-in-out infinite;
 }
-.halo.h2 { width: 480rpx; height: 480rpx; animation-delay: 1.2s; opacity: 0.6; }
-@keyframes art-halo {
+.ar-halo.h2 { width: 340rpx; height: 340rpx; animation-delay: 1.2s; opacity: 0.6; }
+@keyframes ar-halo {
   0%, 100% { transform: scale(0.82); opacity: 0.55; }
   50%      { transform: scale(1.12); opacity: 1; }
 }
-.star {
-  font-size: 64rpx;
-  color: var(--accent);
-  animation: art-spin 3.2s linear infinite;
-}
-@keyframes art-spin { to { transform: rotate(360deg); } }
-.p-t { margin-top: 36rpx; text-align: center; font-size: 32rpx; font-weight: 600; color: var(--text); letter-spacing: 2rpx; }
-.p-d { margin-top: 14rpx; text-align: center; font-size: 24rpx; color: var(--text2); line-height: 1.9; }
-
-/* —— done：藏品装裱框 —— */
-.art-frame {
-  position: relative;
-  margin-top: 6rpx;
-  border-radius: var(--card-r, 24rpx);
-  overflow: hidden;
-  background: var(--card-bg, var(--card));
-  border: var(--card-border, 2rpx solid var(--border));
-  box-shadow: var(--card-shadow, 0 14rpx 40rpx rgba(var(--text-rgb), 0.16));
-}
-.art-img { width: 100%; display: block; min-height: 300rpx; }
-.frame-no {
-  position: absolute;
-  right: 22rpx;
-  bottom: 16rpx;
-  font-size: 20rpx;
-  color: var(--on-primary);
-  letter-spacing: 3rpx;
-  text-shadow: 0 1rpx 8rpx rgba(0, 0, 0, 0.5);
+.ar-busy-star { width: 58rpx; height: 44rpx; animation: ar-spin 3.2s linear infinite; }
+@keyframes ar-spin { to { transform: rotate(360deg); } }
+.ar-busy-t { margin-top: 20rpx; font-size: 30rpx; font-weight: 700; color: var(--text); letter-spacing: 3rpx; }
+.ar-busy-d { margin-top: 8rpx; font-size: 22rpx; color: var(--text2); }
+/* 转的是星、呼吸的是光，都属于装饰性动效：关闭动效时停住即可，不影响可读性 */
+@media (prefers-reduced-motion: reduce) {
+  .ar-halo, .ar-busy-star { animation: none; }
 }
 
-.ops { margin-top: 38rpx; }
-.op-row { display: flex; gap: 20rpx; margin-top: 24rpx; }
-.btn-half {
-  flex: 1;
-  text-align: center;
-  padding: 20rpx 0;
+/* —— idle / failed：空白画框（虚线卡纸感） —— */
+.ar-blank {
+  position: absolute; left: 16rpx; top: 16rpx; width: 554rpx; height: 298rpx;
+  border-radius: 8rpx; background: var(--soft, #E9E2D4);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx;
+}
+.ar-blank-star { width: 52rpx; height: 39rpx; }
+.ar-blank-t { font-size: 34rpx; font-weight: 700; color: var(--text); letter-spacing: 5rpx; }
+.ar-blank-d { font-size: 22rpx; color: var(--text2); }
+.ar-blank-no { margin-top: 8rpx; font-size: 20rpx; color: var(--text2); letter-spacing: 3rpx; }
+
+.ar-fail { margin-top: 20rpx; font-size: 23rpx; color: var(--stamp, #C26B5E); line-height: 1.7; text-align: center; }
+
+/* ═══ ⑤ 说明句 + 玫瑰笔触 ═══ */
+.ar-cap { display: flex; align-items: center; justify-content: center; gap: 14rpx; margin-top: 38rpx; }
+.ar-cap-t { font-size: 24rpx; color: var(--text2); letter-spacing: 1rpx; }
+.ar-cap-star { width: 24rpx; height: 18rpx; }
+/* 笔触是向下鼓的一道浅弧：靠底边框 + 底角圆化，不用图片 */
+.ar-cap-brush {
+  width: 274rpx; height: 14rpx; margin: 8rpx auto 0;
+  border-bottom: 6rpx solid var(--stamp, #C26B5E);
+  border-radius: 0 0 999rpx 999rpx;
+  opacity: 0.35;
+}
+
+/* ═══ ⑥ 额度（只在还会花额度的阶段露脸） ═══ */
+.ar-quota {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14rpx;
+  margin-top: 24rpx; font-size: 22rpx; color: var(--text2);
+}
+.ar-pips { display: inline-flex; align-items: center; gap: 8rpx; }
+.ar-pip {
+  width: 16rpx; height: 16rpx; border-radius: 50%;
+  border: 2rpx solid var(--stamp, #C26B5E); /* 空心 = 可用 */
+  background: transparent;
+}
+.ar-pip.used { background: var(--stamp, #C26B5E); } /* 实心 = 已用（印章落下） */
+.ar-quota-paid { font-size: 20rpx; color: var(--accent); }
+
+/* ═══ ⑦ 主按钮 + 次按钮 ═══ */
+/* 稿里这颗胶囊只占屏宽 54%（约 403rpx），真机上按 420rpx 落——再窄就要靠猜才点得中 */
+.ar-cta {
+  display: flex; align-items: center; justify-content: center; gap: 16rpx;
+  width: 420rpx; height: 92rpx; margin: 30rpx auto 0;
   border-radius: 999rpx;
-  background: var(--card-bg, var(--card));
-  border: 2rpx solid var(--border);
-  font-size: 27rpx;
-  color: var(--text);
+  background: var(--stamp, #C26B5E); color: var(--on-primary, #F5F0E6);
+  font-size: 30rpx; font-weight: 700; letter-spacing: 6rpx;
+  box-shadow: 0 12rpx 30rpx rgba(var(--text-rgb, 107, 91, 80), 0.22);
 }
-/* button UA 复位（与 detail 分享钮同思路：视觉由类承担，::after 边框去掉） */
-.share-btn {
-  margin: 0;
-  line-height: 1.4;
-  font-weight: 400;
-}
-.share-btn::after { border: none; }
+.ar-cta.dis { opacity: 0.55; }
+.ar-cta-ic { width: 34rpx; height: 34rpx; }
+.ar-cta-t { line-height: 1; }
 
-.back-link {
-  margin-top: 32rpx;
-  text-align: center;
-  font-size: 25rpx;
-  color: var(--text2);
-  padding: 10rpx 0;
-}
+.ar-again { display: flex; align-items: center; justify-content: center; gap: 22rpx; margin-top: 40rpx; padding: 10rpx 0; }
+.ar-again-line { width: 48rpx; height: 3rpx; border-radius: 3rpx; background: var(--border, #E2D9C7); }
+.ar-again-t { font-size: 25rpx; color: var(--text2); letter-spacing: 2rpx; }
 
-/* —— 空态（lost/empty，配合全局 .empty/.big） —— */
-.empty { color: var(--text2); }
+/* ═══ ⑧ 页脚点缀 ═══ */
+.ar-foot { position: relative; height: 130rpx; }
+.ar-foot-wave { position: absolute; left: -40rpx; bottom: 6rpx; width: 78rpx; height: 34rpx; opacity: 0.6; }
+.ar-foot-sprig { position: absolute; right: -34rpx; bottom: 0; width: 96rpx; height: 64rpx; transform: scaleX(-1); }
+
+/* ═══ ⑨ 加载骨架（与真内容同高同宽，数据替换零跳动） ═══ */
+.ar-hold { padding: 30rpx 60rpx 0; }
+.ar-hold-title { width: 340rpx; height: 52rpx; margin: 0 auto 56rpx; border-radius: 12rpx; }
+.ar-hold-card { height: 386rpx; border-radius: 24rpx; }
+.ar-hold-ball { width: 104rpx; height: 104rpx; margin: 28rpx auto; border-radius: 50%; }
+
+/* ═══ ⑩ 空态（lost / empty，配合全局 .empty） ═══ */
+.ar-empty-ic { display: block; width: 96rpx; height: 96rpx; margin: 0 auto 22rpx; }
 .e-sub { margin-top: 14rpx; font-size: 24rpx; color: var(--text2); line-height: 1.7; }
-.empty .btn-main { margin-top: 44rpx; width: 340rpx; }
+.empty .btn-main { margin-top: 44rpx; }
+.btn-sub { margin-top: 24rpx; text-align: center; font-size: 25rpx; color: var(--text2); padding: 12rpx 0; }
+
+/* ═══ ⑪ 付费墙（bottom-sheet 内容区） ═══ */
+.pw { padding: 8rpx 8rpx 20rpx; }
+.pw-plate {
+  border: 2rpx dashed var(--border, #E2D9C7);
+  border-radius: var(--card-r, 20rpx);
+  background: var(--soft, #E9E2D4);
+  padding: 36rpx 30rpx;
+  text-align: center;
+}
+.pw-plate-star { display: block; width: 44rpx; height: 33rpx; margin: 0 auto 12rpx; }
+.pw-plate-t { font-size: 32rpx; font-weight: 700; color: var(--text); letter-spacing: 4rpx; }
+.pw-plate-d { margin-top: 10rpx; font-size: 23rpx; color: var(--text2); line-height: 1.7; }
+.pw-opt {
+  margin-top: 24rpx;
+  display: flex; align-items: center; gap: 18rpx;
+  padding: 26rpx 28rpx;
+  border-radius: var(--card-r, 20rpx);
+  background: var(--card-bg, var(--card));
+  border: 2rpx solid var(--border, #E2D9C7);
+}
+.pw-opt.pw-buy { border-color: var(--stamp, #C26B5E); } /* 主推出路：品牌描边 */
+.pw-opt-ic { flex: 0 0 36rpx; width: 36rpx; height: 36rpx; }
+.pw-opt-l { flex: 1; min-width: 0; }
+.pw-opt-t { font-size: 27rpx; font-weight: 600; color: var(--text); }
+.pw-opt-s { margin-top: 6rpx; font-size: 21rpx; color: var(--text2); }
+.pw-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; }
+.pw-note { margin-top: 20rpx; text-align: center; font-size: 20rpx; color: var(--text2); letter-spacing: 2rpx; }
 
 /* —— 合成画布：移出可视区（type=2d 只在保存瞬间绘制） —— */
 .cv-off {

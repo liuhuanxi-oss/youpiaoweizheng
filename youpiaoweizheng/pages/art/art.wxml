@@ -1,85 +1,186 @@
-<!-- 4.19.0 票根博物志：vintage 藏品图版（AI 重绘 + Canvas 藏品签）
-     四态：lost 票根不在册 / empty 没照片 / idle+failed 可开始 / running 作画中 / done 展示 -->
-<view class="page theme-{{theme}}">
+<!-- pages/art/art.wxml —— AI 艺术重绘（品牌全案 · 稿屏5 一比一）
+     结构：题头（花枝 + ✦ AI 艺术重绘 ✦ + 玫瑰笔触 + 注销波浪）
+          → 「原票根」卡（照片）
+          → 前后分隔（奶油圆 + 金星 + 一道笑弧 + 两侧短光线）
+          → 「艺术重绘」卡（齿边画框：作画中 / 已画好 / 待作画 三态）
+          → 说明句 + 玫瑰笔触 → 主按钮（保存重绘）→ 再画一张 → 页脚点缀
+     所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     且 SVG 是独立文档、不认 CSS 变量，故颜色由 art.js 的 buildArt() 编译成实色。
+     主/次按钮的文案随 phase 走（ctaText / subText 两张映射表），不在这里堆三元表达式。 -->
+<view class="tk-page theme-{{theme}} ar-page">
 
   <!-- lost：票根不存在或不属于你（分享落地/过期 id） -->
   <view class="empty" wx:if="{{phase === 'lost'}}">
-    <view class="big">🎟</view>
+    <image class="ar-empty-ic" src="{{ic.ticket}}" mode="aspectFit" aria-hidden="true" />
     <view>没找到这张票根</view>
     <view class="e-sub">它可能不在你的册子里 · 回票根墙看看吧</view>
     <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goBack">返回</view>
   </view>
 
-  <!-- empty：这张票根还没有照片 —— 4.19.3 给出正宗出路：收票页就是相册/拍照入口，不再死路引导 -->
+  <!-- empty：这张票根还没有照片 —— 收票页才是相册/拍照入口，这里直接给出路，不留死胡同 -->
   <view class="empty" wx:elif="{{phase === 'empty'}}">
-    <view class="big">🖼</view>
+    <image class="ar-empty-ic" src="{{ic.camera}}" mode="aspectFit" aria-hidden="true" />
     <view>这张票根还没有照片</view>
     <view class="e-sub">图版以票根照片为底本作画 · 重新收一张带照片的票根即可入馆作画</view>
-    <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去拍照或从相册选票根">📷 拍照 / 选票根照片</view>
+    <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goScan"
+          aria-role="button" aria-label="去拍照或从相册选票根">拍照 / 选票根照片</view>
     <view class="btn-sub pressable" hover-class="press-hover" bindtap="goBack">返回详情</view>
   </view>
 
-  <view class="wrap" wx:else>
-
-    <!-- 题头 -->
-    <view class="head">
-      <view class="h-title serif">票根博物志</view>
-      <view class="h-sub">把你的票根，画成一幅值得装裱的版画</view>
-      <!-- 4.21.0 额度可视化：免费 3 格印章格（used=已用）+ 次数包余量文字——先让人看见额度，才能让人心疼额度 -->
-      <view class="quota" wx:if="{{phase === 'idle' || phase === 'failed'}}">
-        <view class="q-pips" aria-hidden="true">
-          <view class="pip {{item.used ? 'used' : ''}}" wx:for="{{quotaPips}}" wx:key="index"></view>
-        </view>
-        <text class="q-paid" wx:if="{{quotaPaid > 0}}">次数包 +{{quotaPaid}}</text>
-        <text class="q-txt">{{quotaLabel}}</text>
-      </view>
-    </view>
-
-    <!-- idle / failed：开始作画 -->
-    <view class="stage" wx:if="{{phase === 'idle' || phase === 'failed'}}">
-      <view class="plate-blank">
-        <view class="pb-star">✦</view>
-        <view class="pb-t serif">时光版画</view>
-        <view class="pb-d">AI 照着你的票根照片画一幅复古版画，并盖上藏品编号</view>
-        <view class="pb-no" wx:if="{{plateNo}}">已藏 · Plate No.{{plateNo}}</view>
-      </view>
-      <view class="fail-msg" wx:if="{{phase === 'failed'}}">{{msg}}</view>
-      <view class="btn-main accent pressable" hover-class="press-hover" bindtap="start" aria-role="button" aria-label="开始作画">
-        {{phase === 'failed' ? '再画一次' : '为它画一幅图版'}}
-      </view>
-      <view class="btn-sub pressable" hover-class="press-hover" bindtap="goBack">返回详情</view>
-    </view>
-
-    <!-- running：作画中（10-60s，晕染呼吸 + 转星） -->
-    <view class="stage" wx:elif="{{phase === 'running'}}">
-      <view class="painting">
-        <view class="halo"></view>
-        <view class="halo h2"></view>
-        <view class="star">✦</view>
-      </view>
-      <view class="p-t serif">正在作画…</view>
-      <view class="p-d">大约需要 10-60 秒，画好了自动亮出来 · 去倒杯水也行</view>
-    </view>
-
-    <!-- done：藏品展示 -->
-    <view class="stage" wx:elif="{{phase === 'done'}}">
-      <view class="art-frame">
-        <image class="art-img" src="{{imgUrl}}" mode="widthFix" binderror="onArtError" aria-role="img" aria-label="票根藏品图版" />
-        <view class="frame-no serif">Plate No.{{plateNo}}</view>
-      </view>
-      <view class="ops">
-        <view class="btn-main accent pressable {{saving ? 'dis' : ''}}" hover-class="press-hover" bindtap="save">存入相册</view>
-        <view class="op-row">
-          <view class="btn-half pressable" hover-class="press-hover" bindtap="again" aria-role="button" aria-label="换一张">换一幅 · 剩{{quotaLeft}}幅</view>
-          <button class="btn-half share-btn" open-type="share" hover-class="none" aria-label="分享">分享</button>
-        </view>
-        <view class="back-link pressable" hover-class="press-hover" bindtap="goBack">返回详情</view>
-      </view>
-    </view>
-
-    <!-- 藏起来的合成画布：只在「存入相册」瞬间用（图归图 + 字归 Canvas） -->
-    <canvas type="2d" id="art-canvas" class="cv-off"></canvas>
+  <!-- loading：取票根那一下（本地/云端各一次往返）。骨架与真内容同高，数据到了零跳动 -->
+  <view class="ar-hold" wx:elif="{{phase === 'loading'}}">
+    <view class="ar-hold-title tk-skeleton"></view>
+    <view class="ar-hold-card tk-skeleton"></view>
+    <view class="ar-hold-ball tk-skeleton"></view>
+    <view class="ar-hold-card tk-skeleton"></view>
   </view>
+
+  <scroll-view class="ar-scroll" wx:else scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="ar-wrap">
+
+      <!-- ① 题头：左侧花枝、右侧注销波浪，中间标题两侧各一颗星 -->
+      <view class="ar-head">
+        <image class="ar-deco-sprig" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+        <image class="ar-deco-wave" src="{{art.wave}}" mode="aspectFit" aria-hidden="true" />
+        <view class="ar-title-wrap">
+          <image class="ar-spark" src="{{art.sparkPink}}" mode="aspectFit" aria-hidden="true" />
+          <text class="ar-title serif">AI 艺术重绘</text>
+          <image class="ar-spark is-r" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+          <view class="ar-brush"></view>
+        </view>
+      </view>
+
+      <!-- ② 原票根：照片按 contain 完整呈现（与合成导出同口径，不做裁切） -->
+      <view class="ar-card ar-card-src">
+        <view class="ar-tab">原票根</view>
+        <view class="ar-photo">
+          <image class="ar-photo-img" src="{{t.img}}" mode="aspectFit" aria-role="img" aria-label="原票根照片" />
+        </view>
+      </view>
+
+      <!-- ③ 前后分隔：奶油圆里一颗金星 + 一道笑弧，两侧各两道短光线 -->
+      <view class="ar-sep">
+        <view class="ar-rays">
+          <view class="ar-ray"></view>
+          <view class="ar-ray is-b"></view>
+        </view>
+        <view class="ar-sep-ball">
+          <image class="ar-sep-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+          <view class="ar-sep-smile"></view>
+        </view>
+        <view class="ar-rays is-r">
+          <view class="ar-ray"></view>
+          <view class="ar-ray is-b"></view>
+        </view>
+      </view>
+
+      <!-- ④ 艺术重绘：齿边画框（像从整版邮票上撕下来的一枚），角上贴花邮票 + 星点 + 花枝 -->
+      <view class="ar-card ar-card-art">
+        <view class="ar-tab">艺术重绘</view>
+        <view class="ar-frame">
+          <image class="ar-frame-line" src="{{art.frame}}" mode="scaleToFill" aria-hidden="true" />
+
+          <!-- done：AI 图版 -->
+          <image
+            wx:if="{{phase === 'done'}}"
+            class="ar-art-img"
+            src="{{imgUrl}}"
+            mode="aspectFit"
+            binderror="onArtError"
+            aria-role="img"
+            aria-label="票根的艺术重绘图版"
+          />
+
+          <!-- running：作画中（晕染呼吸 + 转星，10-60s） -->
+          <view wx:elif="{{phase === 'running'}}" class="ar-busy">
+            <view class="ar-halo"></view>
+            <view class="ar-halo h2"></view>
+            <image class="ar-busy-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+            <text class="ar-busy-t serif">正在作画…</text>
+            <text class="ar-busy-d">大约需要 10-60 秒，画好了自动亮出来</text>
+          </view>
+
+          <!-- idle / failed：还没作画（点框即开始，主按钮同一条链路） -->
+          <view
+            wx:else
+            class="ar-blank pressable"
+            hover-class="press-item-hover"
+            bindtap="start"
+            aria-role="button"
+            aria-label="开始作画"
+          >
+            <image class="ar-blank-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+            <text class="ar-blank-t serif">时光版画</text>
+            <text class="ar-blank-d">AI 照着你的票根照片画一幅复古版画</text>
+            <text class="ar-blank-no" wx:if="{{plateNo}}">已藏 · Plate No.{{plateNo}}</text>
+          </view>
+
+          <!-- 画框上的点缀：与阶段无关，三种状态都在，让框一直是「装裱好的」 -->
+          <image class="ar-stamp" src="{{art.stamp}}" mode="aspectFit" aria-hidden="true" />
+          <image class="ar-stamp-wave" src="{{art.wave}}" mode="aspectFit" aria-hidden="true" />
+          <image class="ar-star is-a" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+          <image class="ar-star is-b" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+          <image class="ar-frame-sprig is-l" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+          <image class="ar-frame-sprig is-r" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+        </view>
+
+        <!-- 失败原因：贴着画框下方，不占画框 -->
+        <view wx:if="{{phase === 'failed'}}" class="ar-fail">{{msg}}</view>
+      </view>
+
+      <!-- ⑤ 说明句 + 玫瑰笔触 -->
+      <view class="ar-cap">
+        <image class="ar-cap-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+        <text class="ar-cap-t">保留票根信息，重绘为专属手账插画</text>
+        <image class="ar-cap-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+      </view>
+      <view class="ar-cap-brush"></view>
+
+      <!-- ⑥ 额度：只在「还要花额度」的阶段露出（画完那一刻起它就没用了，稿里也没有这一行） -->
+      <view class="ar-quota" wx:if="{{phase !== 'done'}}">
+        <view class="ar-pips" aria-hidden="true">
+          <view class="ar-pip {{item.used ? 'used' : ''}}" wx:for="{{quotaPips}}" wx:key="index"></view>
+        </view>
+        <text class="ar-quota-t">{{quotaLabel}}</text>
+        <text class="ar-quota-paid" wx:if="{{quotaPaid > 0}}">次数包 +{{quotaPaid}}</text>
+      </view>
+
+      <!-- ⑦ 主按钮（保存重绘 / 为它画一幅图版）+ 次按钮（再画一张 / 返回详情） -->
+      <view
+        class="ar-cta pressable {{phase === 'running' || phase === 'loading' ? 'dis' : ''}}"
+        hover-class="press-hover"
+        bindtap="onCta"
+        aria-role="button"
+        aria-label="{{ctaText[phase]}}"
+      >
+        <image wx:if="{{phase === 'done'}}" class="ar-cta-ic" src="{{ic.download}}" mode="aspectFit" aria-hidden="true" />
+        <image wx:elif="{{phase === 'idle' || phase === 'failed'}}" class="ar-cta-ic" src="{{ic.wand}}" mode="aspectFit" aria-hidden="true" />
+        <text class="ar-cta-t">{{ctaText[phase]}}</text>
+      </view>
+      <view
+        class="ar-again pressable"
+        hover-class="press-item-hover"
+        bindtap="onSub"
+        aria-role="button"
+        aria-label="{{subText[phase]}}"
+      >
+        <view class="ar-again-line"></view>
+        <text class="ar-again-t">{{subText[phase]}}</text>
+        <view class="ar-again-line"></view>
+      </view>
+
+      <!-- ⑧ 页脚点缀：左下波浪排线 + 右下花枝 -->
+      <view class="ar-foot">
+        <image class="ar-foot-wave" src="{{art.wave}}" mode="aspectFit" aria-hidden="true" />
+        <image class="ar-foot-sprig" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+      </view>
+
+      <!-- 藏起来的合成画布：只在「保存重绘」瞬间用（图归图 + 字归 Canvas） -->
+      <canvas type="2d" id="art-canvas" class="cv-off"></canvas>
+    </view>
+
+    <view class="tk-safe-bottom"></view>
+  </scroll-view>
 </view>
 
 <!-- ===== 4.21.0 品牌化付费墙：替代 wx.showModal——版画预览 + 双轨出路 =====
@@ -88,23 +189,27 @@
 <bottom-sheet show="{{paywall}}" title="图版次数用完啦" bind:close="closePaywall">
   <view class="pw">
     <view class="pw-plate">
-      <view class="pb-star">✦</view>
+      <image class="pw-plate-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
       <view class="pw-plate-t serif">时光版画</view>
       <view class="pw-plate-d">本月 {{freePerMonth}} 幅免费已用完 · 出路给你备好了</view>
     </view>
-    <view class="pw-opt pressable" hover-class="press-item-hover" wx:if="{{rewardReady && rewardLeft > 0}}" bindtap="watchForReward" aria-role="button" aria-label="看视频免费补一幅">
+    <view class="pw-opt pressable" hover-class="press-item-hover" wx:if="{{rewardReady && rewardLeft > 0}}"
+          bindtap="watchForReward" aria-role="button" aria-label="看视频免费补一幅">
+      <image class="pw-opt-ic" src="{{ic.play}}" mode="aspectFit" aria-hidden="true" />
       <view class="pw-opt-l">
-        <view class="pw-opt-t">▶ 看一段视频 · 免费补 1 幅</view>
+        <view class="pw-opt-t">看一段视频 · 免费补 1 幅</view>
         <view class="pw-opt-s">今天还能补 {{rewardLeft}} 幅 · 明天再来</view>
       </view>
-      <view class="pw-go">›</view>
+      <image class="pw-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
     </view>
-    <view class="pw-opt pw-buy pressable" hover-class="press-item-hover" bindtap="_buyFromWall" aria-role="button" aria-label="购买次数包 {{payPackLabel}}">
+    <view class="pw-opt pw-buy pressable" hover-class="press-item-hover" bindtap="_buyFromWall"
+          aria-role="button" aria-label="购买次数包 {{payPackLabel}}">
+      <image class="pw-opt-ic" src="{{ic.wand}}" mode="aspectFit" aria-hidden="true" />
       <view class="pw-opt-l">
         <view class="pw-opt-t">次数包 · {{payPackLabel}}</view>
         <view class="pw-opt-s">随买随用 · 已画好的作品一直在</view>
       </view>
-      <view class="pw-go accent">›</view>
+      <image class="pw-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
     </view>
     <view class="pw-note">次月 1 日免费额度自动恢复</view>
   </view>

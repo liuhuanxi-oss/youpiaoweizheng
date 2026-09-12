@@ -32,6 +32,20 @@ const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train' };
 const TAPE_TINT = ['#E8CE86', '#A9C3D6', '#E8AFA8'];
 /** 明信片倾斜角：像一张张贴进手账本，三张一循环 */
 const CARD_TILT = [-2.4, 1.8, -1.5];
+/**
+ * 卡外点缀的配色（花枝 / 小粉心 / 波浪排线 / 四角星）与胶带同理：
+ * 这些是**实物的颜色**，稿屏8 里花枝是绿的叶粉的花、心是粉的、星是金的，
+ * 六套主题下色相不变。不覆盖的话纸感主题的 primary 近乎全黑，
+ * 花枝会画成一丛黑枝，与稿里的水彩绿完全两回事。
+ */
+const SPOT_TINT = {
+  sprig: { primary: '#A9C3A6', accent: '#E8AFA8' },
+  heartsmall: { accent: '#E8AFA8' },
+  wavelines: { primary: '#A9C3A6' },
+  star4: { accent: '#E2B85C' }
+};
+/** 年份节点下方那三道波浪排线（稿里是鼠尾草绿） */
+const RAIL_TINT = '#A9C3A6';
 
 /**
  * 城市名逐字排上圆弧：n 个字张开成一段弧。
@@ -132,8 +146,9 @@ Page({
     this._art = {
       meta: m,
       tape: TAPE_TINT.map((t) => deco.decoSrc('tape', Object.assign({}, m, { accent: t }))),
-      spot: ['sprig', 'heartsmall', 'wavelines', 'star4'].map((n) => deco.decoSrc(n, m)),
-      wave: deco.decoSrc('wavelines', m),
+      spot: ['sprig', 'heartsmall', 'wavelines', 'star4']
+        .map((n) => deco.decoSrc(n, Object.assign({}, m, SPOT_TINT[n] || {}))),
+      wave: deco.decoSrc('wavelines', Object.assign({}, m, { primary: RAIL_TINT })),
       pm: deco.postmarkParts(m)
     };
     this.setData({

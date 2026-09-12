@@ -309,4 +309,70 @@ function postmarkParts(theme) {
   return { ring: postmarkRing(theme), wave: postmarkWave(theme) };
 }
 
-module.exports = { decoSrc, avatarSrc, postmarkParts };
+// ============================================================
+// 齿边画框（品牌全案 · 稿屏5 AI 艺术重绘）：「艺术重绘」卡里那圈齿孔描边
+//   —— 像从整版邮票上撕下来的一枚。
+//
+// ⚠️ 为什么这个图形要**带尺寸参数**、不能像别的装饰那样固定 64×44：
+//   齿孔是**贴着框边跑一圈**的闭合线，框的宽高比变了，齿距就必须跟着变；
+//   而 <image> 的 aspectFit 是先按 viewBox 等比缩放再居中，viewBox 和盒子
+//   比例对不上就会上下/左右留白，齿孔线立刻偏离框边。
+//   所以这里由调用方把盒子的 rpx 宽高一并传进来（1 viewBox 单位 = 1rpx），
+//   WXSS 里写死的宽高必须与它一致 —— tests/art_repaint.test.js 有断言盯着。
+// ============================================================
+/**
+ * @param {object} theme 主题色板（只取 text2 当墨色）
+ * @param {number} w  框宽（rpx）
+ * @param {number} h  框高（rpx）
+ * @param {string} [ink] 墨色覆盖（不传则用主题 text2）
+ */
+function artFrame(theme, w, h, ink) {
+  const c = theme || {};
+  return toUri('0 0 ' + w + ' ' + h, w, h,
+    '<path d="' + pinkedPath(w, h, 12, 2.6, 5) + '" fill="none" ' +
+    strokeOf(ink || c.text2, '#C9A469', 1.8, '', 0.55) + '/>');
+}
+
+/**
+ * 齿孔矩形 → path d（闭合，顺时针）
+ * @param {number} w 宽  @param {number} h 高（与 viewBox 同单位）
+ * @param {number} tooth 齿距  @param {number} amp 齿高（半个峰谷）  @param {number} inset 离边留白
+ */
+function pinkedPath(w, h, tooth, amp, inset) {
+  const x0 = inset, y0 = inset, x1 = w - inset, y1 = h - inset;
+  const pts = [];
+  /** 沿一条边走齿：每隔 tooth 落一个点，垂直于边走正负 amp 交替 */
+  const seg = (ax, ay, bx, by) => {
+    const dx = bx - ax, dy = by - ay;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const n = Math.max(2, Math.round(len / tooth));
+    const nx = (-dy / len) * amp, ny = (dx / len) * amp;
+    for (let i = 0; i < n; i++) {
+      const k = i % 2 ? -1 : 1;
+      pts.push((ax + (dx * i) / n + nx * k).toFixed(1) + ' ' +
+               (ay + (dy * i) / n + ny * k).toFixed(1));
+    }
+  };
+  seg(x0, y0, x1, y0);
+  seg(x1, y0, x1, y1);
+  seg(x1, y1, x0, y1);
+  seg(x0, y1, x0, y0);
+  return 'M' + pts.join('L') + 'Z';
+}
+
+/**
+ * 花邮票（稿屏5「艺术重绘」卡右上角那枚）：齿边粉底 + 中间一朵五瓣小花。
+ * 与 artFrame 共用走齿逻辑，只是这里尺寸固定（48×48），可以登记进 DECO_VIEWBOX。
+ */
+function flowerStamp(c) {
+  const petal = '<ellipse cx="24" cy="16.6" rx="5.4" ry="7.6" ' + fillOf(c.petal, '#E8AFA8', 0.85) + '/>';
+  let body = '<path d="' + pinkedPath(48, 48, 6, 1.8, 3) + '" ' +
+    fillOf(c.soft, '#FBE3E7', 0.9) + ' ' + strokeOf(c.primary, '#D98E9B', 1.2, '', 0.7) + '/>';
+  for (let i = 0; i < 6; i++) {
+    body += '<g transform="rotate(' + i * 60 + ' 24 24)">' + petal + '</g>';
+  }
+  body += '<circle cx="24" cy="24" r="4" ' + fillOf(c.center, '#E8C070') + '/>';
+  return toUri('0 0 48 48', 48, 48, body);
+}
+
+module.exports = { decoSrc, avatarSrc, postmarkParts, artFrame, flowerStamp };

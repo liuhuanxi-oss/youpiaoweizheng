@@ -261,9 +261,16 @@ t('用到的装饰形状都在 deco.js 里注册', () => {
 t('主题切换后 tabBar 选中态同步正确（时光机 = 1）', () => {
   ok(/setData\(\{ selected: 1, theme: themeUtil\.getTheme\(\) \}\)/.test(js), 'tabBar 选中态没同步');
 });
-t('页面标题改为「时光机」（与底部 tab 文案一致）', () => {
+t('导航栏标题留空——标题「时光机」由页内那行星点 + 笔触自己画', () => {
+  // 稿屏8 顶部那行（✦ 时光机 ✦ + 玫瑰笔触 + 品牌标）是页面自己画的；
+  // 导航栏再写一次「时光机」就会上下重影成两个标题，故这里必须是空串/空格。
   const cfg = JSON.parse(read('pages/album/album.json'));
-  ok(cfg.navigationBarTitleText === '时光机', '标题是「' + cfg.navigationBarTitleText + '」');
+  ok(String(cfg.navigationBarTitleText).trim() === '',
+    '导航栏标题是「' + cfg.navigationBarTitleText + '」，会和页内标题重影');
+});
+t('页内标题行还在（导航栏留空的前提是它自己把标题画出来）', () => {
+  ok(/class="tm-title serif">时光机</.test(wxmlClean), '页内标题行没了');
+  ok(/class="tm-brush"/.test(wxmlClean), '标题下的玫瑰笔触没了');
 });
 
 console.log('\n──────────────────────────────');
