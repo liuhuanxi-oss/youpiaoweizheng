@@ -1,4 +1,4 @@
-// utils/geo.js —— M4-b 抽公共地理计算（map 足迹连线 / report 里程共用）
+// utils/geo.js —— M4-b 抽公共地理计算（现由 report 页里程使用）
 // 纯端上计算，无网络请求。
 
 /** 球面距离 km（哈弗辛公式）。a/b: { latitude, longitude } */

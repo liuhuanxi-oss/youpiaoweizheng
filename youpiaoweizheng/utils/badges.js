@@ -10,7 +10,7 @@
 //     ts         票根列表（store.listTickets）
 //     coupleInfo 双人绑定缓存（couple.cachedCouple，未绑定传 null）
 //     shareCount 分享计数（本地 sp_share_count）
-//     mapVisited 是否进过足迹地图（本地 sp_map_visited）
+//     mapVisited 是否进过地图页（本地 sp_map_visited，由 pages/discover 打标）
 //     inviteSent 是否发起过双人邀请（本地 sp_invite_sent）
 // ============================================================
 const mock = require('./mock.js');
@@ -54,7 +54,7 @@ function computeBadges(ts, coupleInfo, shareCount, mapVisited, inviteSent) {
     def(8, hasRepeat3, '同一乐队看满三场'),
     def(9, showCities.size >= 5, `还差 ${5 - showCities.size} 城`),
     def(10, shareCount >= 10, `还差 ${10 - shareCount} 张`),
-    def(11, mapVisited && cities.size >= 3, cities.size >= 3 ? '去足迹地图点亮' : `还差 ${3 - cities.size} 座城`),
+    def(11, mapVisited && cities.size >= 3, cities.size >= 3 ? '去回忆地图点亮' : `还差 ${3 - cities.size} 座城`),
     // 4.17.0 M2 时光同谋：发起过邀请分享，或已和 TA 绑定（绑定的必然发起过邀请）
     def(12, !!inviteSent || !!coupleInfo, '把双人空间分享给 TA')
   ];

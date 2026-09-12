@@ -47,6 +47,8 @@ Page({
   onShow() {
     themeUtil.apply(this);
     this.getTabBar && this.getTabBar().setData({ selected: 2, theme: themeUtil.getTheme() });
+    // 勋章「足迹地图」(b12) 的解锁依据。v7.0 起本页就是地图页（旧的 pages/map 已下线），标记改在这里打
+    try { wx.setStorageSync('sp_map_visited', true); } catch (e) { /* 忽略 */ }
     this.buildArt();
     this.refresh();
   },

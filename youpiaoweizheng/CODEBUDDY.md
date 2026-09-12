@@ -35,7 +35,8 @@
 - 遵循 Conventional Commits：`feat/fix/style/refactor/chore/docs(模块): 中文描述`
 - 一次只做一个逻辑变更；新增逻辑必须处理空态、加载态、失败态（网络错误/权限拒绝/云函数异常）
 - 列表用 key、图片加 binderror 兜底、异步加 loading 与防重复点击
-- 改完先自检：JS 用 `node --check` 过语法；再跑 `npm test`（10 套 Node 回归台，改哪屏跑哪套）；不破坏核心页面（home/album/discover/me 四个 tab 页 + scan/detail/duo/card）
+- 改完先自检：JS 用 `node --check` 过语法；再跑 `npm test`（11 套 Node 回归台，改哪屏跑哪套）；不破坏核心页面（home/album/discover/me 四个 tab 页 + scan/detail/duo/card）
+- 新增/下线页面：`app.json` 注册的页面必须有人能进（`tests/page_refs.test.js` 会拦孤立页）；下线页面时记得看它身上挂的勋章标记 / 埋点有没有别人在依赖
 - 加图片/装饰先翻 `utils/deco.js`（花枝/波浪/邮戳/齿边/和纸胶带）与 `utils/icons.js`（线性图标），不要各写一份；画布绘制用 `utils/canvas-deco.js`
 - 主包体积不超过 2MB，大图片走云存储或分包
 

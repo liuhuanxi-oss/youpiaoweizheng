@@ -4,7 +4,7 @@
 
 > 纸质票根数字化珍藏 —— 拍下票根，AI 帮你识别、存档、写文案、做卡片。**让时光有票为证。**
 
-**当前版本：`7.0.0`（品牌全案 · 精修 10 屏逐屏重做：票根墙/扫描/详情/重绘/明信片卡片/水彩中国地图/年份时光机/年度报告/双人绑定/个人中心 + 按规范图重做的底部导航）** · 变更史见 [CHANGELOG.md](./CHANGELOG.md) · 产品全景交接见 `交接文档-给豆包.md`
+**当前版本：`7.0.0`（品牌全案 · 精修 10 屏逐屏重做：票根墙/扫描/详情/重绘/明信片卡片/水彩中国地图/年份时光机/年度报告/双人绑定/个人中心 + 按规范图重做的底部导航）** · 变更史见 [CHANGELOG.md](./CHANGELOG.md) · 需求基线见 [`../docs/PRD.md`](../docs/PRD.md)
 
 ## 里程碑进度
 
@@ -25,13 +25,13 @@
 | V1.5-① `4.7.0` | **天气记忆 UI**：详情页天气印记（M2 起的存档数据上 UI）+ AI 文案融合感官细节（weatherHint） | ✅（4.8.0 起见 CHANGELOG） |
 | V7.0 `7.0.0` | **品牌全案 · 精修 10 屏重做**：按《品牌全案》与 10 张精修稿逐屏换皮（业务逻辑不动）+ 底部导航按规范图重做；图标全量去 emoji、图形只走 `utils/deco.js`/`icons.js`；清理改版遗留死代码 171 KB | ✅ 待真机验收 |
 
-> M4.5 交互任务书评审结论（详见 `评审意见-第七节10项交互-给豆包.md`）：共享元素转场降级为两段式近似、拖拽排序砍掉（时间线母题）、wall 页 FAB 不做（tabBar 中央+是唯一主入口）、card 页风格切换保留 chip。
+> M4.5 交互任务书的历史结论：共享元素转场降级为两段式近似、拖拽排序砍掉（时间线母题）、card 页风格切换保留 chip。（当时「wall 页不做 FAB」一条已随 wall 页在 v7.0 下线而失效）
 
 ## 快速上手
 
 - **演示模式（0 配置）**：微信开发者工具导入本项目即可跑。`utils/env.js` 的 `USE_CLOUD: false` 时全部功能走本地 storage + 演示数据（识别为示例数据）。
 - **云模式（当前状态）**：`USE_CLOUD: true`，AppID `wx42ef98dfb4ecab23`，环境 `cloud1-d5gpnyzjw64a60ac7`。集合 `tickets`（票根）/ `couples`（绑定）由云函数 `ensureCollection` 自动创建，无需手动建。
-- 体验版部署走 miniprogram-ci（脚本在 `/root/.codebuddy/artifact/ci-workspace/`；上传密钥文件**保密、勿入仓库**）。
+- 体验版部署走 miniprogram-ci（脚本在 `scripts/ci/`：`npm run upload` 上传、`npm run release` 提审；上传密钥文件**保密、勿入仓库**，填 `.env`）。
 
 ## M5 提审清单（4.6.0 代码侧已就绪，资质项需运营推进）
 
@@ -52,26 +52,32 @@
 2. **AI 在端上调**：`utils/ai.js` 直调 `wx.cloud.extend.AI` 的 hunyuan-lite（免费免密钥）。AI 生成文案入库前**必须**过 `checkText`（msgSecCheck，违规码 87014），对外展示**必须**带「文案由 AI 生成」角标。
 3. **双模式**：所有新功能必须同时支持云模式与演示模式（参考 `utils/couple.js`）。
 4. **诚实原则**：不做假数据/假按钮；演示内容必须标注「演示」。
-5. 每个里程碑收尾，逐屏对照 `/workspace/02-产品原型预览.html` 验收还原度。
+5. 每个里程碑收尾，逐屏对照 `../有票为证最新品牌全案设计/精修/` 里的精修稿（稿屏 02–11 + Tab 栏规范图）验收还原度。
 
 ## 目录导览
 
 ```
 youpiaoweizheng/
 ├── app.json / app.wxss / app.js   # 入口；app.wxss 为全局设计系统（CSS 变量，为换肤预留）
-├── custom-tab-bar/        # 自定义 tabBar：票根 / 中央+ / 回忆 / 我的
-├── components/ticket-card/  # 票卡组件（撕票线+副券+条形码母题）
-├── pages/
-│   ├── wall/    ① 票根墙首页：品牌头部、时光机/今日时光签、月分组、peek 折叠
-│   ├── duo/     ④ 双人空间：未绑定(邀请码) / 已绑定(∞头像+合并统计+共同时光)
-│   ├── me/      ⑤ 我的：真实统计 + 12 枚勋章自动点亮 + 足迹地图入口 + 会员占位
-│   ├── scan/    ② 上传识别：取景框 → 识别中 → 确认表单
-│   ├── detail/  详情：票面信息、同场计数、AI 文案
-│   ├── map/     足迹地图：票根地理连线、城市聚焦、里程累计（4.4.0）
-│   ├── timeline/ 双人时间线完整版：按月分组、归属/同场「一起」标记（4.5.0）
-│   ├── report/  我们的时光报告：类型分布、城市 Top、里程、一起场次（4.5.0）
-│   ├── card/    ③ 纪念卡片：Canvas 四风格海报（经典纸感/演出海报/手账水彩/每日日签）
-│   └── bind/    邀请中转页：分享卡片带 code 进入 → 确认 → 绑定
+├── custom-tab-bar/        # 自定义 tabBar：票根墙 / 时光机 / 中央相机 / 回忆地图 / 我的
+├── components/            # 公共组件：animated-number（数字滚动）/ bottom-sheet（底部弹层）/ privacy-sheet（隐私授权弹窗）
+├── pages/                 # 16 页，★ = tab 页
+│   ├── home/     ★ ① 票根墙：品牌行、搜索、分类胶囊、齿边票根卡网格（稿屏2）
+│   ├── album/    ★ ② 时光机：按年份的纵向时间轴 + 明信片卡（稿屏8）
+│   ├── discover/ ★ ③ 回忆地图：水彩中国 + 真经纬度落点，点城市升起该城票根面板（稿屏7）
+│   ├── me/       ★ ④ 我的：水彩头像、票根造型统计卡、功能卡 + 设置入口（稿屏11）
+│   ├── scan/       拍照 / 相册上传 → 识别中 → 确认表单（稿屏3）
+│   ├── detail/     票根详情：齿孔白框照片、票面信息、AI 时光手记（稿屏4）
+│   ├── art/        AI 艺术重绘：原票根 ↔ 艺术重绘对照（稿屏5）
+│   ├── card/       纪念卡片：五种卡面（默认齿边明信片），存相册 / 分享（稿屏6）
+│   ├── annual/     年度回忆报告：统计卡 + 精选照片 + AI 结语 + 竖版长图（稿屏9）
+│   ├── duo/        双人空间：邀请码绑定、共同票根 / 共同场次 / 共同城市（稿屏10）
+│   ├── timeline/   双人时间线完整版：按月分组、归属/同场「一起」标记（4.5.0）
+│   ├── report/     我们的时光报告：类型分布、城市 Top、里程、一起场次（4.5.0）
+│   ├── bind/       邀请中转页：分享卡片带 code 进入 → 确认 → 绑定
+│   ├── theme/      主题选择页：六套主题即点即换
+│   ├── setting/    设置：双人空间 / 隐私设置 / 协议 / 外观主题 / 勋章墙（v7.0 新建）
+│   └── protocol/   隐私政策 / 用户协议（正式文本，4.7.1）
 ├── cloudfunctions/
 │   ├── saveTicket/        ★ 万能 action 路由云函数（全部后端核心逻辑）
 │   │   ├── index.js       入库 + checkText + bind + duoStats + eventStats
@@ -80,12 +86,19 @@ youpiaoweizheng/
 │   └── recognizeTicket/   OCR 识别 + 规则解析（88 城坐标字典）
 ├── utils/
 │   ├── env.js     ★ 云开关 + 环境 ID
-│   ├── store.js   统一数据层（页面读写票根唯一入口）
+│   ├── store.js   ★ 统一数据层（页面读写票根唯一入口）
+│   ├── icons.js   ★ 线性图标（data-uri SVG；界面不许再出现 emoji / 字符图标）
+│   ├── deco.js    手绘装饰：花枝 / 波浪 / 邮戳 / 齿边 / 和纸胶带
 │   ├── couple.js  M4 绑定端上封装（含演示模式本地兜底）
+│   ├── duoData.js 双人合并数据的唯一组装层（duo / timeline / report 三页同源）
 │   ├── ai.js      端上大模型：parseDraftByAI + generateCaption
-│   ├── date.js    日期工具 + 今日时光签短句库
-│   └── mock.js    演示数据（8 张票根）+ 勋章 12 枚定义
-└── images/                # tabBar 图标
+│   ├── theme.js   六主题令牌（getTheme / setTheme）
+│   ├── mapArt.js  水彩中国插画 + 经纬度投影
+│   ├── canvas-deco.js  Canvas 画笔（card 与 annual 共用）
+│   ├── badges.js  勋章判定（13 枚）
+│   ├── mock.js    演示数据（8 张票根）+ 勋章定义
+│   └── （其余为工具与埋点：date / geo / weather / skeleton / track / ads / pay / auth）
+└── images/                # 仅品牌 logo（tabBar 图标已自绘，不再用位图）
 ```
 
 ## 数据模型
