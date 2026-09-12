@@ -101,7 +101,9 @@ function isMockTicket(id) {
   return mock.MOCK_IDS.includes(String(id));
 }
 
-// —— 4.11.0 同场印记 opt-out（PRD：设置页可退出参与匿名聚合） ——
+// —— 4.11.0 同场印记 opt-out ——
+// 4.11 的「设置页开关」随 me→setting 改版下线，开关入口暂无 UI；
+// 但历史用户已存的 true 仍要认（否则等于悄悄替他们改回参与聚合）。
 const LS_SAME_OPTOUT = 'sp_same_optout';
 
 /** 是否退出同场印记（true = 我的票不参与「同场 N 人」匿名聚合） */
@@ -109,23 +111,8 @@ function getSameOptOut() {
   try { return !!wx.getStorageSync(LS_SAME_OPTOUT); } catch (e) { return false; }
 }
 
-function setSameOptOut(v) {
-  try { wx.setStorageSync(LS_SAME_OPTOUT, !!v); } catch (e) { /* 忽略 */ }
-}
-
-// —— 4.14.0 组内拖拽排序 ——
-// 云模式：sortAt 直写云库（saveTicket reorder action）。
-// 演示模式：mock/local 票不落库，sortAt 写本地覆盖表 sp_sort_overrides，
-//          listTickets 输出前统一 merge——与文案覆盖（LS_CAPTIONS）同一套思路。
-const LS_SORT = 'sp_sort_overrides';
-
-function readSortOverrides() {
-  try { return wx.getStorageSync(LS_SORT) || {}; } catch (e) { return {}; }
-}
-
-function writeSortOverrides(map) {
-  try { wx.setStorageSync(LS_SORT, map); } catch (e) { /* 忽略 */ }
-}
+// —— 4.14.0 组内排序 ——
+// 云库里排过序的票带 sortAt，列表输出统一走 byOrder（拖拽入口随 wall 页一并下线）
 
 /** 组内排序：有 sortAt 的按其降序浮前（整组已排过序），无 sortAt 的按日期兜底 */
 function byOrder(a, b) {
@@ -133,89 +120,6 @@ function byOrder(a, b) {
   const sb = b.sortAt || 0;
   if (sa !== sb) return sb - sa;
   return byDate(a, b);
-}
-
-/** 把本地排序覆盖表 merge 进票列表（演示模式专用） */
-function applySortOverrides(list) {
-  const map = readSortOverrides();
-  if (!Object.keys(map).length) return list;
-  return list.map((t) => (map[t.id] ? { ...t, sortAt: map[t.id] } : t));
-}
-
-// —— 4.16.0 组间排序（月份章节顺序） ——
-// 用户拖月头重排章节后，把「当时的全部分组 label 顺序」存为快照。
-// 应用规则：快照内的组保持相对顺序；快照之后新增的月份组按默认日期序融入最前
-// （与全局「新的在上」心智一致，且不打乱已整理的相对序）。
-const LS_GROUP = 'sp_group_order';
-
-function readGroupOrder() {
-  try { return wx.getStorageSync(LS_GROUP) || []; } catch (e) { return []; }
-}
-
-function writeGroupOrder(labels) {
-  try { wx.setStorageSync(LS_GROUP, labels || []); } catch (e) { /* 忽略 */ }
-}
-
-/**
- * 4.14.0 组内重排持久化：orderedIds = 该组新顺序的 id 数组（全量）。
- * sortAt = base + (len - i)：第 0 张最大，组内严格有序；新一次拖拽 base 更新，自然覆盖旧值。
- */
-async function reorderGroup(orderedIds) {
-  const ids = (orderedIds || []).map(String);
-  if (!ids.length) return;
-  const base = Date.now();
-  const orders = ids.map((id, i) => ({ id, sortAt: base + (ids.length - i) }));
-  if (USE_CLOUD && !isMockTicket(ids[0])) {
-    const res = await wx.cloud.callFunction({
-      name: 'saveTicket',
-      data: { action: 'reorder', orders }
-    });
-    const r = (res && res.result) || {};
-    if (!r.ok) throw new Error(r.msg || '排序保存失败');
-    return orders;
-  }
-  // 演示模式（含 mock 票与本地票）：写覆盖表
-  const map = readSortOverrides();
-  orders.forEach((o) => { map[o.id] = o.sortAt; });
-  writeSortOverrides(map);
-  return orders;
-}
-
-/**
- * 4.16.0 组间排序持久化：labels = 拖拽后的完整月份 label 顺序（全量快照）。
- * 云模式：saveTicket reorderGroups action（prefs 集合按用户 upsert）；
- * 演示模式：本地 LS_GROUP 快照。
- */
-async function reorderGroups(labels) {
-  const clean = (labels || []).map((s) => String(s || '').trim()).filter(Boolean).slice(0, 60);
-  if (!clean.length) return;
-  if (USE_CLOUD) {
-    const res = await wx.cloud.callFunction({
-      name: 'saveTicket',
-      data: { action: 'reorderGroups', labels: clean }
-    });
-    const r = (res && res.result) || {};
-    if (!r.ok) throw new Error(r.msg || '章节顺序保存失败');
-    return clean;
-  }
-  writeGroupOrder(clean);
-  return clean;
-}
-
-/** 4.16.0 读取章节顺序快照：云模式走 action（读取失败回落默认序，不阻塞首页）；演示模式读本地 */
-async function getGroupOrder() {
-  if (USE_CLOUD) {
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'saveTicket',
-        data: { action: 'getGroupOrder' }
-      });
-      const r = (res && res.result) || {};
-      if (r.ok && Array.isArray(r.labels)) return r.labels;
-    } catch (e) { /* 云调用失败回落默认序 */ }
-    return [];
-  }
-  return readGroupOrder();
 }
 
 /**
@@ -299,7 +203,7 @@ async function listTickets() {
     try {
       const db = wx.cloud.database();
       // 新用户云库为空 → rows 为空数组，走首页空态引导（真实产品该有的样子）
-      // 4.14.0：byOrder = sortAt 降序优先（拖拽排序过的组），其余 byDate 兜底
+      // 4.14.0：byOrder = sortAt 降序优先（云端排过序的组），其余 byDate 兜底
       // 5.0.0：分批拉取（原 .limit(200) 被小程序端硬上限截断）→ 见 fetchCloudTickets
       const { rows, truncated } = await fetchCloudTickets(db);
       _listTruncated = truncated;
@@ -310,21 +214,20 @@ async function listTickets() {
       // 4.19.1：兜底链自身防抛（覆盖层读 storage 的 JSON 若损坏会抛 → 页面白屏死透）
       _listFallback = true; // 4.18.0：亮「网络开小差」横幅，说明当前不是真实数据
       try {
-        return applySortOverrides(applyCaptionOverrides(mock.tickets.map(normalize))).sort(byOrder);
+        return applyCaptionOverrides(mock.tickets.map(normalize)).sort(byOrder);
       } catch (e2) {
         console.warn('[store] 兜底覆盖层异常，返回裸演示数据：', e2);
         return mock.tickets.map(normalize);
       }
     }
   }
-  // 4.14.0：演示模式先 merge 排序覆盖表（mock/local 票的拖拽顺序持久化）再排序
   // 4.18.0：readDeleted() 外提——原先在 filter 内每票重读 storage（N 次 IO → 1 次）
   const deleted = readDeleted();
-  return applySortOverrides(applyCaptionOverrides(
+  return applyCaptionOverrides(
     [...readLocal(), ...mock.tickets]
       .filter((t) => !deleted.includes(String(t.id)))
       .map(normalize)
-  )).sort(byOrder);
+  ).sort(byOrder);
 }
 
 /** 按 id 取单张（找不到返回 null）
@@ -405,4 +308,4 @@ async function removeTicket(id) {
   }
 }
 
-module.exports = { USE_CLOUD, listTickets, getTicket, addTicket, setCaption, removeTicket, isMockTicket, getSameOptOut, setSameOptOut, reorderGroup, reorderGroups, getGroupOrder, listFlags };
+module.exports = { USE_CLOUD, listTickets, getTicket, addTicket, setCaption, removeTicket, isMockTicket, getSameOptOut, listFlags };

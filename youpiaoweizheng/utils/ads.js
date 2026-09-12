@@ -15,12 +15,9 @@
 const REWARDED_ID = '';
 /** detail 页底部 Banner 广告位 */
 const BANNER_DETAIL_ID = '';
-/** wall 票根流内原生模板广告位 */
-const NATIVE_WALL_ID = '';
 
 function hasRewarded() { return !!REWARDED_ID; }
 function hasBanner() { return !!BANNER_DETAIL_ID; }
-function hasNative() { return !!NATIVE_WALL_ID; }
 
 // —— 激励视频：进程内单例（RewardedVideoAd 官方即单例语义，重复 create 会互相顶掉） ——
 let _rewarded = null;
@@ -72,6 +69,6 @@ function showRewarded() {
 }
 
 module.exports = {
-  REWARDED_ID, BANNER_DETAIL_ID, NATIVE_WALL_ID,
-  hasRewarded, hasBanner, hasNative, showRewarded
+  REWARDED_ID, BANNER_DETAIL_ID,
+  hasRewarded, hasBanner, showRewarded
 };

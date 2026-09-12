@@ -1,6 +1,0 @@
-{
-  "usingComponents": {
-    "ticket-card": "/components/ticket-card/index",
-    "animated-number": "/components/animated-number/index"
-  }
-}
