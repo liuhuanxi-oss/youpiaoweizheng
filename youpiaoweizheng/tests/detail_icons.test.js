@@ -133,6 +133,34 @@ t('onShow 里重新 buildIcons 并 setData', () => {
   ok(/this\.setData\(\{\s*icons:/.test(onShow), 'onShow 未 setData icons');
 });
 
+console.log('\n【九、删除入口（7.1.1 加回：v7.0 重做时随旧票根卡丢了，隐私协议却还写着能删）】');
+t('「···」更多菜单里带「删除这张票根」，且点得到 removeTicket', () => {
+  const more = js.slice(js.indexOf('onMore()'), js.indexOf('removeTicket() {'));
+  ok(/itemList:\s*\[/.test(more), '找不到更多菜单的 itemList');
+  ok(/'删除这张票根'\]/.test(more), '菜单里没有「删除这张票根」，或它不在最后一项');
+  ok(/tapIndex === 3\)\s*this\.removeTicket\(\)/.test(more), '菜单第 4 项没有接到 removeTicket');
+});
+t('删除必须二次确认、走数据层（云/演示双模式）、失败有提示', () => {
+  const fn = js.slice(js.indexOf('removeTicket() {'), js.indexOf('goBack() {'));
+  ok(/wx\.showModal\(/.test(fn), '没有二次确认框');
+  ok(/if \(!r\.confirm\) return;/.test(fn), '点了取消还会继续删');
+  ok(/await store\.removeTicket\(t\.id\)/.test(fn), '没有走 store.removeTicket（数据层入口）');
+  ok(/this\._removing/.test(fn), '没有防连点（删两次会报错）');
+  ok(/删除失败/.test(fn), '删除失败没有提示');
+});
+t('删完退回上一页，且无上级页面时有兜底', () => {
+  const fn = js.slice(js.indexOf('goBack() {'), js.indexOf('toggleFav'));
+  ok(/wx\.navigateBack\(/.test(fn), '没有 navigateBack');
+  ok(/switchTab\(\{ url: '\/pages\/album\/album' \}\)/.test(fn), '分享落地进来看详情时删完会卡在原页');
+});
+t('隐私政策写的删除路径必须真的存在（不能承诺做不到的事）', () => {
+  const protocol = read('pages/protocol/protocol.js');
+  ok(!/左滑删除/.test(protocol), '协议仍写着「左滑删除」，而界面上没有这个手势');
+  ok(/更多[\s\S]{0,20}删除/.test(protocol),
+    '协议没写清删除的实际入口（详情页「···」更多）');
+  ok(/'删除这张票根'/.test(js), '协议里说的菜单项在页面里不存在');
+});
+
 console.log('\n──────────────────────────────');
 console.log('结果：' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

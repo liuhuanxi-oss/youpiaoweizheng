@@ -235,18 +235,60 @@ Page({
     wx.showToast({ title: 'AI 修复即将上线', icon: 'none' });
   },
 
-  /** 导航「···」更多菜单：AI 艺术重绘 / 纪念卡片 / AI 文案
+  /** 导航「···」更多菜单：AI 艺术重绘 / 纪念卡片 / AI 文案 / 删除
    *  6.4.0：FAB 移除后功能挂载点——原 FAB 级联三钮（图版/分享/卡片）中
-   *  图版（goArt）与卡片（goCard）迁入此处，分享走底部实底按钮 */
+   *  图版（goArt）与卡片（goCard）迁入此处，分享走底部实底按钮
+   *  7.1.1：删除入口加回——v7.0 逐屏重做时左滑删除随旧票根卡一起没了，
+   *  而隐私协议仍写着「左滑删除」，用户实际删不掉（详见 docs/FEATURE.md §十-3） */
   onMore() {
     const hasCap = !!(this.data.t && this.data.t.aiCaption);
     wx.showActionSheet({
-      itemList: ['AI 艺术重绘', '生成纪念卡片', hasCap ? 'AI 换一句文案' : 'AI 写一句文案'],
+      itemList: ['AI 艺术重绘', '生成纪念卡片', hasCap ? 'AI 换一句文案' : 'AI 写一句文案', '删除这张票根'],
       success: (res) => {
         if (res.tapIndex === 0) this.goArt();
         if (res.tapIndex === 1) this.goCard();
         if (res.tapIndex === 2) this.genCaption();
+        if (res.tapIndex === 3) this.removeTicket();
       }
+    });
+  },
+
+  /** 删除这张票根：二次确认 → store.removeTicket（云/演示双模式）→ 退回上一页。
+   *  照片文件仍留在云存储（全项目还没有清理机制，见 docs/OVERVIEW.md 已知债），
+   *  但数据库记录与列表里的它会立刻消失。 */
+  removeTicket() {
+    const t = this.data.t;
+    if (!t || this._removing) return;
+    wx.showModal({
+      title: '删除这张票根？',
+      content: '删除后它和它的 AI 文案都不会再出现在册子里。',
+      confirmText: '删除',
+      confirmColor: '#C26B5E',
+      cancelText: '再想想',
+      success: async (r) => {
+        if (!r.confirm) return;
+        this._removing = true;
+        wx.showLoading({ title: '删除中', mask: true });
+        try {
+          await store.removeTicket(t.id);
+          wx.hideLoading();
+          track.track('detail_delete', {});
+          wx.showToast({ title: '已删除', icon: 'none' });
+          setTimeout(() => this.goBack(), 700);
+        } catch (e) {
+          wx.hideLoading();
+          this._removing = false;
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  /** 退回上一页；从分享卡直接落地时没有上级页面 → 兜底回时光机 */
+  goBack() {
+    wx.navigateBack({
+      delta: 1,
+      fail: () => wx.switchTab({ url: '/pages/album/album' })
     });
   },
 
