@@ -1146,6 +1146,7 @@ async function duoStatsAction(OPENID, full) {
           type: t.type,
           date: t.date,
           time: t.time || '',
+          img: t.img || '',   // 稿屏10 双人票根卡的缩略图（云存储 fileID）
           city: t.city || '',
           venue: t.venue || '',
           seat: t.seat || '',

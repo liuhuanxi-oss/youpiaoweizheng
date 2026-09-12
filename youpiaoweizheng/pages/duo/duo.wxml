@@ -13,11 +13,10 @@
   bindrefresherpulling="onPulling"
   bindrefresherrestore="onRestore"
 >
-
-
-  <!-- 4.10.1 重装饰层：纸面噪点（全主题）/ C 水彩晕染头 -->
+  <!-- 4.10.1 重装饰层：纸面噪点 -->
   <view class="grain"></view>
-  <!-- ===== M4.5 骨架屏：云模式查询绑定态期间出现（>300ms 才显示） ===== -->
+
+  <!-- ===== 骨架屏：查绑定态期间出现（>300ms 才显示） ===== -->
   <view class="sk" wx:if="{{skeleton}}">
     <view class="sk-hero skeleton-bone"></view>
     <view class="sk-card skeleton-bone"></view>
@@ -26,120 +25,161 @@
 
   <view class="fade-in" wx:else>
 
-  <!-- ================= 未绑定态 ================= -->
-  <block wx:if="{{!bound}}">
-    <view class="hero">
-      <view class="pair">
-        <view class="avatar a1 serif">你</view>
-        <view class="avatar a2 serif">TA</view>
-        <view class="link">?</view>
+    <!-- ============ 撕边纸片邀请卡 ============ -->
+    <view class="duo-hero">
+      <image class="duo-hero-bg" src="{{art.hero}}" mode="aspectFit" aria-hidden="true" />
+      <!-- 两枝白色小雏菊：左上 / 左下，压在左边缘上（稿里它们从纸边伸进来） -->
+      <image class="duo-hero-daisy is-l" src="{{art.daisy}}" mode="aspectFit" aria-hidden="true" />
+      <image class="duo-hero-daisy is-bl" src="{{art.daisy}}" mode="aspectFit" aria-hidden="true" />
+      <!-- 右上角邮戳：圈与注销线是图形 -->
+      <view class="duo-hero-pm">
+        <image class="duo-hero-pm-ring" src="{{art.pmRing}}" mode="aspectFit" aria-hidden="true" />
+        <image class="duo-hero-pm-wave" src="{{art.pmWave}}" mode="aspectFit" aria-hidden="true" />
       </view>
-      <view class="hero-title serif">还没人陪你翻这本收藏册</view>
-      <view class="hero-sub">绑定后，你们的票根会汇入同一条时间线</view>
-    </view>
+      <image class="duo-hero-corner" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
 
-    <!-- 我的邀请码 -->
-    <view class="card code-card">
-      <view class="cc-head">我的邀请码</view>
-      <view class="cc-code serif" wx:if="{{myCode}}">{{myCode}}</view>
-      <view class="cc-code cc-empty" wx:elif="{{codeBusy}}">生成中…</view>
-      <view class="cc-empty pressable" hover-class="press-hover" wx:else bindtap="genCode">点这里生成 →</view>
-      <view class="cc-row" wx:if="{{myCode}}">
-        <view class="cc-btn pressable" hover-class="press-hover" bindtap="copyCode">复制口令</view>
-        <view class="cc-tip">让 TA 在双人空间输入这个码</view>
-      </view>
-    </view>
-
-    <!-- 输 TA 的码 -->
-    <view class="card join-card pressable" hover-class="press-item-hover" bindtap="joinCode">
-      <view class="jc-t">输入 TA 的邀请码</view>
-      <view class="jc-go">→</view>
-    </view>
-
-    <!-- 分享邀请卡片（v5.1 L2：价值点前置 + 双行动作引导，提绑定转化） -->
-    <button class="share-invite pressable" hover-class="press-hover" open-type="share">
-      <text class="si-t-main">✦ 把这本收藏册，发给 TA</text>
-      <text class="si-t-sub">TA 点开分享卡片即可绑定 · 一起攒票根</text>
-    </button>
-
-    <!-- 绑定后的世界（预览示意） -->
-    <view class="sec-title" style="margin-top: 44rpx;">
-      <text class="t serif">绑定后的世界</text>
-      <text class="s">示意</text>
-    </view>
-
-    <view class="card stats">
-      <view class="s"><view class="v"><text class="n">6</text> 场</view><view class="k">一起看演出</view></view>
-      <view class="s"><view class="v"><text class="n">4</text> 座</view><view class="k">一起走过的城市</view></view>
-      <view class="s"><view class="v"><text class="n">23</text> 张</view><view class="k">合并票根</view></view>
-    </view>
-
-    <view class="about pressable" hover-class="press-item-hover" bindtap="about">什么是双人记忆空间？</view>
-  </block>
-
-  <!-- ================= 已绑定态 ================= -->
-  <block wx:else>
-    <view class="hero">
-      <view class="pair">
-        <view class="avatar a1 serif">{{duo.meChar}}</view>
-        <view class="avatar a2 serif">{{duo.partnerChar}}</view>
-        <view class="link serif">∞</view>
-      </view>
-      <view class="hero-title serif">{{duo.myName}} & {{duo.partnerName}}</view>
-      <view class="hero-sub">已同行 <animated-number value="{{duo.days}}" /> 天 · 我们的票根汇成了同一本册子</view>
-    </view>
-
-    <!-- 合并统计（M4.5 起数字滚动入场） -->
-    <view class="card stats" wx:if="{{stats}}">
-      <view class="s"><view class="v"><animated-number value="{{stats.shows}}" /> 场</view><view class="k">一起看演出</view></view>
-      <view class="s"><view class="v"><animated-number value="{{stats.cities}}" /> 座</view><view class="k">一起走过的城市</view></view>
-      <view class="s"><view class="v"><animated-number value="{{stats.total}}" /> 张</view><view class="k">合并票根</view></view>
-    </view>
-
-    <!-- 我们的时光报告（M4-b） -->
-    <view class="card banner pressable" hover-class="press-item-hover" bindtap="goReport">
-      <view>
-        <view class="b-t">我们的时光报告</view>
-        <view class="b-s">里程 · 城市排行 · 一起看过的场，写成一页纸</view>
-      </view>
-      <view class="b-go">→</view>
-    </view>
-
-    <!-- 双人卡片 -->
-    <view class="card banner pressable" hover-class="press-item-hover" bindtap="goDuoCard">
-      <view>
-        <view class="b-t">生成双人纪念卡片</view>
-        <view class="b-s">两个头像并排出现在海报上，一键发朋友圈</view>
-      </view>
-      <view class="b-go">→</view>
-    </view>
-
-    <!-- 最近共同时光（M4-b 起「全部」进完整时间线） -->
-    <view class="sec-title" style="margin-top: 44rpx;" wx:if="{{stats && stats.recent.length}}">
-      <text class="t serif">最近的共同时光</text>
-      <text class="s go-all pressable" hover-class="press-hover" bindtap="goTimelineAll">全部 ›</text>
-    </view>
-    <view class="card tl" wx:if="{{stats && stats.recent.length}}">
-      <view class="tl-row pressable" hover-class="press-item-hover" wx:for="{{stats.recent}}" wx:key="id" bindtap="goRecentDetail" data-id="{{item.id}}">
-        <view class="tl-dot {{item.mine ? 'mine' : ''}}"></view>
-        <view class="tl-main">
-          <view class="tl-title serif">{{item.title}}</view>
-          <view class="tl-sub">{{item.groupLabel}} · {{item.ownerName}}收藏的</view>
+      <view class="duo-hero-in">
+        <!-- 双头像 + 中间的爱心（虚线把两者连起来） -->
+        <view class="duo-pair">
+          <view class="duo-av is-me">
+            <image class="duo-av-ic" src="{{ic.avatar}}" mode="aspectFit" aria-hidden="true" />
+          </view>
+          <view class="duo-av is-ta">
+            <image class="duo-av-ic" src="{{ic.avatar}}" mode="aspectFit" aria-hidden="true" />
+          </view>
+          <view class="duo-tie">
+            <view class="duo-tie-line is-l"></view>
+            <image class="duo-tie-heart" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
+            <view class="duo-tie-line is-r"></view>
+          </view>
         </view>
-        <view class="tl-go">›</view>
+
+        <view class="duo-hero-t serif" wx:if="{{bound}}">{{duo.myName}} & {{duo.partnerName}}</view>
+        <view class="duo-hero-t serif" wx:else>和 TA 一起，收藏共同的时光</view>
+        <view class="duo-hero-s" wx:if="{{bound}}">已同行 {{duo.days}} 天 · 一起看过 {{stat.together}} 场 · 走过 {{stat.shared}} 座城</view>
+        <view class="duo-hero-s" wx:else>绑定后可查看共同场次与共同城市</view>
+
+        <!-- 未绑定：发起绑定 / 邀请微信好友 -->
+        <view class="duo-btns" wx:if="{{!bound}}">
+          <view class="duo-btn is-main pressable" hover-class="press-hover" bindtap="startBind" aria-role="button" aria-label="发起绑定">
+            {{codeBusy ? '正在准备…' : '发起绑定'}}
+          </view>
+          <button class="duo-btn is-ghost pressable" hover-class="press-hover" open-type="share">邀请微信好友</button>
+        </view>
+        <!-- 已绑定：生成双人卡片 / 我们的时光报告 / 解除绑定 -->
+        <view class="duo-btns" wx:else>
+          <view class="duo-btn is-main pressable" hover-class="press-hover" bindtap="goCard" aria-role="button" aria-label="生成双人纪念卡片">生成双人卡片</view>
+          <view class="duo-btn is-ghost pressable" hover-class="press-hover" bindtap="goReport" aria-role="button" aria-label="我们的时光报告">我们的时光报告</view>
+        </view>
       </view>
     </view>
 
-    <view class="unbind pressable" hover-class="press-hover" bindtap="unbindTap">解除绑定</view>
-  </block>
+    <!-- ============ 分区：我们的共同票根 ============ -->
+    <view class="duo-sec">
+      <view class="duo-sec-line"></view>
+      <image class="duo-sec-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+      <text class="duo-sec-t serif">我们的共同票根</text>
+      <image class="duo-sec-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+      <view class="duo-sec-line"></view>
+    </view>
+    <view class="duo-sec-note" wx:if="{{!bound && rows.length}}">绑定后，这里会换成你们真正共同的那几张</view>
+    <view class="duo-sec-note" wx:if="{{bound && !rows.length}}">还没攒下共同的票根 —— 各收一张，这里就热闹了</view>
 
+    <!-- ============ 票根卡：2 列 3 行 ============ -->
+    <view class="duo-grid" wx:if="{{rows.length}}">
+      <view
+        class="duo-card"
+        wx:for="{{rows}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="goDetail"
+        aria-role="button"
+        aria-label="查看票根 {{item.title}}"
+      >
+        <image class="duo-card-bg" src="{{art.card}}" mode="aspectFit" aria-hidden="true" />
+        <!-- 右上角小邮戳：右半截被纸边裁掉（稿里就是这样压着边出去的） -->
+        <image class="duo-card-pm" src="{{art.pmRing}}" mode="aspectFit" aria-hidden="true" />
+        <!-- 共同场次 / 共同城市 -->
+        <view class="duo-card-tag is-{{item.tag.kind}}" wx:if="{{item.tag}}">
+          <image class="duo-card-tag-ic" src="{{item.tag.kind === 'show' ? ic.tagShow : ic.tagCity}}" mode="aspectFit" aria-hidden="true" />
+          <text class="duo-card-tag-t">{{item.tag.text}}</text>
+        </view>
+
+        <view class="duo-card-body">
+          <view class="duo-card-shot">
+            <view class="duo-card-photo">
+              <image wx:if="{{item.img}}" class="duo-card-img" src="{{item.img}}" mode="aspectFill" lazy-load />
+              <image wx:else class="duo-card-fb" src="{{item.ico}}" mode="aspectFit" aria-hidden="true" />
+            </view>
+            <!-- 纸卡下缘的五个压点：稿里的印刷装饰，不承载数据 -->
+            <view class="duo-card-dots" aria-hidden="true">
+              <view class="duo-card-dot is-on"></view>
+              <view class="duo-card-dot"></view>
+              <view class="duo-card-dot is-on"></view>
+              <view class="duo-card-dot"></view>
+              <view class="duo-card-dot"></view>
+            </view>
+          </view>
+
+          <view class="duo-card-info">
+            <text class="duo-card-t serif">{{item.title}}</text>
+            <view class="duo-card-row">
+              <image class="duo-card-row-ic" src="{{ic.calendar}}" mode="aspectFit" aria-hidden="true" />
+              <text class="duo-card-row-t">{{item.dateText}}</text>
+            </view>
+            <view class="duo-card-row" wx:if="{{item.placeText}}">
+              <image class="duo-card-row-ic" src="{{ic.pin}}" mode="aspectFit" aria-hidden="true" />
+              <text class="duo-card-row-t">{{item.placeText}}</text>
+            </view>
+          </view>
+        </view>
+        <image class="duo-card-heart" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
+      </view>
+    </view>
+
+    <!-- 一张票根都没有的空态 -->
+    <view class="duo-empty" wx:if="{{!rows.length}}">
+      <image class="duo-empty-ic" src="{{ic.emptyIc}}" mode="aspectFit" aria-hidden="true" />
+      <view class="duo-empty-t">这本册子还是空的</view>
+      <view class="duo-empty-s">收进第一张票根，才有的可看</view>
+      <view class="duo-empty-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去收第一张票">去收第一张票</view>
+    </view>
+
+    <!-- 已绑定的解绑入口（未绑定时不出现） -->
+    <view class="unbind pressable" hover-class="press-hover" wx:if="{{bound}}" bindtap="unbindTap">解除绑定</view>
+
+    <!-- ============ 页脚装饰：星形邮戳 + 虚线 + 爱心 + 雏菊 ============ -->
+    <view class="duo-foot">
+      <view class="duo-foot-stamp">
+        <image class="duo-foot-stamp-ring" src="{{art.pmRing}}" mode="aspectFit" aria-hidden="true" />
+        <image class="duo-foot-stamp-star" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+        <image class="duo-foot-stamp-wave" src="{{art.pmWave}}" mode="aspectFit" aria-hidden="true" />
+      </view>
+      <view class="duo-foot-line"></view>
+      <image class="duo-foot-heart" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
+      <image class="duo-foot-daisy" src="{{art.daisy}}" mode="aspectFit" aria-hidden="true" />
+    </view>
+
+    <view class="about pressable" hover-class="press-item-hover" bindtap="about">什么是双人回忆空间？</view>
   </view>
 
   <view class="safe-bottom"></view>
 
-  <!-- ===== M4.5 自定义下拉头 ===== -->
+  <!-- ===== 自定义下拉头 ===== -->
   <view slot="refresher" class="refresher">
-    <view class="rf-ticket" style="transform: rotate({{pullDeg}}deg)">🎫</view>
     <text class="rf-text">{{refreshText}}</text>
   </view>
 </scroll-view>
+
+<!-- 邀请码面板：发起绑定 → 出示我的邀请码 -->
+<!-- 面板挂在页面根节点上，不在 .page-scroll 里，拿不到主题类 → 自己套一层把变量带进来 -->
+<bottom-sheet show="{{sheet}}" title="我的邀请码" bind:close="closeSheet">
+  <view class="cc-wrap theme-{{theme}}">
+    <view class="cc-tip">把这串码发给 TA，让 TA 在「发起绑定」里输入</view>
+    <view class="cc-code serif">{{myCode || '······'}}</view>
+    <view class="cc-row">
+      <view class="cc-btn pressable" hover-class="press-hover" bindtap="copyCode" aria-role="button" aria-label="复制邀请码">复制邀请码</view>
+      <button class="cc-share pressable" hover-class="press-hover" open-type="share">发给 TA</button>
+    </view>
+  </view>
+</bottom-sheet>

@@ -55,7 +55,7 @@ Page({
         months[idx[label]].rows.push({
           ...t,
           typeText: TYPE_TEXT[t.type] || '时光',
-          together: tks.has(t.eventKey || `${t.venue}|${t.date}` || `${t.title}|${t.date}`)
+          together: tks.has(duoData.eventKeyOf(t))
         });
       });
 

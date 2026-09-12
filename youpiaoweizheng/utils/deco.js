@@ -198,7 +198,41 @@ const DECO = {
   // 金色四角星（稿里散布在标题与卡片上，比 sparkle 更胖更钝）
   star4: (c) =>
     '<path d="M16 2c1.6 6.4 3.6 8.4 10 10-6.4 1.6-8.4 3.6-10 10-1.6-6.4-3.6-8.4-10-10 6.4-1.6 8.4-3.6 10-10Z" ' +
-      fillOf(c.accent, '#F5C86A') + '/>'
+      fillOf(c.accent, '#F5C86A') + '/>',
+
+  // ——— 双人回忆（稿屏10）：白色小雏菊花枝 ———
+  // 长在 hero 纸卡的左上/左下两角与页脚。花瓣按角度算出来排一圈 ——
+  // 手写 8 个 ellipse 的话，改一次花瓣半径要改八处。
+  daisy: (c) => {
+    const petal = c.paper || '#FFFDF8';
+    const leaf = c.leaf || '#A9C3A6';
+    const core = c.core || '#F6DFA8';
+    const edge = c.text || '#6B5B50';
+    let s =
+      // 主茎 + 一根侧枝
+      '<path d="M28 100Q36 62 46 32" fill="none" ' + strokeOf(leaf, '#A9C3A6', 2, '') + ' stroke-linecap="round"/>' +
+      '<path d="M37 66Q50 60 60 48" fill="none" ' + strokeOf(leaf, '#A9C3A6', 1.6, '', 0.85) + ' stroke-linecap="round"/>' +
+      // 两片叶
+      '<path d="M31 78Q17 76 11 64Q26 62 33 74Z" ' + fillOf(leaf, '#A9C3A6', 0.7) + '/>' +
+      '<path d="M41 52Q36 39 41 28Q52 37 47 50Z" ' + fillOf(leaf, '#A9C3A6', 0.5) + '/>';
+    // 主花：8 片白瓣绕中心（白瓣压在白纸卡上要靠一道极淡的描边才读得出）
+    for (let i = 0; i < 8; i++) {
+      const a = (i * 45) * Math.PI / 180;
+      const x = round2(46 + Math.cos(a) * 10.5), y = round2(26 + Math.sin(a) * 10.5);
+      s += '<ellipse cx="' + x + '" cy="' + y + '" rx="7.4" ry="4.8" transform="rotate(' + (i * 45) + ' ' + x + ' ' + y + ')" ' +
+        'fill="' + petal + '" stroke="' + edge + '" stroke-opacity="0.22" stroke-width="0.9"/>';
+    }
+    s += '<circle cx="46" cy="26" r="5.6" ' + fillOf(core, '#F6DFA8') + '/>';
+    // 副花：6 片，小一号，挂在侧枝末端
+    for (let i = 0; i < 6; i++) {
+      const a = (i * 60) * Math.PI / 180;
+      const x = round2(62 + Math.cos(a) * 6.2), y = round2(46 + Math.sin(a) * 6.2);
+      s += '<ellipse cx="' + x + '" cy="' + y + '" rx="4.4" ry="3" transform="rotate(' + (i * 60) + ' ' + x + ' ' + y + ')" ' +
+        'fill="' + petal + '" stroke="' + edge + '" stroke-opacity="0.18" stroke-width="0.8"/>';
+    }
+    s += '<circle cx="62" cy="46" r="3.2" ' + fillOf(core, '#F6DFA8', 0.9) + '/>';
+    return s;
+  }
 };
 
 /** 每款装饰各自的 viewBox（宽高比不同，靠它让 image 的 aspectFit 算出正确比例） */
@@ -211,7 +245,8 @@ const DECO_VIEWBOX = {
   sprig: '0 0 66 44',
   wavelines: '0 0 64 28',
   heartsmall: '0 0 32 32',
-  star4: '0 0 32 24'
+  star4: '0 0 32 24',
+  daisy: '0 0 80 104'
 };
 const DECO_VIEWBOX_DEFAULT = '0 0 64 44';
 

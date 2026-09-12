@@ -27,6 +27,7 @@ async function loadMerged(c) {
       const owner = mine ? 'me' : 'partner';
       return {
         id: t.id, title: t.title, type: t.type, date: t.date, time: t.time || '',
+        img: t.img || '',
         city: t.city || '', venue: t.venue || '', seat: t.seat || '', price: t.price || null,
         geo: t.geo || null, eventKey: t.eventKey || '',
         owner, ownerName: ownerNameOf(owner, partnerName), mine
@@ -50,6 +51,7 @@ async function loadMerged(c) {
   if (!r.ok) throw new Error(r.msg || '合并数据加载失败');
   const items = (r.items || []).map((t) => ({
     id: t.id, title: t.title, type: t.type, date: t.date, time: t.time || '',
+    img: t.img || '',
     city: t.city || '', venue: t.venue || '', seat: t.seat || '', price: t.price || null,
     geo: t.geo || null, eventKey: t.eventKey || '',
     owner: t.owner, ownerName: ownerNameOf(t.owner, partnerName), mine: t.owner === 'me'
@@ -66,17 +68,45 @@ async function loadMerged(c) {
 }
 
 /**
- * 同场组判定：组键优先 eventKey（服务端 venue+date 生成），兜底 venue|date / title|date。
- * 返回「双方都收过」的组键 Set —— 命中的行在时间线挂「一起」标记、报告页计"一起看过的场次"。
+ * 同场组键：优先服务端 eventKey（venue+date 生成），其次场馆|日期，再退到票名|日期。
+ * 三处同场判定（duo 页的胶囊 / 时间线的「一起」标记 / 报告页计数）必须用同一个键，
+ * 所以只在这里定义一次 —— 各页自己拼字符串迟早拼歪一边，胶囊会莫名其妙不亮。
+ */
+function eventKeyOf(t) {
+  const r = t || {};
+  if (r.eventKey) return r.eventKey;
+  if (r.venue) return `${r.venue}|${r.date || ''}`;
+  return `${r.title || ''}|${r.date || ''}`;
+}
+
+/**
+ * 同场组判定：返回「双方都收过」的组键 Set ——
+ * 命中的行在时间线挂「一起」标记、报告页计"一起看过的场次"、duo 页票根卡挂「共同场次」胶囊。
  */
 function togetherKeys(items) {
   const groups = {};
   (items || []).forEach((t) => {
-    const k = t.eventKey || `${t.venue}|${t.date}` || `${t.title}|${t.date}`;
+    const k = eventKeyOf(t);
     (groups[k] = groups[k] || []).push(t.owner);
   });
   return new Set(
     Object.keys(groups).filter((k) => groups[k].includes('me') && groups[k].includes('partner'))
+  );
+}
+
+/**
+ * 共城组判定：双方在同一座城市留过票根的城市 Set（不要求同一场）。
+ * 与 togetherKeys 是同一件事的两个粒度 —— 稿屏10 的票根卡上，
+ * 「共同场次」用前者、「共同城市」用后者，都命中的优先挂「共同场次」。
+ */
+function togetherCities(items) {
+  const groups = {};
+  (items || []).forEach((t) => {
+    if (!t.city) return;
+    (groups[t.city] = groups[t.city] || []).push(t.owner);
+  });
+  return new Set(
+    Object.keys(groups).filter((c) => groups[c].includes('me') && groups[c].includes('partner'))
   );
 }
 
@@ -92,4 +122,4 @@ function recentRows(merged, n) {
   }));
 }
 
-module.exports = { loadMerged, togetherKeys, recentRows };
+module.exports = { loadMerged, eventKeyOf, togetherKeys, togetherCities, recentRows };

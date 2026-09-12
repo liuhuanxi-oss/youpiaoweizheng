@@ -1,5 +1,8 @@
-/* pages/duo/duo.wxss —— v6.5 双人回忆（六主题变量化，禁止写死色值） */
-/* M4.5：滚动交给 scroll-view（承载下拉弹性 refresher） */
+/* pages/duo/duo.wxss —— 双人回忆绑定（品牌全案 · 稿屏10，六主题变量化）
+   颜色一律读 --*；写死的十六进制只允许出现在 var(--x, #兜底) 里。
+   齿边纸片（hero / 票根卡）的 viewBox 尺寸由 duo.js 编译，
+   与这里的盒子必须一致（差一点齿就偏出边框）：
+   .duo-hero 670×530、.duo-card 322×218。 */
 .page-scroll {
   height: 100vh;
   background: var(--bg, #F5F0E6);
@@ -11,29 +14,12 @@
   box-sizing: border-box;
 }
 
-/* —— 通用卡片：随 6 套主题分化（覆盖 app.wxss 纸感三主题版）—— */
-.card {
-  background: var(--card-bg, var(--card));
-  border-radius: var(--card-r, 28rpx);
-  border: var(--card-border, none);
-  box-shadow: var(--card-shadow, 0 6rpx 20rpx rgba(var(--text-rgb), 0.07));
-  backdrop-filter: var(--card-blur, none);
-  -webkit-backdrop-filter: var(--card-blur, none);
-}
-
-/* —— 自定义下拉头 —— */
+/* —— 自定义下拉头（只有一行字，稿里没有下拉这个动作，就不给它加戏） —— */
 .refresher {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
   height: 150rpx;
-}
-.rf-ticket {
-  font-size: 44rpx;
-  line-height: 1;
-  transition: transform 80ms linear;
 }
 .rf-text {
   font-size: 20rpx;
@@ -41,223 +27,315 @@
   color: var(--text2, #8A7E6E);
 }
 
-/* —— 头部 —— */
-.hero {
+/* ══════════ 撕边纸片邀请卡 ══════════ */
+.duo-hero {
+  position: relative;
+  width: 670rpx;
+  height: 530rpx;
+  margin: 0 auto;
+}
+.duo-hero-bg {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+}
+/* 两枝白色小雏菊：从纸边伸进来，左上的压在头像后面 */
+.duo-hero-daisy { position: absolute; z-index: 1; }
+.duo-hero-daisy.is-l { left: 6rpx; top: -8rpx; width: 128rpx; height: 166rpx; }
+.duo-hero-daisy.is-bl { left: -30rpx; top: 196rpx; width: 96rpx; height: 125rpx; }
+/* 右上角邮戳：圈与注销线是图形，文字那四行在稿里只是装饰，这里不假造数据。
+   right 留 56 而不是 34：注销线要往右甩出圆外 78rpx（稿里就是甩出去的），
+   邮戳再靠右就会甩出屏幕，页面横向能滚起来。 */
+.duo-hero-pm { position: absolute; right: 56rpx; top: 26rpx; width: 128rpx; height: 128rpx; z-index: 1; }
+.duo-hero-pm-ring { width: 100%; height: 100%; }
+.duo-hero-pm-wave { position: absolute; left: 86%; top: 12%; width: 96rpx; height: 104rpx; }
+.duo-hero-corner { position: absolute; right: 30rpx; bottom: 22rpx; width: 40rpx; height: 40rpx; z-index: 1; }
+
+/* 内容列：整列压在纸底之上（纸底是绝对定位的，不给 z-index 会盖住文字） */
+.duo-hero-in {
+  position: absolute;
+  left: 0; right: 0; top: 56rpx;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 40rpx;
 }
-.pair { position: relative; height: 120rpx; margin-bottom: 20rpx; width: 240rpx; }
-.avatar {
+
+/* 双头像 + 中间那道虚线连着的心 */
+.duo-pair { position: relative; width: 100%; height: 150rpx; }
+.duo-av {
   position: absolute;
-  width: 112rpx;
-  height: 112rpx;
+  top: 0;
+  width: 150rpx;
+  height: 150rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 38rpx;
-  color: var(--on-primary, #FFFFFF);
-  border: 5rpx solid var(--bg, #F5F0E6);
 }
-.a1 { left: 0; background: linear-gradient(135deg, var(--accent, #C26B5E), var(--accent, #C26B5E)); z-index: 1; }
-.a2 { right: 0; background: linear-gradient(135deg, var(--primary, #2B2420), var(--primary, #2B2420)); }
-.link {
+.duo-av.is-me { left: 88rpx; background: var(--rose, #D9A0A6); }
+.duo-av.is-ta { right: 88rpx; background: var(--sage, #A9C3A6); }
+.duo-av-ic { width: 78rpx; height: 78rpx; }
+/* 虚线正好落在两个头像之间那段空档里（88 + 150 = 238，两侧对称） */
+.duo-tie {
   position: absolute;
-  left: 50%;
+  left: 238rpx;
+  right: 238rpx;
   top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 50%;
-  background: var(--card-bg, var(--card));
-  border: 1rpx solid var(--border, #E2D9C7);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+.duo-tie-line { flex: 1; height: 0; border-top: 4rpx dashed var(--rose, #D9A0A6); opacity: 0.75; }
+.duo-tie-heart { width: 52rpx; height: 52rpx; margin: 0 10rpx; flex-shrink: 0; }
+
+.duo-hero-t {
+  margin-top: 34rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: var(--brown, #6B5B50);
+}
+.duo-hero-s {
+  margin-top: 12rpx;
+  padding: 0 40rpx;
+  text-align: center;
+  font-size: 24rpx;
+  letter-spacing: 1rpx;
+  color: var(--text2, #8A7B66);
+}
+
+.duo-btns { display: flex; gap: 24rpx; margin-top: 36rpx; }
+.duo-btn {
+  width: 240rpx;
+  height: 88rpx;
+  box-sizing: border-box;
+  border-radius: 999rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26rpx;
-  color: var(--accent, #C26B5E);
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
 }
-.hero-title { font-size: 36rpx; letter-spacing: 2rpx; color: var(--text, #2B2420); }
-.hero-sub {
-  font-size: 23rpx;
-  color: var(--text2, #8A7E6E);
-  margin-top: 12rpx;
+.duo-btn.is-main {
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary, #FFF8F2);
+  box-shadow: 0 12rpx 28rpx rgba(var(--text-rgb, 107, 91, 80), 0.22);
+}
+.duo-btn.is-ghost {
+  background: transparent;
+  border: 3rpx solid var(--brown, #6B5B50);
+  color: var(--brown, #6B5B50);
+  font-weight: 500;
+}
+/* button 元素自带边框/内边距，会被上面那条描边叠成双层 */
+.duo-btn.is-ghost::after { border: none; }
+
+/* ══════════ 分区标题：虚线 —— ✦ 我们的共同票根 ✦ —— 虚线 ══════════ */
+.duo-sec { display: flex; align-items: center; margin: 46rpx 40rpx 0; }
+.duo-sec-line { flex: 1; height: 0; border-top: 4rpx dotted var(--border, #E2D9C7); }
+.duo-sec-star { width: 32rpx; height: 24rpx; margin: 0 14rpx; flex-shrink: 0; }   /* star4 的 viewBox 是 32×24，盒子照抄才不变形 */
+.duo-sec-t {
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  color: var(--brown, #6B5B50);
+}
+.duo-sec-note {
+  margin: 14rpx 40rpx 0;
+  text-align: center;
+  font-size: 21rpx;
+  letter-spacing: 1rpx;
+  color: var(--text2, #8A7B66);
+}
+
+/* ══════════ 票根卡：2 列 3 行 ══════════ */
+.duo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin: 26rpx 40rpx 0;
+}
+.duo-card {
+  position: relative;
+  width: 322rpx;
+  height: 218rpx;
+  margin-bottom: 26rpx;
+  /* 右上角那枚邮戳要压着纸边出去，靠它裁 */
+  overflow: hidden;
+}
+.duo-card-bg {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+}
+.duo-card-pm { position: absolute; right: -24rpx; top: 6rpx; width: 104rpx; height: 104rpx; z-index: 1; opacity: 0.9; }
+
+.duo-card .duo-card-tag {
+  position: absolute;
+  left: 16rpx;
+  top: 10rpx;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  padding: 7rpx 18rpx;
+  border-radius: 999rpx;
+}
+.duo-card-tag.is-show { background: var(--rose, #D9A0A6); }
+.duo-card-tag.is-city { background: var(--sage, #A9C3A6); }
+.duo-card-tag-ic { width: 22rpx; height: 22rpx; margin-right: 8rpx; }
+.duo-card-tag-t {
+  font-size: 19rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  color: var(--on-primary, #FFF8F2);
+}
+
+.duo-card-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  padding: 54rpx 12rpx 0 14rpx;
+}
+.duo-card-shot { flex-shrink: 0; }
+.duo-card-photo {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 10rpx;
+  overflow: hidden;
+  background: var(--soft, #E8DFD0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.duo-card-img { width: 100%; height: 100%; display: block; }
+.duo-card-fb { width: 46rpx; height: 46rpx; }
+/* 纸卡下缘那五个压点：稿里的印刷装饰，不承载数据（所以带 aria-hidden） */
+.duo-card-dots { display: flex; margin-top: 9rpx; padding-left: 2rpx; }
+.duo-card-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  margin-right: 6rpx;
+  background: var(--border, #E2D9C7);
+}
+.duo-card-dot.is-on { background: var(--rose, #D9A0A6); }
+
+.duo-card-info { flex: 1; min-width: 0; margin-left: 14rpx; }
+.duo-card-t {
+  display: block;
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 34rpx;
+  letter-spacing: 1rpx;
+  color: var(--brown, #6B5B50);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.duo-card-row { display: flex; align-items: center; margin-top: 8rpx; }
+.duo-card-row-ic { width: 20rpx; height: 20rpx; margin-right: 8rpx; flex-shrink: 0; }
+.duo-card-row-t {
+  flex: 1;
+  min-width: 0;
+  font-size: 20rpx;
+  line-height: 26rpx;
+  color: var(--text2, #8A7B66);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.duo-card-heart { position: absolute; right: 14rpx; bottom: 12rpx; width: 30rpx; height: 30rpx; z-index: 2; }
+
+/* ══════════ 空态 / 解绑 / 说明 ══════════ */
+.duo-empty { margin: 26rpx 40rpx 0; text-align: center; }
+.duo-empty-ic { display: block; width: 96rpx; height: 96rpx; margin: 30rpx auto 22rpx; opacity: 0.75; }
+.duo-empty-t { font-size: 30rpx; font-weight: 700; color: var(--text, #2B2420); letter-spacing: 2rpx; }
+.duo-empty-s { margin-top: 12rpx; font-size: 23rpx; color: var(--text2, #8A7B66); letter-spacing: 1rpx; }
+.duo-empty-btn {
+  margin: 36rpx auto 0;
+  width: 320rpx;
+  padding: 20rpx 0;
+  border-radius: 999rpx;
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary, #FFF8F2);
+  font-size: 27rpx;
+  letter-spacing: 2rpx;
+}
+.unbind {
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--stamp, #C26B5E);
+  opacity: 0.7;
+  margin-top: 30rpx;
   letter-spacing: 1rpx;
 }
-
-/* —— 绑定入口卡 —— */
-.bind-card {
-  margin: 0 32rpx;
-  padding: 30rpx 34rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(120deg, var(--primary, #2B2420), var(--accent, #C26B5E));
-  box-shadow: var(--card-shadow, 0 16rpx 40rpx rgba(var(--text-rgb), 0.30));
-}
-.bind-t { color: var(--on-primary, #FFFFFF); font-size: 29rpx; font-weight: 700; letter-spacing: 1rpx; }
-.bind-s { color: var(--on-primary, #FFFFFF); opacity: 0.85; font-size: 20rpx; margin-top: 8rpx; letter-spacing: 1rpx; }
-.bind-go { color: var(--on-primary, #FFFFFF); font-size: 40rpx; }
-
-/* —— 绑定后预览 —— */
-.stats {
-  margin: 0 32rpx 24rpx;
-  padding: 30rpx 0;
-  display: flex;
-}
-.stats .s {
-  flex: 1;
-  text-align: center;
-  border-right: 1rpx solid var(--border, #E2D9C7);
-}
-.stats .s:last-child { border-right: none; }
-.stats .v { font-size: 25rpx; color: var(--text2, #8A7E6E); }
-.stats .n { font-size: 42rpx; font-weight: 800; color: var(--text, #2B2420); padding-right: 4rpx; }
-.stats .k { font-size: 20rpx; color: var(--text2, #8A7E6E); margin-top: 6rpx; letter-spacing: 1rpx; }
-
-.banner {
-  margin: 0 32rpx;
-  padding: 28rpx 34rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(120deg, var(--primary, #2B2420), var(--primary, #2B2420));
-}
-.b-t { color: var(--on-primary, #FFFFFF); font-size: 27rpx; font-weight: 700; letter-spacing: 2rpx; }
-.b-s { color: var(--on-primary, #FFFFFF); opacity: 0.72; font-size: 19rpx; margin-top: 6rpx; }
-.b-go { color: var(--on-primary, #FFFFFF); font-size: 36rpx; }
-
 .about {
   text-align: center;
-  font-size: 23rpx;
+  font-size: 22rpx;
   color: var(--text2, #8A7E6E);
-  margin-top: 44rpx;
+  margin-top: 30rpx;
   text-decoration: underline;
   letter-spacing: 1rpx;
 }
 
-/* —— 我的邀请码卡 —— */
-.code-card {
-  margin: 0 32rpx 22rpx;
-  padding: 28rpx 34rpx;
+/* ══════════ 页脚装饰：星形邮戳 + 虚线 + 爱心 + 雏菊 ══════════ */
+.duo-foot { position: relative; height: 200rpx; margin: 16rpx 40rpx 0; }
+.duo-foot-stamp { position: absolute; left: 0; top: 24rpx; width: 128rpx; height: 128rpx; opacity: 0.5; }
+.duo-foot-stamp-ring { width: 100%; height: 100%; }
+.duo-foot-stamp-star { position: absolute; left: 42rpx; top: 47rpx; width: 44rpx; height: 33rpx; }
+.duo-foot-stamp-wave { position: absolute; left: 95%; top: 14%; width: 96rpx; height: 104rpx; }
+.duo-foot-line {
+  position: absolute;
+  left: 156rpx;
+  right: 176rpx;
+  top: 92rpx;
+  height: 0;
+  border-top: 4rpx dotted var(--border, #E2D9C7);
 }
-.cc-head {
-  font-size: 21rpx;
-  color: var(--text2, #8A7E6E);
-  letter-spacing: 2rpx;
-}
-.cc-code {
-  font-size: 64rpx;
-  letter-spacing: 18rpx;
-  color: var(--accent, #C26B5E);
-  margin: 10rpx 0 6rpx;
-}
-.cc-empty {
-  font-size: 26rpx;
-  color: var(--text2, #8A7E6E);
-  padding: 18rpx 0 10rpx;
-}
-.cc-row {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-}
-.cc-btn {
-  font-size: 22rpx;
-  color: var(--on-primary, #FFFFFF);
-  background: var(--primary, #2B2420);
-  border-radius: 999rpx;
-  padding: 10rpx 26rpx;
-  letter-spacing: 2rpx;
-}
-.cc-tip { font-size: 20rpx; color: var(--text2, #8A7E6E); }
-
-/* —— 输码入口 —— */
-.join-card {
-  margin: 0 32rpx 22rpx;
-  padding: 28rpx 34rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 2rpx dashed var(--accent, #C26B5E);
-  background: linear-gradient(120deg, var(--soft), var(--chip));
-}
-.jc-t { font-size: 27rpx; color: var(--primary, #2B2420); font-weight: 700; letter-spacing: 1rpx; }
-.jc-go { font-size: 36rpx; color: var(--primary, #2B2420); }
-
-/* —— 分享邀请（button 重置） —— */
-.share-invite {
-  margin: 0 32rpx;
-  background: var(--card-bg, var(--card));
-  border: 2rpx solid var(--border, #E2D9C7);
-  border-radius: var(--card-r, 28rpx);
-  padding: 24rpx 0;
-  font-size: 25rpx;
-  line-height: 1.5;
-}
-.share-invite::after { border: none; }
-.si-t-main { display: block; color: var(--text, #2B2420); font-size: 27rpx; font-weight: 600; letter-spacing: 2rpx; }
-.si-t-sub { display: block; margin-top: 8rpx; font-size: 20rpx; color: var(--text2, #8A7E6E); letter-spacing: 1rpx; }
-
-/* —— 最近共同时光 —— */
-.tl { margin: 0 32rpx; padding: 8rpx 30rpx; }
-.tl-row {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  padding: 22rpx 0;
-  border-bottom: 1rpx solid var(--border, #E2D9C7);
-}
-.tl-row:last-child { border-bottom: none; }
-.tl-dot {
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-  background: var(--primary, #2B2420);
-  flex-shrink: 0;
-}
-.tl-dot.mine { background: var(--accent, #C26B5E); }
-.tl-main { flex: 1; min-width: 0; }
-.tl-title {
-  font-size: 27rpx;
-  color: var(--text, #2B2420);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tl-sub { font-size: 20rpx; color: var(--text2, #8A7E6E); margin-top: 4rpx; }
-.tl-go { color: var(--text2, #8A7E6E); font-size: 32rpx; }
-
-/* —— 解绑 —— */
-.unbind {
-  text-align: center;
-  font-size: 22rpx;
-  color: var(--accent, #C26B5E);
-  opacity: 0.7;
-  margin-top: 44rpx;
-  letter-spacing: 1rpx;
-}
+.duo-foot-heart { position: absolute; right: 190rpx; top: 76rpx; width: 34rpx; height: 34rpx; }
+.duo-foot-daisy { position: absolute; right: 20rpx; top: 16rpx; width: 116rpx; height: 151rpx; }
 
 .safe-bottom { height: 160rpx; }
 
-/* —— M4.5 骨架屏（hero + 两张卡） —— */
+/* ══════════ 骨架屏（hero + 两张卡） ══════════ */
 .sk { padding-bottom: 20rpx; }
-.sk-hero { height: 300rpx; margin: 10rpx 32rpx 30rpx; border-radius: var(--card-r, 28rpx); }
-.sk-card { height: 180rpx; margin: 0 32rpx 26rpx; border-radius: var(--card-r, 28rpx); }
+.sk-hero { height: 530rpx; margin: 10rpx 40rpx 30rpx; border-radius: var(--card-r, 28rpx); }
+.sk-card { height: 218rpx; margin: 0 40rpx 26rpx; border-radius: var(--card-r, 28rpx); }
 
-/* —— 全局 .sec-title 跟随 v6 主题文字色（app.wxss 版用 --ink，film 下会失明）—— */
-.sec-title .t { color: var(--text, #2B2420); }
-.sec-title .s { color: var(--text2, #8A7E6E); }
-
-/* —— 4.9.7：B 主题横幅渐变覆盖（--ink 变白会吞米白副文案，改深紫渐变）—— */
-.theme-b .banner { background: linear-gradient(120deg, #2E2148, #241C3E); }
-
-/* —— 4.9.7：B 横幅内标题换亮紫（深紫底上金紫 3.5:1 偏弱）—— */
-.theme-b .banner { background: linear-gradient(120deg, var(--tm2), var(--stage-2)); }
-.theme-b .banner .b-t,
-.theme-b .banner .b-go { color: var(--gold-deep); }
-.theme-b .banner .b-s { color: rgba(var(--accent-rgb), 0.55); }
-.theme-b .cc-btn { background: var(--grad-neon); color: #0F0F1A; }
+/* ══════════ 邀请码面板（bottom-sheet 的插槽内容） ══════════ */
+/* 面板挂在页面根节点上，拿不到 .page-scroll 上的主题类，套一层把变量带进来 */
+.cc-wrap { padding: 6rpx 0 20rpx; }
+.cc-wrap .cc-tip { font-size: 23rpx; color: var(--text2, #8A7B66); letter-spacing: 1rpx; }
+.cc-wrap .cc-code {
+  margin: 26rpx 0 30rpx;
+  font-size: 76rpx;
+  letter-spacing: 20rpx;
+  padding-left: 20rpx; /* 字距会在末字后留一格，往左补回来才是视觉居中 */
+  color: var(--stamp, #C26B5E);
+  text-align: center;
+}
+.cc-wrap .cc-row { display: flex; justify-content: center; align-items: center; }
+.cc-wrap .cc-btn {
+  padding: 18rpx 40rpx;
+  border-radius: 999rpx;
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary, #FFF8F2);
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+}
+.cc-wrap .cc-share {
+  margin-left: 22rpx;
+  padding: 18rpx 40rpx;
+  border-radius: 999rpx;
+  background: transparent;
+  border: 3rpx solid var(--brown, #6B5B50);
+  color: var(--brown, #6B5B50);
+  font-size: 26rpx;
+  line-height: 1.2;
+  letter-spacing: 2rpx;
+}
+.cc-wrap .cc-share::after { border: none; }
