@@ -131,7 +131,7 @@ async function reorderGroupsAction(event, OPENID) {
     const col = db.collection('prefs');
     const found = await col.where({ _openid: OPENID, type: 'groupOrder' }).limit(1).get();
     const updatedAt = Date.now();
-    if (found.data && found.data[0]) {
+    if (found.data && found.data.length) {
       await col.doc(found.data[0]._id).update({ data: { labels, updatedAt } });
     } else {
       await col.add({ data: { _openid: OPENID, type: 'groupOrder', labels, updatedAt } });
