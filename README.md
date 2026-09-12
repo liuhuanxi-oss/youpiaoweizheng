@@ -1,0 +1,38 @@
+# 有票为证 · 项目总仓
+
+微信小程序「有票为证」的全部资产：小程序工程 + 品牌设计稿 + 项目文档。
+（本文件是仓库根，供人和 AI 工具第一眼认路；代码细节看 `youpiaoweizheng/README.md`。）
+
+| 目录 / 文件 | 是什么 |
+|---|---|
+| `youpiaoweizheng/` | **小程序工程本体** —— 微信开发者工具打开这个目录，上传发版也是它 |
+| `有票为证最新品牌全案设计/` | 品牌全案与精修 10 屏设计稿（`精修/` 子目录），改版按它对稿 |
+| `docs/` | 项目体检报告 `HEALTH.md` ＋ 代码审查报告 `REVIEW.md` |
+| 根目录其余文件 | 品牌素材（logo / 海报 / 参考图）与早期方案文档，**不计入小程序包** |
+
+## 接手先读（顺序别乱）
+
+1. [youpiaoweizheng/README.md](youpiaoweizheng/README.md) —— 当前版本、里程碑、如何跑起来
+2. [youpiaoweizheng/CODEBUDDY.md](youpiaoweizheng/CODEBUDDY.md) —— **项目宪法**：技术栈 / 多主题系统 / 禁区 / 编码规范（AI 改动前必读）
+3. [youpiaoweizheng/CHANGELOG.md](youpiaoweizheng/CHANGELOG.md) —— 版本史，**最新一条就是最近做了什么**
+
+## 跑起来 / 跑测试
+
+```bash
+cd youpiaoweizheng
+npm test        # 10 套 Node 回归台（317 条断言），改哪屏跑哪套
+npm run preview:deco   # 本机把装饰图形渲成图看一眼，无需微信开发者工具
+```
+
+演示模式（0 配置）在 `utils/env.js` 把 `USE_CLOUD` 置 `false` 即可，全部走本地 storage ＋ 演示数据。
+
+## 云开发
+
+- AppID `wx42ef98dfb4ecab23`，云环境 `cloud1-d5gpnyzjw64a60ac7`
+- 云函数两个：`recognizeTicket`（识别）/ `saveTicket`（入库、排序、文案、双人合并）
+- 密钥类文件已在 `.gitignore` 内（`.env`、`*.key`、`secret/`），**不要提交**；自动上传所需的密钥填 `youpiaoweizheng/.env`（照抄 `.env.ci.example`）
+
+## 约定
+
+- 一屏/一批改完 → 一个提交 → CHANGELOG 加一条（版本史不落队）
+- 上传发版时 `youpiaoweizheng/package.json` 的 `version` 就是小程序版本号（`scripts/ci/config.js` 读它），**必须递增**
