@@ -181,4 +181,65 @@ async function generateCaption(t, style, anniv) {
     .slice(0, 40);
 }
 
-module.exports = { parseDraftByAI, generateCaption, CAPTION_STYLES };
+/**
+ * 年度结语的本地兜底（AI 不可用 / 返回不合法时用）。
+ * 稿屏9 的「AI 年度结语」卡永远不能是空的 —— 空着的结语比写得平更伤。
+ * @returns {String[]} 恰好两行
+ */
+function annualFallback(s) {
+  const n = Number((s || {}).total) || 0;
+  const c = Number((s || {}).cities) || 0;
+  return [
+    `这一年，${n} 张票根替你记住 ${c} 座城。`,
+    '愿这些票根，继续替你保存温柔。'
+  ];
+}
+
+// 结语一行最多 18 个汉字 —— 稿屏9 的「AI 年度结语」卡给正文的宽度只够一行 19 字，
+// 超了就会折成第二行、把卡片撑破。页面 WXSS 里的 .an-ai-p 守着同一件事。
+const ANNUAL_LINE_MAX = 18;
+
+/** 把模型吐的一段话切成「两句」：按句号/问号/叹号/换行断，不足两句或超长则退回兜底 */
+function splitAnnual(raw, fallbackLines) {
+  const parts = String(raw || '')
+    .replace(/[“”"'「」『』]/g, '')
+    .split(/[。！？!?\n\r]+/)
+    .map((x) => x.replace(/[,，、；;：:]+$/, '').trim())
+    .filter(Boolean)
+    .slice(0, 2);
+  // 超长就整段退回兜底，不做截断 —— 半句话比平实的兜底更伤
+  if (parts.length < 2 || parts.some((x) => x.length > ANNUAL_LINE_MAX)) return fallbackLines;
+  return parts.map((x) => x + '。');
+}
+
+/**
+ * 生成年度结语（稿屏9「AI 年度结语」卡：恰好两行）
+ * @param {Object} stat 年度聚合 {range,total,cities,shows,cost,firstCity,lastCity}
+ * @returns {Promise<String[]>} 两行文案；AI 失败时返回本地兜底，不抛错
+ */
+async function generateAnnual(stat) {
+  const s = stat || {};
+  const fallbackLines = annualFallback(s);
+  try {
+    const raw = await callModel([
+      { role: 'system', content: '你是文艺短句写手，只输出两句年度结语本身，不加引号、不加序号、不加解释。' },
+      {
+        role: 'user',
+        content:
+          '为一位票根收藏者写年度结语。要求：恰好两句话；每句 16 字以内（含标点，硬限制）；' +
+          '第一句回望这一年（可带一两个数字），第二句是对未来的祝愿；' +
+          '温柔克制、有画面感，不要网络烂梗，不要出现英文。\n' +
+          `年份：${s.range || '这一年'}\n票根：${Number(s.total) || 0} 张\n` +
+          `城市：${Number(s.cities) || 0} 座\n演出：${Number(s.shows) || 0} 场\n` +
+          (s.firstCity ? `第一张在：${s.firstCity}\n` : '') +
+          (s.lastCity ? `最近一张在：${s.lastCity}\n` : '')
+      }
+    ]);
+    return splitAnnual(raw, fallbackLines);
+  } catch (e) {
+    console.warn('[ai] 年度结语生成失败，使用本地兜底：', e.message || e);
+    return fallbackLines;
+  }
+}
+
+module.exports = { parseDraftByAI, generateCaption, CAPTION_STYLES, generateAnnual, annualFallback };

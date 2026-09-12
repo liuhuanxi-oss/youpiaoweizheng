@@ -1,22 +1,28 @@
-/* pages/annual/annual.wxss —— v5.1 G1 我的时光年报（v6.5 六主题令牌变量化）
-   注：年报海报由 annual.js 的 Canvas 绘制，颜色不走 CSS 变量，本文件只改 UI 部分。 */
-page { background: var(--bg, var(--paper)); }
+/* pages/annual/annual.wxss —— 年度回忆报告（品牌全案 · 稿屏9 一比一）
+   六主题变量化：颜色一律读 --*；写死的十六进制只允许出现在 var(--x, #兜底) 里。
+   齿边图形（统计卡 / 照片框 / AI 卡）由 annual.js 编译成 data-uri，
+   其 viewBox 尺寸与这里的盒子必须一致（差一点齿就偏出边框）：
+   .an-stat 320×250、.an-frame 322×268、.an-ai 670×290。 */
+page { background: var(--bg, #FAF5EE); }
 .page {
-  padding-top: 30rpx;
-  background: var(--bg, var(--paper));
-  color: var(--text, var(--ink));
+  padding-top: 26rpx;
+  background: var(--bg, #FAF5EE);
+  color: var(--text);
 }
 
-/* 加载/空态通用 */
-.empty { color: var(--text2); }
+/* ═══ 加载 / 空态 / 错误 ═══ */
 .state {
-  padding: 200rpx 60rpx;
+  padding: 190rpx 60rpx;
   text-align: center;
   color: var(--text2);
   font-size: 26rpx;
   letter-spacing: 2rpx;
 }
-.st-ico { font-size: 80rpx; margin-bottom: 24rpx; }
+.st-ic { width: 96rpx; height: 96rpx; margin: 0 auto 22rpx; display: block; opacity: 0.75; }
+.st-t { letter-spacing: 2rpx; }
+.empty .big-ic { display: block; width: 96rpx; height: 96rpx; margin: 0 auto 22rpx; }
+.empty .e-title { font-size: 30rpx; font-weight: 700; color: var(--text); letter-spacing: 2rpx; }
+.empty .e-sub { margin-top: 14rpx; font-size: 24rpx; color: var(--text2); line-height: 1.7; }
 .nf-btn {
   margin: 40rpx auto 0;
   width: 320rpx;
@@ -27,77 +33,309 @@ page { background: var(--bg, var(--paper)); }
   font-size: 27rpx;
   letter-spacing: 2rpx;
   text-align: center;
-  box-shadow: var(--card-shadow, 0 10rpx 26rpx rgba(var(--text-rgb), 0.3));
+  box-shadow: var(--card-shadow, 0 10rpx 26rpx rgba(var(--text-rgb, 107, 91, 80), 0.3));
 }
 
-/* —— 顶部四格摘要 —— */
-.sum-row {
+/* ═══ ① 品牌行：玫瑰票根标 + 有票为证 + No.年份 标签 + 注销波浪 ═══ */
+.an-brand {
+  position: relative;
   display: flex;
-  gap: 16rpx;
-  margin: 10rpx 32rpx 8rpx;
+  align-items: center;
+  margin: 8rpx 40rpx 0;
+  height: 92rpx;
 }
-.sum {
-  flex: 1;
-  background: var(--card-bg, var(--card));
-  border: var(--card-border, 1rpx solid var(--border));
-  border-radius: var(--card-r, 20rpx);
-  padding: 22rpx 8rpx 18rpx;
-  text-align: center;
-  box-shadow: var(--card-shadow, 0 6rpx 18rpx rgba(var(--text-rgb), 0.07));
-}
-.sum .n {
-  font-family: var(--font-title, serif);
-  /* v6.6.0 动效1口径：40pt(≈76rpx@393pt画布) Bold 玫粉 #D9A0A6；tabular-nums 位数变化不抖动 */
-  font-size: 76rpx;
-  font-weight: 700;
-  color: #D9A0A6;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
-  line-height: 1.15;
-}
-.sum .k {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 20rpx;
-  color: var(--text2);
-  letter-spacing: 1rpx;
-}
-.sum-cap {
-  margin: 14rpx 32rpx 0;
-  text-align: center;
-  font-size: 22rpx;
-  color: var(--text2);
-  letter-spacing: 1rpx;
-}
-
-/* —— 9:16 年报海报舞台 —— */
-.stage {
-  margin: 34rpx 32rpx 0;
-  border-radius: var(--card-r, 24rpx);
-  overflow: hidden;
-  box-shadow: var(--card-shadow, 0 18rpx 50rpx rgba(var(--text-rgb), 0.22));
-}
-.annual-canvas { width: 686rpx; height: 1219rpx; display: block; }
-.hint {
-  margin: 16rpx 32rpx 0;
-  text-align: center;
-  font-size: 20rpx;
-  color: var(--text2);
-  letter-spacing: 1rpx;
-}
-
-/* —— 操作 —— */
-.btn-share {
-  margin: 20rpx 32rpx 0;
-  background: transparent;
-  border: 2rpx solid var(--border);
-  border-radius: 28rpx;
+.an-logo {
+  width: 88rpx;
   height: 88rpx;
-  line-height: 84rpx;
-  text-align: center;
-  color: var(--text2);
-  font-size: 26rpx;
-  letter-spacing: 4rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, var(--peach, #F4C6B4), var(--rose, #D9A0A6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10rpx 24rpx rgba(var(--text-rgb, 107, 91, 80), 0.18);
 }
-.btn-share::after { border: none; }
-.safe-bottom { height: 80rpx; }
+.an-logo-ic { width: 48rpx; height: 48rpx; }
+.an-name {
+  margin-left: 20rpx;
+  font-size: 38rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: var(--brown, #6B5B50);
+  font-family: var(--font-title, serif);
+}
+/* 编号标签：奶油底 + 虚线内框，歪一点才像手写的 */
+.an-no {
+  position: absolute;
+  right: 118rpx;
+  top: 16rpx;
+  padding: 14rpx 26rpx;
+  border-radius: 10rpx;
+  background: var(--butter, #F6DFA8);
+  border: 2rpx dashed rgba(var(--text-rgb, 107, 91, 80), 0.45);
+  transform: rotate(-2deg);
+}
+.an-no-t { font-size: 26rpx; font-weight: 600; color: var(--brown, #6B5B50); letter-spacing: 1rpx; }
+/* 注销波浪：从标签往右延伸出画面 */
+.an-cancel {
+  position: absolute;
+  right: -20rpx;
+  top: 44rpx;
+  width: 132rpx;
+  height: 58rpx;
+  opacity: 0.8;
+}
+
+/* ═══ ② 大标题 + 玫瑰笔触 ═══ */
+.an-tt { position: relative; margin: 30rpx 40rpx 0; text-align: center; }
+.an-tt-t {
+  display: block;
+  /* 66rpx 是「我的 2025 时光档案」在 750rpx 画布上与两侧花枝互不咬合的临界值：
+     再大一号标题就会压到花枝上（花枝在 -32rpx 外侧，见下） */
+  font-size: 66rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 2rpx;
+  color: var(--brown, #6B5B50);
+}
+.an-tt-brush {
+  width: 400rpx;
+  height: 16rpx;
+  margin: 8rpx auto 0;
+  border-radius: 999rpx;
+  background: var(--rose, #D9A0A6);
+  opacity: 0.55;
+}
+/* 标题两侧的花枝：长在标题让出来的左右空档里（绝对定位，不参与排版）。
+   .an-tt 有 40rpx 外边距，故 -32rpx 落到离屏 8rpx —— 左枝占 8~96，右枝占 654~742。 */
+.an-tt-sprig { position: absolute; width: 88rpx; height: 60rpx; opacity: 0.9; }
+.an-tt-sprig.is-l { left: -32rpx; top: -8rpx; transform: scaleX(-1) rotate(-16deg); }
+.an-tt-sprig.is-r { right: -32rpx; top: 36rpx; transform: rotate(-10deg); }
+
+/* ═══ ③ 两张水彩统计卡 ═══
+   齿边与水彩都在 data-uri 里，这里只管盒子的尺寸与卡面文字。
+   320×2 + 30 = 670 = 750 - 40×2（与 .an-stat-bg 的 viewBox 严丝合缝）。 */
+.an-stats { display: flex; gap: 30rpx; margin: 34rpx 40rpx 0; }
+.an-stat { position: relative; width: 320rpx; height: 250rpx; }
+.an-stat-bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.an-stat-lab { position: absolute; left: 30rpx; top: 34rpx; display: flex; align-items: center; }
+.an-stat-sp { width: 26rpx; height: 20rpx; margin-right: 10rpx; }
+.an-stat-lab-t { font-size: 27rpx; font-weight: 600; letter-spacing: 1rpx; color: var(--stamp, #C26B5E); }
+.an-stat-n {
+  position: absolute;
+  left: 26rpx;
+  bottom: 30rpx;
+  display: flex;
+  align-items: baseline;
+}
+.an-stat-v {
+  font-size: 118rpx;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -2rpx;
+  color: var(--stamp, #C26B5E);
+  font-family: var(--font-title, serif);
+}
+.an-stat-u { margin-left: 10rpx; font-size: 40rpx; font-weight: 600; color: var(--stamp, #C26B5E); }
+.an-stat-v.is-sage, .an-stat-u.is-sage { color: var(--sage-deep, #7C9878); }
+/* 右上角的行当涂鸦与左下角的花枝（稿里卡面上的两处小饰） */
+.an-stat-do { position: absolute; right: 26rpx; top: 34rpx; width: 42rpx; height: 42rpx; }
+.an-stat-sprig { position: absolute; left: -8rpx; bottom: -6rpx; width: 84rpx; height: 58rpx; opacity: 0.85; }
+.an-stat-sprig.is-r { left: auto; right: -8rpx; bottom: -6rpx; transform: scaleX(-1); }
+
+/* ═══ ④ 年度精选标签 ═══ */
+.an-sec {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  margin: 48rpx 40rpx -16rpx 56rpx;
+}
+.an-sec-tag {
+  padding: 12rpx 34rpx;
+  border-radius: 10rpx;
+  background: var(--rose, #D9A0A6);
+  transform: rotate(-2deg);
+  box-shadow: 0 10rpx 22rpx rgba(var(--text-rgb, 107, 91, 80), 0.18);
+}
+.an-sec-tag-t {
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  color: var(--on-primary, #FFF8F2);
+}
+.an-sec-sp { width: 34rpx; height: 26rpx; margin-right: 14rpx; }
+.an-sec-sp.is-r { margin: 0 0 0 14rpx; }
+.an-sec-heart { position: absolute; right: 40rpx; top: -18rpx; width: 34rpx; height: 34rpx; transform: rotate(12deg); }
+
+/* ═══ ⑤ 照片拼贴 ═══
+   两列两行，每张各歪一点、留白互相咬合（手账是贴上去的，张张都正会像表格）。 */
+.an-collage { position: relative; margin: 0 40rpx; }
+.an-grid { display: flex; flex-wrap: wrap; }
+.an-cell { width: 50%; padding: 0 6rpx 26rpx; box-sizing: border-box; }
+.an-frame { position: relative; width: 322rpx; height: 268rpx; margin: 0 auto; }
+.an-frame-bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+/* 照片内缩 20rpx —— 与 annual.js 的 _photoFrame 里 fw-40 是同一个数 */
+.an-frame-in {
+  position: absolute;
+  left: 20rpx; top: 20rpx; right: 20rpx; bottom: 20rpx;
+  overflow: hidden;
+  border-radius: 3rpx;
+  background: var(--soft, #E8DFD0);
+}
+.an-frame-img { width: 100%; height: 100%; display: block; }
+.an-frame-fb { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.an-frame-fb-ic { width: 46rpx; height: 46rpx; margin-bottom: 8rpx; }
+.an-frame-fb-t { font-size: 22rpx; color: var(--text2); letter-spacing: 1rpx; }
+.an-frame-tape { position: absolute; left: -16rpx; top: -26rpx; width: 132rpx; height: 46rpx; transform: rotate(-35deg); }
+
+/* 邮戳：圆环与注销波浪是图形，城市与日期是真文本。
+   位置按「压在照片框的角上」定：每格 335rpx 宽、框 322rpx 居中，故第 1 行框的下沿在 268rpx、
+   第 2 行在 562rpx —— 两枚戳分别落在这两条线上（戳心 left/top 见下）。 */
+.an-pm { position: absolute; width: 124rpx; height: 124rpx; z-index: 4; transform: rotate(-9deg); }
+.an-pm.is-1 { left: 238rpx; top: 188rpx; }
+.an-pm.is-2 { left: 38rpx; top: 478rpx; }
+.an-pm-ring { width: 100%; height: 100%; }
+.an-pm-wave { position: absolute; left: 95%; top: 14%; width: 96rpx; height: 104rpx; }
+.an-pm-in {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 8rpx;
+}
+.an-pm-city {
+  font-size: 19rpx;
+  font-weight: 700;
+  color: var(--text);
+  max-width: 86rpx;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.an-pm-l { font-size: 16rpx; line-height: 1.3; color: var(--text); opacity: 0.85; }
+
+/* 编号标签：压在第 2 张右下角 */
+.an-tag-no {
+  position: absolute;
+  right: 10rpx;
+  top: 272rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 8rpx;
+  background: var(--card, #FDF6E8);
+  border: 2rpx solid var(--rose, #D9A0A6);
+  transform: rotate(-2deg);
+  z-index: 4;
+}
+.an-tag-no-t { font-size: 24rpx; font-weight: 600; color: var(--stamp, #C26B5E); letter-spacing: 1rpx; }
+
+/* 花枝：长在拼贴的左右外侧 */
+.an-spot { position: absolute; width: 100rpx; height: 70rpx; pointer-events: none; }
+.an-spot.is-a { left: -34rpx; top: 330rpx; transform: rotate(-8deg); }
+.an-spot.is-b { right: -34rpx; bottom: -14rpx; transform: scaleX(-1) rotate(-8deg); }
+
+/* ═══ ⑥ AI 年度结语 ═══ */
+.an-ai { position: relative; width: 670rpx; height: 290rpx; margin: 26rpx 40rpx 0; }
+.an-ai-bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+/* 左缘那条玫瑰色带：overflow 把齿边裁进卡片里，只留一条贴着左边的竖带 */
+.an-ai-band {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 54rpx;
+  border-radius: 14rpx 0 0 14rpx;
+  background: var(--peach, #E8AFA8);
+  opacity: 0.55;
+}
+.an-ai-band-sp { position: absolute; left: -10rpx; bottom: -8rpx; width: 84rpx; height: 58rpx; opacity: 0.9; }
+/* 正文让开的只有左边那条玫瑰带：邮票在右上角，标题行比它矮，正文起笔时票已经让开了 */
+.an-ai-body { position: absolute; left: 92rpx; right: 40rpx; top: 44rpx; }
+.an-ai-h { position: relative; }
+.an-ai-h-t {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: var(--brown, #6B5B50);
+  font-family: var(--font-title, serif);
+}
+.an-ai-h-brush {
+  width: 168rpx;
+  height: 10rpx;
+  margin-top: 8rpx;
+  border-radius: 999rpx;
+  background: var(--rose, #D9A0A6);
+  opacity: 0.75;
+}
+/* 一行容得下 18 个汉字（538rpx ÷ 28rpx ≈ 19）—— utils/ai.js 的 generateAnnual
+   也按 18 字截断、本地兜底文案同样压在这个长度内，两边一起守住「只占一行」 */
+.an-ai-p {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--text2);
+  letter-spacing: 1rpx;
+}
+/* 邮票压在卡片右上角：正文从 44+标题高 起笔，那时票已经让开了 */
+.an-ai-stamp { position: absolute; right: 6rpx; top: 14rpx; width: 112rpx; height: 112rpx; transform: rotate(7deg); }
+.an-ai-stamp-ic { position: absolute; left: 0; top: 0; width: 84rpx; height: 84rpx; }
+.an-ai-stamp-wave { position: absolute; left: 30rpx; top: 42rpx; width: 86rpx; height: 48rpx; opacity: 0.7; }
+
+/* ═══ ⑦ 两枚按钮 ═══ */
+.an-acts { display: flex; flex-direction: column; align-items: center; gap: 26rpx; margin: 52rpx 40rpx 0; }
+.an-act {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  font-weight: 600;
+  letter-spacing: 3rpx;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.an-act-ic { width: 32rpx; height: 32rpx; margin-right: 14rpx; }
+.an-act.is-redo {
+  width: 360rpx;
+  height: 84rpx;
+  font-size: 28rpx;
+  background: transparent;
+  border: 2rpx solid var(--border, #E2D9C7);
+  color: var(--text);
+}
+.an-act.is-poster {
+  width: 560rpx;
+  height: 96rpx;
+  font-size: 30rpx;
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary, #FFF8F2);
+  box-shadow: 0 14rpx 32rpx rgba(var(--text-rgb, 107, 91, 80), 0.24);
+}
+/* 实底按钮两侧那三撇玫瑰短划（稿里的强调符号） */
+.an-poster-row { position: relative; display: flex; align-items: center; }
+.an-sparks { position: absolute; display: flex; align-items: center; gap: 8rpx; }
+.an-sparks.is-l { right: 100%; margin-right: 18rpx; }
+.an-sparks.is-r { left: 100%; margin-left: 18rpx; }
+.an-spark { width: 8rpx; height: 26rpx; border-radius: 999rpx; background: var(--rose, #D9A0A6); opacity: 0.85; }
+.an-spark.is-2 { height: 36rpx; }
+.an-spark.is-3 { height: 20rpx; opacity: 0.55; }
+
+.hint {
+  margin: 22rpx 40rpx 0;
+  text-align: center;
+  font-size: 21rpx;
+  color: var(--text2);
+  letter-spacing: 1rpx;
+}
+
+/* 导出画布：待在屏外。display:none / wx:if 包住都会让节点取不到，导出直接失败。
+   盒子按 1080:1920 等比给个小尺寸即可 —— 导出的位图取自 node.width/height（JS 里按
+   dpr 设的），与这里的 CSS 盒子无关，盒子只负责让这个节点在视图树里真实存在。 */
+.an-canvas {
+  position: fixed;
+  left: -3000rpx;
+  top: 0;
+  width: 750rpx;
+  height: 1334rpx;
+}
+.safe-bottom { height: 90rpx; }

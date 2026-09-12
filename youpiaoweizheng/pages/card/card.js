@@ -23,6 +23,10 @@ const track = require('../../utils/track.js');             // 4.17.0：拉新埋
 const pay = require('../../utils/pay.js');                 // 4.20.3：署名（昵称 → 卡面落款）
 const { iconSrc } = require('../../utils/icons.js');       // 稿屏6：按钮与空态图标（全页无 emoji）
 const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外那几处手绘点缀
+// 与年报长图共用的画笔（齿边 / 圆角 / 折行 / 花枝 / 星点 / 水彩晕）。
+// ⚠️ 必须写成一整行：scripts/dev/preview-card.js 靠「行首 const … require(…);」整行删掉
+//    再自行注入这几支笔，拆行会剩下半截声明与注入的同名变量撞车。
+const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape } = require('../../utils/canvas-deco.js');
 
 const W = 600, H = 960;
 const LS_SHARE = 'sp_share_count'; // 时光信使勋章：分享/导出计数（本地）
@@ -40,22 +44,6 @@ const XHS_WM = {
 const WM_TEXT = '@有票为证 · 你的时光档案馆'; // v5.0 S2 标准品牌水印文案
 
 // ---------- 绘制工具 ----------
-function wrapText(ctx, text, maxWidth, maxLines) {
-  const lines = [];
-  let line = '';
-  for (const ch of String(text || '')) {
-    if (ctx.measureText(line + ch).width > maxWidth) {
-      lines.push(line);
-      line = ch;
-      if (lines.length === maxLines) return lines;
-    } else {
-      line += ch;
-    }
-  }
-  if (line && lines.length < maxLines) lines.push(line);
-  return lines.length ? lines : [''];
-}
-
 function drawBarcode(ctx, x, y, w, h, color) {
   ctx.fillStyle = color;
   let cx = x;
@@ -99,51 +87,6 @@ function kvRow(ctx, k, v, y, kColor, vColor) {
 function md(dateStr) {
   const parts = String(dateStr || '').split('-');
   return parts.length === 3 ? `${Number(parts[1])}.${parts[2]}` : '--.--';
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-/**
- * 齿孔矩形 → Canvas 路径（闭合，顺时针）。
- * 与 utils/deco.js 的 pinkedPath 是同一套走齿逻辑，区别只在这里产出的是画笔路径、
- * 那边产出的是 SVG 的 d 串——卡面要导出成图，只能画在画布上。
- * @param {number} tooth 齿距  @param {number} amp 齿高（半个峰谷）
- */
-function pinkedRect(ctx, x, y, w, h, tooth, amp) {
-  const cmds = [];
-  /**
-   * 沿一条边走齿：每一齿用一段二次曲线，控制点探到边外/边内 ±amp 交替 ——
-   * 齿顶被磨圆，读起来是「手撕的毛边」而不是「锯齿」。
-   * （deco.js 的 pinkedPath 走的是折线版本：那边是细描边的画框，圆角反而糊。）
-   */
-  const seg = (ax, ay, bx, by) => {
-    const dx = bx - ax, dy = by - ay;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const n = Math.max(2, Math.round(len / tooth));
-    const nx = (-dy / len) * amp, ny = (dx / len) * amp;
-    for (let i = 0; i < n; i++) {
-      const k = i % 2 ? -1 : 1;
-      cmds.push(['Q',
-        ax + (dx * (i + 0.5)) / n + nx * k, ay + (dy * (i + 0.5)) / n + ny * k,
-        ax + (dx * (i + 1)) / n, ay + (dy * (i + 1)) / n]);
-    }
-  };
-  seg(x, y, x + w, y);
-  seg(x + w, y, x + w, y + h);
-  seg(x + w, y + h, x, y + h);
-  seg(x, y + h, x, y);
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  cmds.forEach((c) => ctx.quadraticCurveTo(c[1], c[2], c[3], c[4]));
-  ctx.closePath();
 }
 
 /** 票根照片区：有照片 cover 裁剪，无照片画纸票占位；右下角标座位·票价 */
@@ -221,15 +164,6 @@ function drawDuoBadge(ctx, x, y, r, duo) {
   one(x + off, (duo.partnerName || 'TA')[0], '#3E6B8C');
 }
 
-/** 水彩晕染：中心实、边缘散的径向渐变色斑 */
-function watercolorBlob(ctx, x, y, r, color) {
-  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, color);
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(x - r, y - r, r * 2, r * 2);
-}
-
 /** 4.11.0 同场角标：「✦ 同场 N 人共同收藏」（N≥2 才画；深色胶囊底适配四风格） */
 function drawSameBadge(ctx, x, y, n, dark) {
   if (!(n >= 2)) return;
@@ -266,16 +200,6 @@ function drawQR(ctx, qr) {
   try { ctx.drawImage(qr, W - 142, 832, 76, 76); } catch (e) { /* 码图异常则只留白衬 */ }
   ctx.restore();
   return W - 162; // 品牌文案右对齐让位（码左缘 - 14px 间距）
-}
-
-/** 和纸胶带：半透明斜色带（手账贴照片的灵魂） */
-function drawTape(ctx, x, y, angle, w, h, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(angle);
-  ctx.fillStyle = color;
-  ctx.fillRect(-w / 2, -h / 2, w, h);
-  ctx.restore();
 }
 
 /** 拍立得：白框 + 微倾斜 + 底边手写注释 + 双角胶带（手账水彩风格的照片区） */
@@ -651,76 +575,8 @@ const PC = {
 };
 const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-/** 四角星（金）：稿里散在卡面的小星点 */
-function drawStar4(ctx, x, y, r, color) {
-  const w = r * 0.34;
-  ctx.save();
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, y - r);
-  ctx.quadraticCurveTo(x + w, y - w, x + r, y);
-  ctx.quadraticCurveTo(x + w, y + w, x, y + r);
-  ctx.quadraticCurveTo(x - w, y + w, x - r, y);
-  ctx.quadraticCurveTo(x - w, y - w, x, y - r);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-/** 小爱心（玫瑰）：稿里散在卡面的点缀 */
-function drawHeart(ctx, x, y, r, color) {
-  ctx.save();
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, y + r * 0.72);
-  ctx.bezierCurveTo(x - r * 1.5, y - r * 0.35, x - r * 0.5, y - r * 1.15, x, y - r * 0.28);
-  ctx.bezierCurveTo(x + r * 0.5, y - r * 1.15, x + r * 1.5, y - r * 0.35, x, y + r * 0.72);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-/**
- * 花枝（绿叶 + 粉花）：稿里长在卡角上的那两枝。
- * @param {number} len 茎长  @param {number} angle 茎的朝向（弧度）
- * @param {boolean} flip 左右镜像（右上/右下角那枝用）
- */
-function drawSprig(ctx, x, y, len, angle, flip) {
-  ctx.save();
-  ctx.translate(x, y);
-  if (flip) ctx.scale(-1, 1);
-  ctx.rotate(angle);
-  ctx.strokeStyle = PC.leaf;
-  ctx.lineWidth = 2.6;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(len * 0.45, -len * 0.16, len, -len * 0.5);
-  ctx.stroke();
-  // 三对叶：沿茎两侧交替，越往上越小
-  ctx.fillStyle = PC.leaf;
-  [[0.28, 1], [0.52, -1], [0.74, 1]].forEach(([k, side]) => {
-    const lx = len * k, ly = -len * (k * 0.5);
-    const r = len * 0.15 * (1 - k * 0.45);
-    ctx.beginPath();
-    ctx.ellipse(lx + side * r * 0.7, ly - r * 0.5, r, r * 0.58, side * 0.7, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  // 顶端一朵五瓣小花 + 金心
-  ctx.fillStyle = PC.petal;
-  for (let i = 0; i < 5; i++) {
-    ctx.save();
-    ctx.translate(len, -len * 0.5);
-    ctx.rotate((i * Math.PI * 2) / 5);
-    ctx.beginPath();
-    ctx.ellipse(0, -len * 0.09, len * 0.07, len * 0.095, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-  ctx.fillStyle = PC.gold;
-  ctx.beginPath(); ctx.arc(len, -len * 0.5, len * 0.055, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-}
+// 星点 / 爱心 / 花枝三支笔在 utils/canvas-deco.js，与年报长图共用；
+// 花枝的色板传 PC，保证卡面上那两枝仍是明信片自己的绿与粉。
 
 /**
  * 稿屏6 的卡面：齿边明信片（编号标签 / 邮戳 / 注销波浪 / 齿边照片 / 标题 + 三道波浪 /
@@ -951,8 +807,8 @@ function drawPostcard(ctx, t, quote, img, duo, same, qr, sig) {
   drawHeart(ctx, W - 50, sepY + 74, 10, 'rgba(217,142,155,0.85)');
   // 两枝都收在卡片底部的两个角上：文案居中占的是 x 104..496，左右各留出一条空当，
   // 花枝竖着长正好嵌进去，标题换行、二维码有无都不会撞
-  drawSprig(ctx, 36, H - 24, 72, -1.15, false);
-  drawSprig(ctx, W - 36, H - 24, 72, -1.15, true);
+  drawSprig(ctx, 36, H - 24, 72, -1.15, false, PC);
+  drawSprig(ctx, W - 36, H - 24, 72, -1.15, true, PC);
 
   // ⑨ AI 文案（换一版文案在这里生效；放最下面一行，不挤正文）
   if (quote) {

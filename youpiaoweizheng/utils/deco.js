@@ -360,6 +360,52 @@ function pinkedPath(w, h, tooth, amp, inset) {
   return 'M' + pts.join('L') + 'Z';
 }
 
+// ============================================================
+// 齿边面板（品牌全案 · 稿屏9 年度回忆报告）：手撕纸片 / 水彩卡 / 齿边照片框
+//   —— 稿屏9 里两张统计卡、四张照片的白框、AI 结语卡用的都是同一种「撕边纸」。
+//
+// ⚠️ 和 artFrame 一样：齿是贴着边跑一圈的，宽高比一变齿距就错位，
+//    所以尺寸由调用方传进来，1 viewBox 单位 = 1rpx，WXSS 的盒子必须与之一致。
+//
+// 【为什么水彩底要两团径向渐变、而不是一个纯色】
+//   纯色平涂出来是「贴上去的色块」，没有纸被水洇开的深浅；
+//   这里用一枚偏移的径向渐变当底，深浅过渡就是颜料浓淡的观感。
+// ============================================================
+let _panelSeq = 0;
+
+/**
+ * @param {number} w 面板宽（rpx）  @param {number} h 面板高（rpx）
+ * @param {object} o
+ *   fill       底色（无 blotch 时即纯色）
+ *   blotch     [深色, 浅色] 两色水彩晕（给了就盖过 fill）
+ *   ink        齿边描边色（缺省藤黄）  strokeW / strokeAlpha 描边粗细与浓度
+ *   stroke     === false 时只填不描边
+ *   tooth/amp/inset  齿距 / 齿高 / 离边留白
+ *   fillOpacity 底填充的整体透明度
+ */
+function pinkedPanel(w, h, o) {
+  const c = o || {};
+  const inset = c.inset == null ? 5 : c.inset;
+  const amp = c.amp == null ? 5 : c.amp;
+  const d = pinkedPath(w, h, c.tooth || 20, amp, inset);
+  const id = 'pp' + (++_panelSeq);
+  let defs = '';
+  let fill = c.fill || '#FFFDF8';
+  if (c.blotch && c.blotch.length === 2) {
+    defs = '<radialGradient id="' + id + '" cx="0.34" cy="0.26" r="0.92">' +
+      '<stop offset="0" stop-color="' + c.blotch[0] + '"/>' +
+      '<stop offset="1" stop-color="' + c.blotch[1] + '"/></radialGradient>';
+    fill = 'url(#' + id + ')';
+  }
+  return toUri('0 0 ' + w + ' ' + h, w, h,
+    defs +
+    '<path d="' + d + '" fill="' + fill + '"' +
+      (c.fillOpacity == null ? '' : ' fill-opacity="' + c.fillOpacity + '"') + '/>' +
+    (c.stroke === false ? '' :
+      '<path d="' + d + '" fill="none" ' +
+      strokeOf(c.ink, '#C9A469', c.strokeW || 1.8, '', c.strokeAlpha == null ? 0.45 : c.strokeAlpha) + '/>'));
+}
+
 /**
  * 花邮票（稿屏5「艺术重绘」卡右上角那枚）：齿边粉底 + 中间一朵五瓣小花。
  * 与 artFrame 共用走齿逻辑，只是这里尺寸固定（48×48），可以登记进 DECO_VIEWBOX。
@@ -375,4 +421,4 @@ function flowerStamp(c) {
   return toUri('0 0 48 48', 48, 48, body);
 }
 
-module.exports = { decoSrc, avatarSrc, postmarkParts, artFrame, flowerStamp };
+module.exports = { decoSrc, avatarSrc, postmarkParts, artFrame, flowerStamp, pinkedPanel };

@@ -18,13 +18,17 @@ function loadDrawers() {
   const src = fs.readFileSync(path.join(ROOT, 'pages/card/card.js'), 'utf8');
   const cut = src.indexOf('// ---------- 页面 ----------');
   if (cut < 0) throw new Error('card.js 的「页面」分段标记没了，preview/test 都取不到绘制代码');
+  // 画笔（roundRect / pinkedRect / wrapText / 花枝 / 星点…）在 utils/canvas-deco.js，
+  // 是纯函数、不碰 wx.*，这里按绝对路径真 require 进来 —— 测的就是真在跑的那几支笔。
+  const brush = path.join(ROOT, 'utils/canvas-deco.js').replace(/\\/g, '/');
   const code = `
 const weekday = (d) => ['周日','周一','周二','周三','周四','周五','周六'][new Date(String(d).replace(/-/g,'/')).getDay()] || '';
 const annivYears = () => 0;
+const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape } = require('${brush}');
 ${src.slice(0, cut).replace(/^const .*require\(.*\);.*$/gm, '')}
 return { DRAWERS, W, H };
 `;
-  return new Function(code)();
+  return new Function('require', code)(require);
 }
 
 /** 一张用来核版式的样例票根（照片与码用假对象占位，drawImage 在录制里落成灰框） */
