@@ -1,31 +1,56 @@
-// pages/album/album.js —— 票夹（v6.0 视觉重写 · 业务沿用 wall 全套：拉全量/分组/筛选/搜索/那年今日/空态/分享/广告位/整理模式）
-// 6.0 设计令牌双轨：业务继续用 paper/accent 旧令牌；卡片视觉套 v6-list-card
-// v6 tabBar 4 项之一（selected=1）
-// M3.1 对齐产品原型屏①：
-//   + 顶部品牌头部（WXML）
-//   + 问候语改按月口径：「九月，你收藏了 X 张时光」
-//   + 时光机未命中 → 「今日时光签」时令短句，永不空转
-//   + 月分组超 3 张折叠，点「还有 N 张」展开（v6.6.1 修复：此前 _expanded 只有读取、
-//     没有赋值入口，导致每月第 4 张起用户永远看不到且无任何提示）
+// pages/album/album.js —— 时光机（品牌全案 · 稿屏8 一比一）
+// ============================================================
+// 与旧版（v6 票夹）的三处差别：
+//   1. 分组口径由「月」改为「年」—— 稿屏8 是一条纵向时间轴，节点是 2025 / 2024 / 2023；
+//   2. 列表卡换成**明信片**：白卡 + 胶带 + 邮戳 + 日期行，卡片带轻微倾斜；
+//   3. 左侧一条虚线时间轴贯穿，年份节点是玫瑰圆点，节点下方三道波浪排线。
+// 图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+// 且 SVG 是独立文档、不认 CSS 变量，故颜色由 buildArt() 按当前主题编译成实色。
+//
+// 业务逻辑（拉全量 / 类型筛选 / 搜索 / 折叠展开 / 那年今日 / 下拉刷新 / 空态 / 横幅）
+// 与旧版一致，未做增删。
+// ============================================================
 const mock = require('../../utils/mock.js');
 const store = require('../../utils/store.js');
 const sk = require('../../utils/skeleton.js');
-const themeUtil = require("../../utils/theme.js");
-const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
-const { groupLabel, weekday, todayMD, todaySign } = require('../../utils/date.js');
+const themeUtil = require('../../utils/theme.js');
+const { iconSrc } = require('../../utils/icons.js');
+const deco = require('../../utils/deco.js');
+const { todayMD, todaySign } = require('../../utils/date.js');
 
-const MONTHS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
-const PEEK_AFTER = 3; // 每组默认露出 3 张，其余折叠（点「还有 N 张」展开）
+const PEEK_AFTER = 3;      // 每个年份默认露出 3 张，其余折叠（点「还有 N 张」展开）
+const PM_R = 51;           // 邮戳城市名的弧半径（rpx），落在双圈之间的环带上（见 album.wxss）
+const NO_YEAR = '更早';     // 日期缺失的票根归到这一组，避免凭空消失
 
-// 给原始票根补渲染字段
-function decorate(t) {
-  return {
-    ...t,
-    typeText: mock.TYPE_TEXT[t.type] || '票根',
-    weekday: weekday(t.date),
-    groupLabel: groupLabel(t.date),
-    seatShort: (t.seat || '').replace(/\s/g, '').slice(0, 9)
-  };
+/** 类型 → 图标名（稿屏8 全页无 emoji，图标一律走 utils/icons.js） */
+const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train' };
+/**
+ * 胶带三色（黄 / 蓝 / 粉）。
+ * 胶带是**实物**的颜色——贴在手账上的和纸胶带不会因为 App 换主题就变色，
+ * 故这三色是品牌固定色，不读主题变量，由 JS 下发（WXSS 里不许出现十六进制）。
+ */
+const TAPE_TINT = ['#E8CE86', '#A9C3D6', '#E8AFA8'];
+/** 明信片倾斜角：像一张张贴进手账本，三张一循环 */
+const CARD_TILT = [-2.4, 1.8, -1.5];
+
+/**
+ * 城市名逐字排上圆弧：n 个字张开成一段弧。
+ * 每个字写 transform:rotate(角度) translateY(-半径) —— 先按角度自转，再沿自身「上」方
+ * 推出半径，于是 n 个字正好落在圆周上且各自朝外，就是邮戳上的弧形字。
+ * （不用 SVG textPath：见 utils/deco.js 里 postmarkParts 的说明。）
+ */
+function pmChars(city) {
+  const chars = String(city || '票根').slice(0, 4).split('');
+  if (chars.length < 2) return [{ c: chars[0] || '票', a: 0 }];
+  const spread = 26 * (chars.length - 1);          // 2 字 26°、3 字 52°、4 字 78°
+  const step = spread / (chars.length - 1);
+  return chars.map((c, i) => ({ c, a: Math.round((-spread / 2 + step * i) * 10) / 10 }));
+}
+
+/** '2025-10-26' → 邮戳里的三行日期（日 / 月 / 年，与稿内排法一致） */
+function pmDate(dateStr) {
+  const [y, m, d] = String(dateStr || '').split('-');
+  return { pdd: d || '--', pmm: m ? Number(m) + '月' : '--', pyy: y || '----' };
 }
 
 /** 那年今日：在全部票根里找「往年同月同日」，取最近年份的一条 */
@@ -75,37 +100,64 @@ function buildTimeMachine(all, isDemo) {
 
 Page({
   data: {
-    theme: "paper",
+    theme: 'paper',
     timeMachine: null,
-    greet: '',
     filters: [],
     activeFilter: 'all',
     groups: [],
-    kw: '',           // 4.11.0 搜索关键词（与类型筛选叠加）
-    skeleton: false,  // M4.5：加载超 300ms 才显示骨架
-    // —— 4.18.0 云故障/超限横幅（{ text, retry }；null = 不显示） ——
-    netBar: null,
-    // —— M4.5 下拉弹性（scroll-view refresher 状态机） ——
+    kw: '',           // 搜索关键词（与类型筛选叠加）
+    skeleton: false,  // 加载超 300ms 才显示骨架
+    netBar: null,     // 云故障/超限横幅（{ text, retry }；null = 不显示）
+    // —— 下拉弹性（scroll-view refresher 状态机） ——
     refreshing: false,
     refreshText: '下拉翻册',
     pullDeg: 0,
-    // —— 4.22.0 首页模块化升级 ——
-    hasTickets: false,  // 有真实票根才渲染金刚区美术馆入口 + 时光小记卡
-    summary: null       // 时光小记数据 { month, total, cities, firstYear }
+    hasTickets: false,
+    pmR: PM_R,
+    ic: {},           // 单色图标（主题色，buildArt 编译）
+    art: { tape: [], spot: [], wave: '', pm: {} }  // 胶带 / 点缀 / 排线 / 邮戳（图形层，buildArt 编译）
   },
 
   onShow() {
     themeUtil.apply(this);
-    // 同步自定义 tabBar 选中态（v6.0 4 tab · 票夹=1）
+    this.buildArt();
+    // 同步自定义 tabBar 选中态（时光机 = 1）
     this.getTabBar() && this.getTabBar().setData({ selected: 1, theme: themeUtil.getTheme() });
     this.refresh();
   },
 
-  // ===== M4.5 下拉弹性：票根图标随手势转圈 → 松手刷新 → 「已更新」→ 回弹复位 =====
+  /** 按当前主题把这一页要用的图形全部编译成实色 data-uri（主题切换后必须重编） */
+  buildArt() {
+    const m = themeUtil.getThemeMeta(themeUtil.getTheme());
+    this._art = {
+      meta: m,
+      tape: TAPE_TINT.map((t) => deco.decoSrc('tape', Object.assign({}, m, { accent: t }))),
+      spot: ['sprig', 'heartsmall', 'wavelines', 'star4'].map((n) => deco.decoSrc(n, m)),
+      wave: deco.decoSrc('wavelines', m),
+      pm: deco.postmarkParts(m)
+    };
+    this.setData({
+      art: { tape: this._art.tape, spot: this._art.spot, wave: this._art.wave, pm: this._art.pm },
+      ic: {
+        spark: iconSrc('sparkle', m.accent),
+        sparkSm: iconSrc('sparkle', m.accent, 0.7, 1.3),
+        search: iconSrc('search', m.text, 0.5),
+        clear: iconSrc('close', m.text, 0.5),
+        calendar: iconSrc('calendar', m.text, 0.6),
+        chevron: iconSrc('chevron', m.text, 0.45),
+        clock: iconSrc('clock', m.accent, 0.9),
+        ticket: iconSrc('ticket', m.text, 0.32, 1.5),
+        searchBig: iconSrc('search', m.text, 0.32, 1.6),
+        typeIcon: iconSrc('ticket', m.text, 0.6)
+      }
+    });
+  },
+
+  // ===== 下拉弹性：票根图标随手势转圈 → 松手刷新 → 「已更新」→ 回弹复位 =====
   onRefresh() {
     this.setData({ refreshing: true, refreshText: '正在翻册…' });
     this.refresh().then(() => {
-      this.setData({ refreshing: false, refreshText: '已更新 ✦' });
+      this.setData({ refreshing: false, refreshText: '已更新' });
     }).catch(() => {
       this.setData({ refreshing: false, refreshText: '刷新失败，再试一次' });
     });
@@ -127,20 +179,17 @@ Page({
     this.setData({ refreshText: '下拉翻册', pullDeg: 0 });
   },
 
-  /** 拉全量票根 → 重算筛选胶囊 + 那年今日 + 分组渲染（4.16.0：并行拉章节顺序快照） */
+  /** 拉全量票根 → 重算筛选胶囊 + 那年今日 + 按年分组 */
   async refresh() {
     sk.start(this);
     try {
-      const [raw, gOrder] = await Promise.all([store.listTickets(), store.getGroupOrder()]);
-      // 4.18.0：列表状态横幅——云库读取失败兜底成演示数据（可点重试）/ 超上限截断提示
-      // 演示模式两标志恒 false，横幅不亮；成功读取会自动清掉旧横幅
-      // 5.0.0：上限改成 store 的 LIST_MAX（随分批拉取一并调整），文案不再写死数字
+      const raw = await store.listTickets();
+      // 列表状态横幅——云库读取失败兜底成演示数据（可点重试）/ 超上限截断提示
       const flags = store.listFlags();
       const netBar = flags.netFallback
         ? { text: '网络开小差了，先看演示票根 · 点我重试', retry: true }
         : (flags.truncated ? { text: `票根超过 ${flags.cap} 张，当前显示最近的 ${flags.cap} 张`, retry: false } : null);
-      this._groupOrder = Array.isArray(gOrder) ? gOrder : [];
-      const all = raw.map(decorate);
+      const all = raw.filter((t) => t && t.id);
       this._all = all;
 
       const count = (key) => all.filter((t) => key === 'all' || t.type === key).length;
@@ -151,26 +200,11 @@ Page({
         { key: 'traffic', label: '交通' }
       ].map((f) => ({ ...f, label: `${f.label} ${count(f.key)}` }));
 
-      // 按月口径问候（对齐原型「十月，你收藏了 12 张时光」）
-      const now = new Date();
-      const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const monthCount = all.filter((t) => String(t.date || '').slice(0, 7) === ym).length;
-      // 4.22.0 时光小记（数据内容展示区）：收藏总量/城市足迹/最早一张的年份
-      const cities = new Set(all.filter((t) => t.city).map((t) => t.city)).size;
-      const firstYear = all.reduce((min, t) => {
-        const y = String(t.date || '').slice(0, 4);
-        return y && (!min || y < min) ? y : min;
-      }, '');
-
       this.setData({
         filters,
         timeMachine: buildTimeMachine(all, store.USE_CLOUD === false),
-        greet: all.length ? { label: `${MONTHS[now.getMonth()]}月`, num: monthCount } : null,
         netBar,
-        hasTickets: all.length > 0,
-        summary: all.length ? { month: monthCount, total: all.length, cities, firstYear } : null,
-        // 4.22.1 品牌头时令签（右上角小字日期，像日记落款）
-        nowLabel: `${now.getMonth() + 1}月${now.getDate()}日 · 周${'日一二三四五六'[now.getDay()]}`
+        hasTickets: all.length > 0
       });
       this.applyFilter(this.data.activeFilter, all);
     } finally {
@@ -178,15 +212,21 @@ Page({
     }
   },
 
-  // 4.18.0 云故障横幅重试（netBar 数据层保留；v6 视觉未渲染横幅，供后续接回视图用）
+  /** 云故障横幅重试 */
   onNetBarTap() {
     if (this.data.netBar && this.data.netBar.retry) this.refresh();
   },
 
-  /** 按类型 + 关键词过滤 → 按月分组 → 倒序（新的在上）→ 超 4 张的组折叠出 peek */
+  /**
+   * 按类型 + 关键词过滤 → 按年分组 → 年份倒序（新的在上）→ 超 3 张的年份折叠
+   * 每张票根在这里补齐渲染字段（倾斜角 / 胶带 / 邮戳 / 点缀），
+   * 主题切换后只要再跑一次就会换成新主题的图形。
+   */
   applyFilter(key, source) {
     const all = source || this._all || [];
-    // 4.11.0 关键词过滤：票名/场馆/城市/座位/备注，大小写不敏感包含匹配
+    const art = this._art || { tape: [''], spot: [''], pm: {} };
+    const meta = (art.meta || {}).text || '#6B5B50';
+    // 关键词过滤：票名/场馆/城市/座位/备注，大小写不敏感包含匹配
     const kw = String(this.data.kw || '').toLowerCase();
     const filtered = all.filter((t) => {
       if (key !== 'all' && t.type !== key) return false;
@@ -198,32 +238,34 @@ Page({
       }
       return true;
     });
-    const map = {};
+
+    const buckets = {};
     filtered.forEach((t) => {
-      (map[t.groupLabel] = map[t.groupLabel] || []).push(t);
+      const y = String(t.date || '').slice(0, 4);
+      const label = /^\d{4}$/.test(y) ? y : NO_YEAR;
+      (buckets[label] = buckets[label] || []).push(t);
     });
-    // 4.16.0 组间排序应用：已整理组按快照保持相对顺序；
-    // 快照之后新增的月份组按默认日期序融入最前（不打乱已整理的相对序）
-    const rank = {};
-    (this._groupOrder || []).forEach((l, i) => { rank[l] = i; });
-    const labels = Object.keys(map);
-    labels.sort((a, b) => {
-      const ra = rank[a], rb = rank[b];
-      if (ra != null && rb != null) return ra - rb;
-      if (ra != null) return 1;   // 已整理的组排在新月份组后面
-      if (rb != null) return -1;
-      return b.localeCompare(a);  // 全新组之间：默认新的在上
-    });
+
     this._expanded = this._expanded || {};
-    const groups = labels
+    const groups = Object.keys(buckets)
+      .sort((a, b) => (a === NO_YEAR ? 1 : b === NO_YEAR ? -1 : b.localeCompare(a)))
       .map((label) => {
-        const list = map[label];
+        const list = buckets[label];
         const fold = list.length > PEEK_AFTER && !this._expanded[label];
         return {
           label,
           fold,
-          total: list.length,                              // 本月真实张数（小标题显示用，不受折叠影响）
-          list: fold ? list.slice(0, PEEK_AFTER) : list,
+          total: list.length,                                    // 本年真实张数（不受折叠影响）
+          list: (fold ? list.slice(0, PEEK_AFTER) : list).map((t, i) => ({
+            ...t,
+            typeText: mock.TYPE_TEXT[t.type] || '票根',
+            ico: iconSrc(TYPE_ICONS[t.type] || 'ticket', meta, 0.65),
+            tilt: CARD_TILT[i % CARD_TILT.length],
+            tape: art.tape[i % art.tape.length],
+            spot: art.spot[i % art.spot.length],
+            pmc: pmChars(t.city),
+            ...pmDate(t.date)
+          })),
           more: fold ? list.length - PEEK_AFTER : 0
         };
       });
@@ -231,8 +273,7 @@ Page({
     this.setData({ activeFilter: key, groups });
   },
 
-
-  // ===== 4.11.0 搜索：输入 250ms 节流后重筛（与类型筛选叠加） =====
+  // ===== 搜索：输入 250ms 节流后重筛（与类型筛选叠加） =====
   onSearch(e) {
     const kw = String((e && e.detail && e.detail.value) || '').trim();
     clearTimeout(this._searchTimer);
@@ -254,7 +295,7 @@ Page({
     this.applyFilter(e.currentTarget.dataset.key);
   },
 
-  // 时光机点击：那年今日直达详情；今日时光签弹签
+  // 那年今日点击：命中票根直达详情；今日时光签弹签
   goTimeMachine() {
     const tm = this.data.timeMachine;
     if (!tm) return;
@@ -271,18 +312,14 @@ Page({
     wx.navigateTo({ url: `/pages/detail/detail?id=${tm.ticketId}` });
   },
 
-  // 票根卡片点击 → 详情
-  // v6.6.1 修复：卡片用的是原生 view + data-id（见 album.wxml），事件里取 id 必须走
-  // e.currentTarget.dataset；此前误按自定义组件写法读 e.detail.id，恒为 undefined，
-  // 导致本页每一张票根都点不动。
+  // 明信片点击 → 详情（原生 view + data-id，故必须走 currentTarget.dataset）
   goDetail(e) {
     const ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
-    const id = ds.id;
-    if (!id) return;
-    wx.navigateTo({ url: `/pages/detail/detail?id=${id}` });
+    if (!ds.id) return;
+    wx.navigateTo({ url: `/pages/detail/detail?id=${ds.id}` });
   },
 
-  // 展开某个月的折叠（v6.6.1 新增：补上 _expanded 唯一赋值入口）
+  // 展开某个年份的折叠
   expandGroup(e) {
     const label = (e && e.currentTarget && e.currentTarget.dataset || {}).label;
     if (!label) return;
@@ -291,7 +328,7 @@ Page({
     this.applyFilter(this.data.activeFilter);
   },
 
-  // 收起某个月：恢复默认 3 张 + 展开入口
+  // 收起某个年份：恢复默认 3 张 + 展开入口
   collapseGroup(e) {
     const label = (e && e.currentTarget && e.currentTarget.dataset || {}).label;
     if (!label) return;
@@ -300,7 +337,7 @@ Page({
     this.applyFilter(this.data.activeFilter);
   },
 
-  // 空态引导（筛选结果为空时展示）
+  // 空态引导
   goScan() {
     wx.navigateTo({ url: '/pages/scan/scan' });
   }

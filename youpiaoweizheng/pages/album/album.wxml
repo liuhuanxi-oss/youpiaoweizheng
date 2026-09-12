@@ -1,8 +1,13 @@
-<!-- pages/album/album.wxml —— v6.2 票夹（三主题变量化）
-     业务字段沿用 wall 全套：groups/filters/activeFilter/kw/timeMachine/hasTickets -->
-<view class="tk-page theme-{{theme}}">
+<!-- pages/album/album.wxml —— 时光机（品牌全案 · 稿屏8 一比一）
+     结构：手写标题（星点 + 玫瑰笔触）→ 搜索 → 类型筛选 → 纵向时间轴
+          （左侧虚线轴 + 年份节点 + 一年一叠明信片：胶带 / 照片 / 邮戳 / 日期）
+     所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     且 SVG 是独立文档、不认 CSS 变量，故颜色由 album.js 的 buildArt() 编译成实色。
+     邮戳的城市名与日期是**真文本**（不是 SVG 文字）：城市名逐字 rotate 排上圆弧，
+     见 album.js 的 pmChars —— SVG 文字在真机上中文字形回落不可控。 -->
+<view class="tk-page theme-{{theme}} tm-page">
 <scroll-view
-  class="ab-scroll"
+  class="tm-scroll"
   scroll-y
   enhanced
   show-scrollbar="{{false}}"
@@ -17,146 +22,201 @@
   bindrefresherrestore="onRestore"
 >
 
-  <!-- 顶部 hero（蓝天白云 → 主题底）+ 搜索 + 铃铛 -->
-  <view class="tk-hero ab-hero">
-    <view class="ab-hero-row">
-      <view class="ab-title">
-        <text class="tk-h1 ab-title-t">我的票夹</text>
-      </view>
-      <text class="ab-icon-btn" hover-class="press-item-hover" aria-role="button" aria-label="消息">🔔</text>
+  <!-- ① 标题行：星点 + 手写「时光机」+ 玫瑰笔触，右侧品牌标 -->
+  <view class="tm-head">
+    <view class="tm-title-wrap">
+      <image class="tm-spark" src="{{ic.spark}}" mode="aspectFit" aria-hidden="true" />
+      <text class="tm-title serif">时光机</text>
+      <view class="tm-brush"></view>
+      <image class="tm-spark tm-spark-r" src="{{ic.spark}}" mode="aspectFit" aria-hidden="true" />
     </view>
-    <view class="ab-search">
-      <text class="ab-search-ico">⌕</text>
-      <input
-        class="ab-search-input"
-        placeholder="搜票名 / 场馆 / 城市 / 座位"
-        placeholder-class="ab-search-ph"
-        value="{{kw}}"
-        confirm-type="search"
-        bindinput="onSearch"
-      />
-      <text class="ab-search-clear" wx:if="{{kw}}" catchtap="onSearchClear" aria-role="button" aria-label="清空搜索">✕</text>
+    <view class="tm-brand">
+      <image class="tm-brand-logo" src="/images/brand-logo.png" mode="aspectFit" aria-hidden="true" />
+      <text class="tm-brand-name">有票为证</text>
     </view>
   </view>
 
-  <!-- 横向分类 Tabs -->
-  <scroll-view class="ab-tabs" scroll-x enable-flex enhanced show-scrollbar="{{false}}">
+  <!-- ② 搜索（稿外保留：首页的「搜索票根」入口就是切到本页，去掉这条首页那个入口就断了） -->
+  <view class="tm-search">
+    <image class="tm-search-ic" src="{{ic.search}}" mode="aspectFit" aria-hidden="true" />
+    <input
+      class="tm-search-input"
+      placeholder="搜票名 / 场馆 / 城市 / 座位"
+      placeholder-class="tm-search-ph"
+      value="{{kw}}"
+      confirm-type="search"
+      bindinput="onSearch"
+    />
+    <view wx:if="{{kw}}" class="tm-search-clear pressable" hover-class="press-item-hover"
+          catchtap="onSearchClear" aria-role="button" aria-label="清空搜索">
+      <image class="tm-search-clear-ic" src="{{ic.clear}}" mode="aspectFit" aria-hidden="true" />
+    </view>
+  </view>
+
+  <!-- ③ 类型筛选（横向滚动胶囊） -->
+  <scroll-view class="tm-tabs" scroll-x enable-flex enhanced show-scrollbar="{{false}}">
     <view
       wx:for="{{filters}}"
       wx:key="key"
-      class="ab-tab {{activeFilter === item.key ? 'on' : ''}}"
+      class="tm-tab {{activeFilter === item.key ? 'on' : ''}}"
       hover-class="press-item-hover"
       data-key="{{item.key}}"
       bindtap="onFilterTap"
     >{{item.label}}</view>
   </scroll-view>
 
-  <!-- 加载态骨架（v6.6.0 动效3：与 ab-list-card 像素级一致——同 thumb 116rpx/标题行/地点行/
-       标签行/右侧日期列高度节奏，圆角同 var(--card-r)，数据替换零跳动） -->
+  <!-- ④ 云故障 / 超上限横幅（旧版数据层留着、视图层丢了，这里补回来） -->
+  <view wx:if="{{netBar}}" class="tm-net pressable" hover-class="press-item-hover" bindtap="onNetBarTap"
+        aria-role="button" aria-label="{{netBar.text}}">
+    <text class="tm-net-t">{{netBar.text}}</text>
+  </view>
+
+  <!-- ⑤ 加载态骨架：与明信片同高同宽，数据替换零跳动 -->
   <block wx:if="{{skeleton}}">
-    <view class="ab-sk-item" wx:for="{{[1,2,3,4]}}" wx:key="*this">
-      <view class="ab-sk-thumb tk-skeleton"></view>
-      <view class="ab-sk-body">
-        <view class="ab-sk-line tk-skeleton"></view>
-        <view class="ab-sk-line short tk-skeleton"></view>
-        <view class="ab-sk-chip tk-skeleton"></view>
+    <view class="tm-sk-item" wx:for="{{[1, 2]}}" wx:key="*this">
+      <view class="tm-sk-node">
+        <view class="tm-sk-dot tk-skeleton"></view>
+        <view class="tm-sk-year tk-skeleton"></view>
       </view>
-      <view class="ab-sk-date">
-        <view class="ab-sk-date-d tk-skeleton"></view>
-        <view class="ab-sk-date-m tk-skeleton"></view>
-      </view>
+      <view class="tm-sk-card tk-skeleton"></view>
     </view>
   </block>
 
-  <view class="fade-in-200" wx:else>
-    <!-- 那年今日·时光机（命中 → 票根卡；未命中 → 不显示） -->
-    <view class="ab-tm tk-ticket pressable" wx:if="{{timeMachine}}" hover-class="press-item-hover" bindtap="goTimeMachine">
-      <view class="ab-tm-inner">
-        <view class="ab-tm-badge">忆</view>
-        <view class="ab-tm-body">
-          <view class="ab-tm-date">{{timeMachine.label}}</view>
-          <view class="ab-tm-title">{{timeMachine.title}}</view>
-          <view class="ab-tm-sub">{{timeMachine.sub}}</view>
+  <block wx:else>
+    <!-- 那年今日 / 今日时光签：钉在时间轴最前面的一张特别票根（稿外保留，本页的招牌功能） -->
+    <view class="tm-today pressable" wx:if="{{timeMachine}}" hover-class="press-item-hover"
+          bindtap="goTimeMachine" aria-role="button" aria-label="{{timeMachine.label}}">
+      <view class="tm-today-ribbon">{{timeMachine.label}}</view>
+      <view class="tm-today-body">
+        <image class="tm-today-ic" src="{{ic.clock}}" mode="aspectFit" aria-hidden="true" />
+        <view class="tm-today-txt">
+          <view class="tm-today-title serif">{{timeMachine.title}}</view>
+          <view class="tm-today-sub">{{timeMachine.sub}}</view>
         </view>
-        <view class="ab-tm-go">›</view>
+        <image class="tm-today-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
 
-    <!-- 月分组票根流（票根缩略 + 中信息 + 右日期） -->
-    <block wx:for="{{groups}}" wx:key="label" wx:for-item="group">
-      <view class="ab-sec-title">
-        <text class="ab-t">{{group.label}}</text>
-        <text class="ab-s">共 {{group.total}} 张</text>
-      </view>
-      <view
-        wx:for="{{group.list}}"
-        wx:key="id"
-        wx:for-item="t"
-        class="tk-card ab-list-card pressable"
-        hover-class="press-item-hover"
-        bindtap="goDetail"
-        data-id="{{t.id}}"
-      >
-        <view class="tk-stub ab-list-thumb ab-tag-{{t.type}}">
-          <text>{{t.type === 'show' ? '🎤' : t.type === 'movie' ? '🎬' : t.type === 'traffic' ? '🚄' : '🎫'}}</text>
-        </view>
-        <view class="ab-list-body">
-          <view class="ab-list-title">{{t.title}}</view>
-          <view class="ab-list-meta">{{t.city}}{{t.venue ? ' · ' + t.venue : ''}}</view>
-          <view class="ab-list-tags">
-            <text class="tk-chip ab-chip-{{t.type}}">{{t.type === 'show' ? '演出' : t.type === 'movie' ? '电影' : t.type === 'traffic' ? '交通' : '其他'}}</text>
+    <!-- ⑥ 时间轴：一条虚线贯穿，年份节点落在轴上，节点右侧是一叠明信片 -->
+    <view class="tm-tl" wx:if="{{groups.length}}">
+      <view class="tm-rail"></view>
+
+      <block wx:for="{{groups}}" wx:key="label" wx:for-item="group">
+        <!-- 年份节点：玫瑰圆点（压在轴上）+ 短横 + 年份 + 三道波浪排线 -->
+        <view class="tm-node">
+          <view class="tm-node-dot"></view>
+          <view class="tm-node-row">
+            <view class="tm-node-dash"></view>
+            <text class="tm-node-y serif">{{group.label}}</text>
           </view>
+          <image class="tm-node-wave" src="{{art.wave}}" mode="aspectFit" aria-hidden="true" />
         </view>
-        <view class="ab-list-date">
-          <text class="ab-date-d">{{t.date ? t.date.slice(8, 10) : '--'}}</text>
-          <text class="ab-date-m">{{t.date ? t.date.slice(5, 7) + '月' : '--'}}</text>
+
+        <!-- 该年的明信片：一张一段回忆，点开是票根详情 -->
+        <view
+          wx:for="{{group.list}}"
+          wx:key="id"
+          wx:for-item="t"
+          class="tm-post"
+          hover-class="press-item-hover"
+          bindtap="goDetail"
+          data-id="{{t.id}}"
+          aria-role="button"
+          aria-label="{{t.title}}"
+        >
+          <view class="tm-post-card" style="transform:rotate({{t.tilt}}deg);">
+            <!-- 胶带：压在卡片左上角，三色一循环 -->
+            <image class="tm-post-tape" src="{{t.tape}}" mode="aspectFit" aria-hidden="true" />
+
+            <!-- 照片：没有图的票根给一块主题软色底 + 类型图标，不留白洞 -->
+            <view class="tm-post-photo">
+              <image wx:if="{{t.img}}" class="tm-post-img" src="{{t.img}}" mode="aspectFill" />
+              <view wx:else class="tm-post-fb">
+                <image class="tm-post-fb-ic" src="{{t.ico}}" mode="aspectFit" aria-hidden="true" />
+                <text class="tm-post-fb-t">{{t.typeText}}</text>
+              </view>
+            </view>
+
+            <!-- 邮戳：圆环与注销线是图形，城市名与日期是真文本 -->
+            <view class="tm-pm">
+              <image class="tm-pm-ring" src="{{art.pm.ring}}" mode="aspectFit" aria-hidden="true" />
+              <image class="tm-pm-wave" src="{{art.pm.wave}}" mode="aspectFit" aria-hidden="true" />
+              <view class="tm-pm-city">
+                <text
+                  wx:for="{{t.pmc}}"
+                  wx:key="index"
+                  wx:for-item="ch"
+                  class="tm-pm-ch"
+                  style="transform:rotate({{ch.a}}deg) translateY(-{{pmR}}rpx);"
+                >{{ch.c}}</text>
+              </view>
+              <view class="tm-pm-date">
+                <text class="tm-pm-l">{{t.pdd}}</text>
+                <text class="tm-pm-l">{{t.pmm}}</text>
+                <text class="tm-pm-l">{{t.pyy}}</text>
+              </view>
+            </view>
+
+            <!-- 卡面下方：票名 + 日期行 -->
+            <view class="tm-post-b">
+              <view class="tm-post-t">{{t.title}}</view>
+              <view class="tm-post-row">
+                <image class="tm-post-cal" src="{{ic.calendar}}" mode="aspectFit" aria-hidden="true" />
+                <text class="tm-post-d">{{t.date || '日期待补'}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 卡外点缀：花枝 / 小粉心 / 波浪排线 / 四角星，一卡一个，左右交替 -->
+          <image class="tm-post-spot {{index % 2 ? 'is-l' : 'is-r'}}" src="{{t.spot}}" mode="aspectFit" aria-hidden="true" />
         </view>
-      </view>
 
-      <!-- 折叠时的展开入口（v6.6.1 修复：此前每月第 4 张起用户永远看不到） -->
-      <view
-        wx:if="{{group.fold}}"
-        class="ab-fold pressable"
-        hover-class="press-item-hover"
-        data-label="{{group.label}}"
-        bindtap="expandGroup"
-        aria-role="button"
-        aria-label="展开本月剩余票根"
-      >
-        <text class="ab-fold-t">本月还有 {{group.more}} 张</text>
-        <text class="ab-fold-a">点我展开 ›</text>
-      </view>
-      <!-- 展开后可收起（用独立 wx:if 而非 wx:elif，避免中间夹注释影响指令配对） -->
-      <view
-        wx:if="{{!group.fold && group.total > 3}}"
-        class="ab-fold pressable"
-        hover-class="press-item-hover"
-        data-label="{{group.label}}"
-        bindtap="collapseGroup"
-        aria-role="button"
-        aria-label="收起本月票根"
-      >
-        <text class="ab-fold-a">收起 ›</text>
-      </view>
-    </block>
-  </view>
+        <!-- 每年的折叠 / 展开（一个年份攒了几十张时不让时间轴无限长） -->
+        <view
+          wx:if="{{group.fold}}"
+          class="tm-fold pressable"
+          hover-class="press-item-hover"
+          data-label="{{group.label}}"
+          bindtap="expandGroup"
+          aria-role="button"
+          aria-label="展开这一年剩余票根"
+        >
+          <text class="tm-fold-t">{{group.label}} 年还有 {{group.more}} 张</text>
+          <image class="tm-fold-ic" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+        </view>
+        <!-- 展开后可收起（用独立 wx:if 而非 wx:elif，避免中间夹注释影响指令配对） -->
+        <view
+          wx:if="{{!group.fold && group.total > 3}}"
+          class="tm-fold pressable"
+          hover-class="press-item-hover"
+          data-label="{{group.label}}"
+          bindtap="collapseGroup"
+          aria-role="button"
+          aria-label="收起这一年票根"
+        >
+          <text class="tm-fold-t">收起 {{group.label}} 年</text>
+          <image class="tm-fold-ic is-up" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+        </view>
+      </block>
+    </view>
+  </block>
 
-  <!-- 空态（三分支：搜索无果 / 新用户 0 票根 / 该类没票根） -->
+  <!-- ⑦ 空态（三分支：搜索无果 / 新用户 0 票根 / 该类没票根） -->
   <view wx:if="{{!skeleton && !groups.length && kw}}" class="tk-empty">
-    <text class="ab-empty-emoji">🔍</text>
+    <image class="tm-empty-ic" src="{{ic.searchBig}}" mode="aspectFit" aria-hidden="true" />
     <view class="tk-empty-title">没找到与「{{kw}}」相关的票根</view>
-    <view class="tk-empty-sub" bindtap="onSearchClear" hover-class="press-item-hover">点这里清空搜索，回到全部 →</view>
+    <view class="tk-empty-sub pressable" hover-class="press-item-hover" bindtap="onSearchClear">点这里清空搜索，回到全部</view>
   </view>
   <view wx:elif="{{!skeleton && !groups.length && !hasTickets}}" class="tk-empty">
-    <text class="ab-empty-emoji">🎫</text>
+    <image class="tm-empty-ic" src="{{ic.ticket}}" mode="aspectFit" aria-hidden="true" />
     <view class="tk-empty-title">还没有票根</view>
     <view class="tk-empty-sub">上传第一张，时光从此有了形状</view>
-    <view class="tk-empty-cta pressable" bindtap="goScan" hover-class="press-item-hover" aria-role="button" aria-label="收进第一张票根">📷 收进第一张</view>
+    <view class="tk-empty-cta pressable" bindtap="goScan" hover-class="press-item-hover" aria-role="button" aria-label="收进第一张票根">收进第一张</view>
   </view>
   <view wx:elif="{{!skeleton && !groups.length}}" class="tk-empty">
-    <text class="ab-empty-emoji">🎫</text>
+    <image class="tm-empty-ic" src="{{ic.ticket}}" mode="aspectFit" aria-hidden="true" />
     <view class="tk-empty-title">这一类还没有票根</view>
-    <view class="tk-empty-sub" bindtap="goScan" hover-class="press-item-hover">从这里开始，收进第一张 →</view>
+    <view class="tk-empty-sub pressable" hover-class="press-item-hover" bindtap="goScan">从这里开始，收进第一张</view>
   </view>
 
   <view class="tk-safe-bottom"></view>

@@ -203,6 +203,9 @@ const DECO = {
 
 /** 每款装饰各自的 viewBox（宽高比不同，靠它让 image 的 aspectFit 算出正确比例） */
 const DECO_VIEWBOX = {
+  // 胶带：shape 只占 64×44 画布中间一条窄带，不收紧的话 image 的 aspectFit
+  // 会把整块画布缩进盒子，胶带细成一根线（时光机页每张明信片上都要贴一条）
+  tape: '7 16 50 14',
   wave: '0 0 64 20',
   dots: '0 0 64 40',
   sprig: '0 0 66 44',
@@ -262,4 +265,48 @@ function avatarSrc(theme) {
   return toUri('0 0 80 80', 80, 80, avatarBody(theme || {}));
 }
 
-module.exports = { decoSrc, avatarSrc };
+// ============================================================
+// 邮戳（品牌全案 · 稿屏8 时光机）：每张明信片右上角那一枚
+//   = 双圈圆环 + 右侧四道注销波浪线。
+//
+// ⚠️ 圈里的**城市名与日期不走 SVG 文字**，只画圈和波浪线：
+//    SVG 一旦塞进 <image src="data:..."> 就是一份独立文档，字体由系统按
+//    默认字族解析，中文字形在 iOS / Android 上回落结果不一致（此前
+//    项目里已有过一次「真机字形丢失」的教训）。故文字交给 WXML 用真文本渲染，
+//    城市名的弧形排列由「逐字 rotate + translateY」在 CSS 里实现（见 album.wxml）。
+// ============================================================
+
+/**
+ * 双圈圆环（60×60 方形，圆心正中有利于文字层对齐）
+ * 半径是有讲究的：外圈 27.4/60 托住弧形城市名，内圈虚线 17/60 圈住中间的三行日期，
+ * 两者之间留出 20rpx 左右的环带给文字 —— 改半径前先看 tests/album_timemachine.test.js。
+ */
+function postmarkRing(c) {
+  const ink = (c || {}).text;
+  return toUri('0 0 60 60', 60, 60,
+    '<circle cx="30" cy="30" r="27.4" fill="none" ' + strokeOf(ink, '#6B5B50', 1.6, '', 0.9) + '/>' +
+    '<circle cx="30" cy="30" r="17" fill="none" ' + strokeOf(ink, '#6B5B50', 0.9, '2 2', 0.5) + '/>');
+}
+
+/** 右侧注销线：四道起伏波浪，长短粗细交替 */
+function postmarkWave(c) {
+  const ink = (c || {}).text;
+  let body = '';
+  [8, 20, 32, 44].forEach((y, i) => {
+    const half = i % 2 ? 9 : 11;      // 半个波长的横向跨度
+    const amp = i % 2 ? 2.6 : 3.4;    // 起伏幅度
+    body += '<path d="M2 ' + y + 'q' + half + ' -' + amp + ' ' + (half * 2) + ' 0t' + (half * 2) + ' 0" ' +
+      'fill="none" ' + strokeOf(ink, '#6B5B50', 1.7, '', 0.7 - i * 0.11) + ' stroke-linecap="round"/>';
+  });
+  return toUri('0 0 48 52', 48, 52, body);
+}
+
+/**
+ * 邮戳的两块图形 → { ring, wave }
+ * 文字层由调用方（album.wxml）叠在这两块之上。
+ */
+function postmarkParts(theme) {
+  return { ring: postmarkRing(theme), wave: postmarkWave(theme) };
+}
+
+module.exports = { decoSrc, avatarSrc, postmarkParts };
