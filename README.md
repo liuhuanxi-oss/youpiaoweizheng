@@ -32,6 +32,20 @@ npm run preview:deco   # 本机把装饰图形渲成图看一眼，无需微信�
 - 云函数两个：`recognizeTicket`（识别）/ `saveTicket`（入库、排序、文案、双人合并）
 - 密钥类文件已在 `.gitignore` 内（`.env`、`*.key`、`secret/`），**不要提交**；自动上传所需的密钥填 `youpiaoweizheng/.env`（照抄 `.env.ci.example`）
 
+## 给其他 AI 工具开通访问（豆包 / WorkBuddy / CodeBuddy 等）
+
+连接器必须用**能看见本仓库**的 GitHub 账号授权，二选一：
+
+1. 用 `liuhuanxi-oss`（仓库所有者）授权 —— 直接可见，无需额外设置
+2. 用其他账号授权 —— 先**接受协作者邀请**（GitHub 邮件，或 https://github.com/liuhuanxi-oss/youpiaoweizheng/invitations ），再去放开 token 范围
+
+放开 token 范围的点法：
+
+- **个人访问令牌（PAT）**：GitHub → Settings → Developer settings → Personal access tokens → 找到连接器用的那个 token → Repository access → 选 `All repositories`，或选 `Only select repositories` 后勾上 `liuhuanxi-oss/youpiaoweizheng`
+- **OAuth 授权（不是 token）**：GitHub → Settings → Applications → Authorized OAuth Apps → 找到该连接器 → 授予仓库访问
+
+⚠️ 坑：勾选列表里只列**你有管理员权限**的仓库。看不到本仓库 = 邀请还没接受，先做第 2 步。
+
 ## 约定
 
 - 一屏/一批改完 → 一个提交 → CHANGELOG 加一条（版本史不落队）
