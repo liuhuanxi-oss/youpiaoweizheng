@@ -19,7 +19,11 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "miniprogram-ci": "^1.10.3"
+    "less": "^3.13.1",
+    "miniprogram-ci": "^1.9.27"
+  },
+  "overrides": {
+    "less": "^3.13.1"
   },
   "engines": {
     "node": ">=18"
