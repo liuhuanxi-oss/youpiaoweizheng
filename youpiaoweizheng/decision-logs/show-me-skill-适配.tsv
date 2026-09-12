@@ -1,0 +1,22 @@
+ts	phase	decision	why	evidence	result
+2026-09-12T06:36:39Z	source	从源头仓库拉取 show-me 与 show-me-your-work 源文件	要先看原始实现再改写，避免照着二手抄本改	humanlayer/skills plugins/show-me/skills/show-me/SKILL.md	saved 3297B
+2026-09-12T06:36:39Z	source	补齐被引用的 references 与 scripts 两个子目录	SKILL.md 里引用了 decision-log-template.tsv 和 log.sh，不同目录会拿不到	cursor/plugins pstack/skills/show-me-your-work/{references,scripts}	saved 4 files
+2026-09-12T06:36:39Z	verify	读 log.sh 源码发现公式注入防护	日志要进表格，用户可控文本可能被当公式执行	scripts/log.sh clean() 函数	已确认内置防护
+2026-09-12T06:36:39Z	spec	写项目适配规范，明确 TSV 与 CHANGELOG 职责分工	两者不是替代关系，讲清楚才不会混用	/workspace/交付规范-决策日志.md	delivered
+2026-09-12T06:36:39Z	spec	沿用项目既有 P0/P1/P2 分级写进 decision 列	保持与 CHANGELOG 一致，不另造一套体系	交付规范-决策日志.md 2.3 节	aligned
+2026-09-12T06:36:39Z	build	建本机 skill show-me-loop，复用源版 log.sh	脚本已验证可用，直接复用不重写	~/.codebuddy/skills/show-me-loop/SKILL.md	installed
+2026-09-12T06:36:39Z	build	剔掉跨模型子 agent 复审步骤并写明理由	单模型环境无法真实满足，宁可缺失不假执行	SKILL.md Part 3	explicitly excluded
+2026-09-12T06:36:39Z	verify	自测 log.sh：表头、行写入、注入防护	skill 的脚本必须真能跑，不能只写不测	scripts/log.sh + /tmp/_selftest.tsv	tests green
+2026-09-12T06:36:39Z	verify	调用 show-me-loop skill 本体确认可加载	装了不能调用等于没装	Skill 工具返回完整 SKILL.md	loaded
+2026-09-12T07:17:13Z	verify	建库推送后核验远程仓库状态	仓库就绪是后续交付带 commit SHA 证据的前提	GET /repos/liuhuanxi-oss/youpiaoweizheng → 404	open(blocked)
+2026-09-12T07:17:13Z	verify	定位 404 为连接器 token 授权范围问题而非仓库不存在	同账号 2 个公开库可访问，唯独私有库 404，符合 GitHub 无权限私有库的统一表现	search user:liuhuanxi-oss → total_count 2	root cause identified
+2026-09-12T07:17:13Z	deploy	用户侧完成建库与 22 提交推送（用户声明，本地远程一致）	无远程读权限，只能采信用户声明并留待复核	用户消息 2026-09-12T15:15	unverified
+2026-09-12T07:33:59Z	verify	用户改两 token 为 All repositories 后复验	授权范围改了就必须当场验证，不能假设生效	list_commits + search_repositories + get_me	仍 404，token 生效范围未变
+2026-09-12T07:33:59Z	verify	排查沙箱内独立凭据可用性	若有独立 token 可绕过连接器区分问题层级	GH_TOKEN/GITHUB_TOKEN/gh config 均空	无可用凭据
+2026-09-12T09:05:00Z	merge	测试台整体适配而非逐断言修补：新写 test-7.0.1.js（163 断言）	7.0.1 语义变化集中（门禁/查单复核/拒绝码/数量口径），逐条修补旧文件会留下语义错配的僵尸断言	test-7.0.1.js 163 passed 0 failed	adopted
+2026-09-12T09:05:00Z	merge	xpay_* 拒绝语义统一为 ErrCode:0+ok(原因)（未知道具/attach 不符/未付/查单失败）	回 -1 会触发微信 15 次重推，给伪造者反复尝试面；回 0 终结且留审计痕	index.js 723-779 行验证通过	adopted
+2026-09-12T09:05:00Z	merge	推送 Quantity 一概不采信（恒发 1 件），替代 6.6.5 的上限夹取方案	payCreate 服务端写死 buyQuantity:1，推送数量无采信价值；夹取上限 20 仍是无依据放大	deliverOrder 调用点 quantity=1	adopted
+2026-09-12T09:05:00Z	merge	mock 补 doc().update 的 _.inc 感知 + where 链支持 orderBy/skip/limit 任意组合	artRewardGrant 用 doc 路径原子入账；duoStats 分页需要 skip；旧 mock 会静默写坏 __op 对象	163 断言通过	adopted
+2026-09-12T09:05:00Z	verify	发现并记录合并版边缘行为：verify_unpaid 终态单不可被 CAS 复活发货	微信推送先于状态可见的时序里查单可能瞬时 unpaid；保守不复活是对的（payConfirm/对账仍可救真实支付），但需在交付说明标注	verify_unpaid 不在 CAS 白名单	documented
+2026-09-12T09:44:00Z	push	三文件推入 main：index.js(e48d28ac) pay.js(ffb343f1) package.json(7460d2e6)	index.js 曾在 push_files 中因同 path 双子项被后段覆盖，须走全量单子项重推；其余两文件一次成功	commit 81f96aa + f006f20，远程 blob SHA 与本地 git hash-object 逐一比对一致	adopted
+2026-09-12T09:44:20Z	deploy	saveTicket 7.0.1 部署至 cloud1-d5gpnyzjw64a60ac7	合并版六项语义已本地 163 断言通过，须落到线上才算交付	miniprogram-ci cloud.uploadFunction → DEPLOY-SUCCESS {"filesCount":9,"packSize":41146}，云函数状态 Active	adopted
