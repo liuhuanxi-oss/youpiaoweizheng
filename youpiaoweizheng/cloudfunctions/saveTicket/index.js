@@ -1,3 +1,660 @@
+// saveTicket/index.js —— 入库云函数
+// 职责：补齐服务端字段（openid/createdAt/eventKey/weather）→ 写入 tickets 集合。
+// 前端传入：{ ticket }（确认页编辑后的字段）
+// 返回：{ ok, _id }
+const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
+const { fetchWeather } = require('./weather.js');
+const { lookupCity } = require('./citydict.js'); // 4.18.0 P0：城市静态坐标配对
+const { geocodeVenue } = require('./geocode.js'); // 4.18.1：场馆级精化（配 LBS key 启用）
+const { generateArt } = require('./artRestyle.js'); // 4.19.0：票根博物志 AI 重绘（GCJ-02 城市中心）
+const pay = require('./pay.js'); // 4.20.0：虚拟支付（签名/code2Session/额度/错误码）
+
+/** 规范化场次键：同一场演出 = 同一场馆 + 同一日期（同场偶遇的聚合键） */
+function makeEventKey(venue, date) {
+  if (!venue || !date) return '';
+  const s = `${venue.replace(/\s+/g, '')}|${date}`.toLowerCase();
+  return 'evt_' + crypto.createHash('md5').update(s).digest('hex').slice(0, 16);
+}
+
+/** 集合不存在时自动创建（免去手动建集合步骤，幂等可重试） */
+async function ensureCollection(db, name) {
+  try {
+    await db.collection(name).count();
+  } catch (e) {
+    try {
+      await db.createCollection(name);
+    } catch (e2) {
+      // 已存在/权限问题不阻塞，交由后续 add 的真实报错兜底
+    }
+  }
+}
+
+/** 内容安全检测内部实现：pass 通过 / risky 拦截 / error 服务异常（调用方定策略） */
+async function secCheck(openid, content) {
+  try {
+    const res = await cloud.openapi.security.msgSecCheck({
+      openid,
+      scene: 2,
+      version: 2,
+      content: String(content || '').slice(0, 2500)
+    });
+    const suggest = res && res.result && res.result.suggest;
+    if (suggest === 'pass') return { result: 'pass', msg: '' };
+    return { result: 'risky', msg: suggest === 'risky' ? '内容有违规风险' : '内容未通过安全检查' };
+  } catch (e) {
+    if (e && (e.errCode === 87014 || /87014/i.test(String(e.errMsg || '')))) {
+      return { result: 'risky', msg: '内容含违规风险' };
+    }
+    return { result: 'error', msg: '安全检查服务异常' };
+  }
+}
+
+/** 内容安全校验（action 路由复用 secCheck，避免新增云函数的部署成本） */
+async function checkTextAction(event, OPENID) {
+  const content = String(event.content || '').trim().slice(0, 2500);
+  if (!content) return { ok: false, msg: '内容为空' };
+  const r = await secCheck(OPENID, content);
+  if (r.result === 'pass') return { ok: true };
+  if (r.result === 'risky') return { ok: false, msg: r.msg + '，换一句试试' };
+  return { ok: false, msg: '安全检查服务异常，请稍后再试' };
+}
+
+/**
+ * M4.9.6：AI 文案持久化（action 路由）
+ * 为什么不前端直连 update：tickets 集合在第一张票入库前并不存在，
+ * 前端直连会报 -502005 database collection not exists；
+ * 服务端 ensureCollection 自动建集合 + where 校验归属，一步自愈。
+ */
+async function setCaptionAction(event, OPENID) {
+  const id = String(event.id || '').trim();
+  const caption = String(event.caption || '').trim().slice(0, 500);
+  if (!id || !caption) return { ok: false, msg: '参数缺失' };
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'tickets');
+    // _openid 双保险：只能改自己的票（云函数端是管理员权限，必须自己限权）
+    const res = await db.collection('tickets')
+      .where({ _id: id, _openid: OPENID })
+      .update({ data: { aiCaption: caption } });
+    if (!res.stats || res.stats.updated === 0) {
+      return { ok: false, msg: '票根不存在或不属于你' };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, msg: '文案保存失败：' + (e.message || 'unknown') };
+  }
+}
+
+/**
+ * 4.14.0：组内拖拽排序（action 路由）
+ * 前端整理模式下整组重排后调用；orders = [{id, sortAt}]（同组全量，组内严格有序）。
+ * 复用 setCaptionAction 的自愈模式：ensureCollection + _openid 归属校验。
+ */
+async function reorderAction(event, OPENID) {
+  const orders = Array.isArray(event.orders) ? event.orders.slice(0, 200) : [];
+  if (!orders.length) return { ok: false, msg: '缺少排序数据' };
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'tickets');
+    let updated = 0;
+    for (const o of orders) {
+      const id = String(o.id || '').trim();
+      const sortAt = Number(o.sortAt) || 0;
+      if (!id || !sortAt) continue;
+      const res = await db.collection('tickets')
+        .where({ _id: id, _openid: OPENID })
+        .update({ data: { sortAt } });
+      updated += (res.stats && res.stats.updated) || 0;
+    }
+    return { ok: true, updated };
+  } catch (e) {
+    return { ok: false, msg: '排序保存失败：' + (e.message || 'unknown') };
+  }
+}
+
+// ============================================================
+// 4.16.0 组间排序（月份章节顺序）：prefs 集合按用户 upsert
+// 文档结构：{ _openid, type:'groupOrder', labels:[月份label有序数组], updatedAt }
+// ============================================================
+async function reorderGroupsAction(event, OPENID) {
+  const labels = (Array.isArray(event.labels) ? event.labels : [])
+    .map((s) => String(s || '').trim().slice(0, 24))
+    .filter(Boolean)
+    .slice(0, 60);
+  if (!labels.length) return { ok: false, msg: '缺少章节顺序数据' };
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+    const found = await col.where({ _openid: OPENID, type: 'groupOrder' }).limit(1).get();
+    const updatedAt = Date.now();
+    if (found.data && found.data.length) {
+      await col.doc(found.data[0]._id).update({ data: { labels, updatedAt } });
+    } else {
+      await col.add({ data: { _openid: OPENID, type: 'groupOrder', labels, updatedAt } });
+    }
+    return { ok: true, count: labels.length };
+  } catch (e) {
+    return { ok: false, msg: '章节顺序保存失败：' + (e.message || 'unknown') };
+  }
+}
+
+/** 读取章节顺序：失败/未设置返回空数组（默认日期序），不阻塞首页 */
+async function getGroupOrderAction(OPENID) {
+  try {
+    const db = cloud.database();
+    const res = await db.collection('prefs')
+      .where({ _openid: OPENID, type: 'groupOrder' })
+      .limit(1)
+      .get();
+    return { ok: true, labels: (res.data && res.data[0] && res.data[0].labels) || [] };
+  } catch (e) {
+    return { ok: true, labels: [] };
+  }
+}
+
+// ============================================================
+// 4.17.0 M1 海报带码：生成小程序码（全局一份，云存储 + prefs 缓存 fileID）
+// scene='b=poster'：扫码进入后 app.js 场景埋点可见，可区分海报带来的回流。
+// getUnlimited 不传 envVersion → 默认 release 码：上线后扫码直达；
+// 上线前（体验/开发版）扫 release 码会提示版本不存在——属预期，不处理。
+// ============================================================
+async function wxacodeAction() {
+  try {
+    const db = cloud.database();
+    // 全局缓存：码与用户无关、永久有效，任何人生成过一次即全员复用
+    try {
+      const hit = await db.collection('prefs').where({ type: 'wxacode_poster' }).limit(1).get();
+      if (hit.data && hit.data[0] && hit.data[0].fileID) {
+        return { ok: true, fileID: hit.data[0].fileID, cached: true };
+      }
+    } catch (e) { /* 缓存读取失败 → 走生成 */ }
+
+    const wxa = await cloud.openapi.wxacode.getUnlimited({
+      scene: 'b=poster',
+      width: 430
+    });
+    // openapi 返回 { buffer } 对象；兜底兼容直接返回 Buffer 的形态
+    const buf = wxa && wxa.buffer ? wxa.buffer : (Buffer.isBuffer(wxa) ? wxa : null);
+    if (!buf || !buf.length) return { ok: false, msg: '码生成失败' };
+
+    const up = await cloud.uploadFile({
+      cloudPath: `wxacode/poster-${Date.now()}.png`,
+      fileContent: buf
+    });
+    if (!up || !up.fileID) return { ok: false, msg: '码上传失败' };
+
+    try {
+      await ensureCollection(db, 'prefs');
+      await db.collection('prefs').add({
+        data: { type: 'wxacode_poster', fileID: up.fileID, createdAt: Date.now() }
+      });
+    } catch (e) { /* 缓存写失败不阻塞（下次重生成，可接受） */ }
+    return { ok: true, fileID: up.fileID };
+  } catch (e) {
+    return { ok: false, msg: '小程序码服务异常：' + String((e && (e.errMsg || e.message)) || e).slice(0, 60) };
+  }
+}
+
+// ============================================================
+// 4.18.0 P0 geo 存量回填：老票根只有 city 文本、geo 为 null → 城市字典补坐标。
+// 4.18.1 升级：回填时优先场馆级精化（geocodeVenue），失败落城市中心；
+// where 条件改为「geoSource != 'venue'」——城市中心票/无 geo 票都会重刷升级，
+// 已是场馆级的跳过。只回填 geo 不回填天气（避免逐票 HTTP 超时风险）。
+// limit 200 分批：多次调用直到返回 filled=0 即回填完毕。
+// ============================================================
+async function backfillGeoAction(OPENID) {
+  try {
+    const db = cloud.database();
+    const _ = db.command;
+    const res = await db.collection('tickets')
+      .where({ _openid: OPENID, geoSource: _.neq('venue'), city: _.neq('').and(_.neq(null)) })
+      .limit(200)
+      .get();
+    let filled = 0;
+    for (const doc of res.data || []) {
+      if (!doc.city) continue; // 双保险：不依赖 where 语义差异
+      let g = null;
+      let src = 'city';
+      if (doc.venue) {
+        const p = await geocodeVenue(doc.city, doc.venue); // 场馆级优先（未配 key 返回 null）
+        if (p) { g = p; src = 'venue'; }
+      }
+      if (!g) g = lookupCity(doc.city);
+      if (g) {
+        await db.collection('tickets').doc(doc._id).update({ data: { geo: g, geoSource: src } });
+        filled++;
+      }
+    }
+    return { ok: true, scanned: (res.data || []).length, filled };
+  } catch (e) {
+    return { ok: false, msg: 'geo 回填失败：' + (e.message || 'unknown') };
+  }
+}
+
+// ============================================================
+// 4.19.0 票根博物志：AI 艺术重绘（复古图版）
+// 异步「启动 + 轮询」模式——生图 10-60s+，前端 callFunction 约 15s 必超时：
+//   ① artRestyle：建 job(prefs 集合 status=running) → 同步跑生图全程
+//     （前端会超时断开，但云函数继续执行到完成并回写 job）→ 返回 jobId
+//   ② artQuery：前端每 4s 轮询 job 状态 → done 拿 fileID / failed 拿 msg
+// 额度控制在本端（sp_art_quota，每月 3 张免费）；tickets.artVersion 记录最新图版。
+// ============================================================
+async function artRestyleAction(event, OPENID) {
+  const ticketId = String(event.ticketId || '').trim();
+  if (!ticketId) return { ok: false, msg: '缺少票根 id' };
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('tickets');
+    // 归属校验 + 必须有照片（重绘主体）
+    const got = await col.where({ _id: ticketId, _openid: OPENID }).limit(1).get();
+    const t = got.data && got.data[0];
+    if (!t) return { ok: false, msg: '票根不存在或不属于你' };
+    if (!t.img) return { ok: false, msg: '这张票根没有照片，先补一张票根照片' };
+
+    // 防重复：同票已有 running 的 job → 直接返回（前端转轮询）
+    const jobs = db.collection('prefs');
+    const pend = await jobs.where({ _openid: OPENID, type: 'art_job', ticketId, status: 'running' }).limit(1).get();
+    if (pend.data && pend.data.length) return { ok: true, queued: true, jobId: pend.data[0]._id };
+
+    // 4.20.0 服务端额度校验（权威记账：免费优先 → 付费兜底；前端仅展示）
+    const spend = await pay.consumeQuota(db, OPENID);
+    if (!spend.allowed) return { ok: false, quota: spend.quota, code: 'NO_QUOTA', msg: '本月免费额度已用完，可购买图版次数包' };
+
+    const job = await jobs.add({
+      data: { _openid: OPENID, type: 'art_job', ticketId, status: 'running', createdAt: Date.now(), updatedAt: Date.now() }
+    });
+
+    // 同步跑完生图全程（前端已不等）；任何失败回写 job，轮询侧可见
+    try {
+      const r = await generateArt(cloud, t.img);
+      await jobs.doc(job._id).update({ data: { status: 'done', fileID: r.fileID, updatedAt: Date.now() } });
+      await col.doc(ticketId).update({ data: { artVersion: { fileID: r.fileID, createdAt: Date.now() } } }).catch(() => { /* 记录失败不影响交付 */ });
+    } catch (e) {
+      const raw = String((e && e.message) || e);
+      const msg = /model|not\s*found|permission|ai/i.test(raw)
+        ? '生成服务暂不可用（需在云开发控制台「AI+」开通生图模型并核对资源包）'
+        : raw.slice(0, 80);
+      await jobs.doc(job._id).update({ data: { status: 'failed', msg, updatedAt: Date.now() } }).catch(() => {});
+      await pay.refundQuota(db, OPENID).catch(() => {}); // 4.20.0 失败返还额度（服务端）
+    }
+    // 4.20.0：返回扣减后的额度视图（前端直接刷新显示）
+    const q = await pay.loadQuota(db, OPENID);
+    return { ok: true, jobId: job._id, async: true, quota: pay.quotaView(q) };
+  } catch (e) {
+    return { ok: false, msg: '图版服务异常：' + String((e && e.message) || e).slice(0, 60) };
+  }
+}
+
+/** 前端轮询：查该票最新 job 状态（none/running/done/failed） */
+async function artQueryAction(event, OPENID) {
+  const ticketId = String(event.ticketId || '').trim();
+  if (!ticketId) return { ok: false, msg: '缺少票根 id' };
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const res = await db.collection('prefs')
+      .where({ _openid: OPENID, type: 'art_job', ticketId })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    const j = res.data && res.data[0];
+    if (!j) return { ok: true, status: 'none' };
+    return { ok: true, status: j.status, fileID: j.fileID || '', msg: j.msg || '' };
+  } catch (e) {
+    return { ok: false, msg: '查询失败' };
+  }
+}
+
+// ============================================================
+// 4.20.0 授权登录 + 虚拟支付
+// ------------------------------------------------------------
+// 登录（拉新推广的用户身份基座 + 支付签名前置）：
+//   前端 wx.login() 拿 code → authLogin → 服务端 code2Session 换 openid + session_key。
+//   云开发下 openid 本就由 getWXContext 提供（免登录标识），这里换 session_key 的
+//   唯一目的：虚拟支付 signature = HMAC-SHA256(sessionKey, signData)。
+//   session_key 属敏感凭证：只存服务端（prefs type=auth_session），绝不下发前端；
+//   泄露单独不构成支付伪造风险（paySig 需要服务端 AppKey）。
+// 支付（wx.requestVirtualPayment，官方文档 2026-09 核对）：
+//   payCreate → 双签名（paySig=AppKey / signature=sessionKey）→ 前端拉起 →
+//   微信发货推送 xpay_goods_deliver_notify（消息推送 → 本函数）→ 幂等发货 → 额度到账。
+// 凭证：config 集合 pay_secret doc（offerId/appKey/appSecret/env），不入代码仓库。
+// ============================================================
+
+/** 授权登录：code → session_key 落库（同时校验 code 归属当前用户，防串号） */
+async function authLoginAction(event, OPENID) {
+  const code = String(event.code || '').trim();
+  if (!code) return { ok: false, msg: '缺少登录 code' };
+  try {
+    const db = cloud.database();
+    const cfg = await pay.loadPayConfig(db);
+    if (!cfg || !cfg.appSecret) return { ok: false, code: 'NO_CONFIG', msg: '登录服务尚未配置（config 集合缺 pay_secret.appSecret）' };
+    const r = await pay.code2Session(cloud.getWXContext().APPID, cfg.appSecret, code);
+    if (!r || r.errcode || !r.openid) {
+      return { ok: false, msg: '登录校验失败：' + String((r && (r.errmsg || r.errcode)) || '未知'), code: 'WX_ERR' };
+    }
+    if (r.openid !== OPENID) return { ok: false, code: 'OPENID_MISMATCH', msg: '登录凭证与当前用户不一致' };
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+    const found = await col.where({ _openid: OPENID, type: 'auth_session' }).limit(1).get();
+    const data = { sessionKey: r.session_key || '', updatedAt: Date.now() };
+    if (found.data && found.data[0]) {
+      await col.doc(found.data[0]._id).update({ data });
+    } else {
+      await col.add({ data: { _openid: OPENID, type: 'auth_session', ...data } });
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, msg: '登录异常：' + String((e && e.message) || e).slice(0, 60) };
+  }
+}
+
+/** 读当前用户 session（支付签名用）；缺失/超 7 天视为过期 → 前端应先重新登录 */
+async function getSession(db, OPENID) {
+  try {
+    const res = await db.collection('prefs').where({ _openid: OPENID, type: 'auth_session' }).limit(1).get();
+    const s = res.data && res.data[0];
+    if (!s || !s.sessionKey) return null;
+    if (Date.now() - (s.updatedAt || 0) > 7 * 24 * 3600 * 1000) return null;
+    return s;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** 下单：组 signData + 双签名（paySig=AppKey / signature=sessionKey）+ 订单入库 */
+async function payCreateAction(event, OPENID) {
+  const productId = String(event.productId || '').trim();
+  const product = pay.PRODUCTS[productId];
+  if (!product) return { ok: false, msg: '未知的商品' };
+  try {
+    const db = cloud.database();
+    const cfg = await pay.loadPayConfig(db);
+    if (!cfg) return { ok: false, code: 'NO_CONFIG', msg: '支付尚未配置（config 集合缺 pay_secret：offerId/appKey）' };
+    const session = await getSession(db, OPENID);
+    if (!session) return { ok: false, code: 'NEED_LOGIN', msg: '登录态过期，请重新授权登录' };
+
+    const signData = JSON.stringify({
+      offerId: cfg.offerId,
+      buyQuantity: 1,
+      env: Number(cfg.env) === 1 ? 1 : 0, // 0 现网 1 沙箱（iOS 不支持沙箱）
+      currencyType: 'CNY',
+      productId: productId,
+      goodsPrice: product.priceFen, // 单位：分（-15003 高发坑）
+      outTradeNo: pay.makeOutTradeNo(),
+      attach: JSON.stringify({ openid: OPENID, productId })
+    });
+    const outTradeNo = JSON.parse(signData).outTradeNo;
+    // 官方：沙箱(env=1)与现网(env=0)是两把不同的 AppKey，按下单 env 选对应 key 签 paySig
+    const paySig = pay.hmacSha256(pay.pickAppKey(cfg, Number(cfg.env) === 1 ? 1 : 0), 'requestVirtualPayment&' + signData);
+    const signature = pay.hmacSha256(session.sessionKey, signData);
+    await ensureCollection(db, 'prefs');
+    await db.collection('prefs').add({
+      data: {
+        _openid: OPENID, type: 'pay_order', outTradeNo, productId,
+        priceFen: product.priceFen, status: 'created', createdAt: Date.now(), updatedAt: Date.now()
+      }
+    });
+    return { ok: true, mode: 'short_series_goods', signData, paySig, signature, outTradeNo };
+  } catch (e) {
+    return { ok: false, msg: '下单失败：' + String((e && e.message) || e).slice(0, 60) };
+  }
+}
+
+/** 查单 + 额度视图（前端支付后轮询确认到账；created 超 60s 触发对账兜底） */
+async function payQueryAction(event, OPENID) {
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    let order = null;
+    const no = String(event.outTradeNo || '').trim();
+    if (no) {
+      const res = await db.collection('prefs').where({ _openid: OPENID, type: 'pay_order', outTradeNo: no }).limit(1).get();
+      order = (res.data && res.data[0]) || null;
+    }
+    // —— 4.20.0 对账兜底（官方推荐推送+查单两分支结合，success 回调可能丢失）——
+    // 本地仍 created、下单超 60s、距上次对账 ≥10s（限频护栏）→ 主动查微信侧真实状态：
+    //   paid(2/3/4) → 补发货；refunded(5/8) → 标记不发货；查单失败 → 维持 created 不动
+    if (order && order.status === 'created'
+      && Date.now() - (order.createdAt || 0) > 60 * 1000
+      && Date.now() - (order.lastCheckAt || 0) >= 10 * 1000) {
+      const rec = await reconcileOrder(db, OPENID, order);
+      if (rec && rec.order) order = rec.order;
+    }
+    const q = await pay.loadQuota(db, OPENID);
+    return { ok: true, order: order ? { outTradeNo: order.outTradeNo, status: order.status } : null, quota: pay.quotaView(q) };
+  } catch (e) {
+    return { ok: false, msg: '查询失败' };
+  }
+}
+
+/**
+ * 4.22.0 支付后主动确认（「即时到账」核心分支）：
+ * 收银台 success 后前端立即调用——不再干等微信发货推送，服务端当场查微信侧
+ * 真实支付状态，paid → 立即发货（幂等）。查单失败/未支付 → 返回 pending，
+ * 前端落回轮询兜底（发货推送最终也会幂等补发，双保险）。
+ * 虚拟商品语义：无任何物流环节，确认=发货=次数即时入账。
+ */
+async function payConfirmAction(event, OPENID) {
+  const db = cloud.database();
+  try {
+    await ensureCollection(db, 'prefs');
+    const no = String(event.outTradeNo || '').trim();
+    if (!no) return { ok: false, msg: '缺订单号' };
+    const col = db.collection('prefs');
+    const found = await col.where({ _openid: OPENID, type: 'pay_order', outTradeNo: no }).limit(1).get();
+    const order = found.data && found.data[0];
+    if (!order) return { ok: false, code: 'NO_ORDER', msg: '订单不存在' };
+    if (order.status === 'delivered') { // 幂等：早已到账 → 直接回当前额度（重进/重复确认场景）
+      const q = await pay.loadQuota(db, OPENID);
+      return { ok: true, quota: pay.quotaView(q), order: { status: 'delivered' }, delivered: false };
+    }
+    if (order.status === 'refunded') return { ok: false, code: 'REFUNDED', msg: '订单已退款' };
+    if (order.status !== 'created') { // price_mismatch / attach_mismatch / expired 等异常终态
+      return { ok: false, code: order.status, msg: '订单状态异常，本次不会到账；如有扣款请联系开发者核实' };
+    }
+    const cfg = await pay.loadPayConfig(db);
+    const session = await getSession(db, OPENID);
+    if (!cfg || !session) return { ok: false, code: 'NEED_LOGIN', msg: '登录态过期' };
+    // 服务端权威核对：只有微信侧确认 paid 才发货——绝不轻信前端「已支付」声明
+    const r = await pay.queryOrderOnWx(cloud.getWXContext().APPID, cfg, OPENID, session.sessionKey, no);
+    if (!r.ok) return { ok: false, code: 'CHECK_FAIL', pending: true, msg: '支付状态确认失败，稍后自动到账' };
+    if (r.paid) {
+      const d = await deliverOrder(db, OPENID, no, order.productId, 1, r.paidFee);
+      const q = await pay.loadQuota(db, OPENID);
+      return { ok: true, quota: pay.quotaView(q), order: { status: 'delivered' }, delivered: d.delivered };
+    }
+    if (r.refunded) {
+      await col.doc(order._id).update({ data: { status: 'refunded', updatedAt: Date.now() } });
+      return { ok: false, code: 'REFUNDED', msg: '订单已退款' };
+    }
+    // 微信侧明确未支付：下单超 15 分钟 → 关单清理（expired，不影响任何额度）；
+    // 未超时 → 维持 created（可能仍在支付流程中），由前端轮询继续等待
+    if (Date.now() - (order.createdAt || 0) > 15 * 60 * 1000) {
+      await col.doc(order._id).update({ data: { status: 'expired', updatedAt: Date.now() } });
+      return { ok: false, code: 'EXPIRED', msg: '订单超时未支付已关闭，请重新购买' };
+    }
+    return { ok: false, code: 'NOT_PAID', pending: true, msg: '微信侧尚未确认到账' };
+  } catch (e) {
+    // 兜底：一切确认异常都不把用户挡在门外——落 pending，让轮询/推送自愈
+    return { ok: false, code: 'CHECK_FAIL', pending: true, msg: '确认失败，稍后自动到账' };
+  }
+}
+
+/** 额度视图（art/me 页加载时刷新服务端权威额度）
+ *  4.22.0 掉单自愈：读额度时顺带对账本人滞留 created 订单（下单>60s 且距上次
+ *  对账 ≥10s 限频）——支付成功但前端断链/推送延迟的「掉单」，用户下次进入页面
+ *  静默补发到账，无需任何手动操作。
+ */
+async function quotaGetAction(OPENID) {
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    try {
+      const pend = await db.collection('prefs')
+        .where({ _openid: OPENID, type: 'pay_order', status: 'created' })
+        .limit(3).get();
+      for (const o of (pend.data || [])) {
+        if (Date.now() - (o.createdAt || 0) > 60 * 1000
+          && Date.now() - (o.lastCheckAt || 0) >= 10 * 1000) {
+          await reconcileOrder(db, OPENID, o); // 内部兜底，不抛；补发/过期都静默落地
+        }
+      }
+    } catch (e) { /* 对账失败不影响额度读取 */ }
+    const q = await pay.loadQuota(db, OPENID);
+    return { ok: true, quota: pay.quotaView(q) };
+  } catch (e) {
+    return { ok: false, msg: '额度查询失败' };
+  }
+}
+
+// ============================================================
+// 4.21.0 激励视频奖励入账（流量主变现：art 付费墙「看视频免费补 1 幅」）
+// 入账口径：奖励并入 paid 池（consume/refund/quotaView 零改动，扣减顺序免费→付费不变）。
+// 防刷三道闸：
+//   ① 每用户每日上限 AD_REWARD_DAILY_LIMIT 次（prefs type='ad_reward' 计数器，北京时间口径）；
+//   ② 仅登录用户（OPENID 由 getWXContext 注入，前端不可伪造归属）；
+//   ③ 流量主开通后可升级为微信服务端激励回调（带签名校验），当前为客户端上报 + 日限额兜底，
+//      单日最大敞口 = 3 幅生图成本，风险可控。
+// ============================================================
+const AD_REWARD_DAILY_LIMIT = 3;
+
+async function artRewardGrantAction(event, OPENID) {
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+    const d = new Date();
+    const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const rec = await col.where({ _openid: OPENID, type: 'ad_reward', ymd }).limit(1).get();
+    const cur = rec.data && rec.data[0];
+    const count = (cur && cur.count) || 0;
+    // 预检模式（check=true）：只读「今天还能看几次」，不扣不奖——付费墙展示用
+    if (event.check) {
+      const q0 = await pay.loadQuota(db, OPENID);
+      return { ok: true, left: Math.max(AD_REWARD_DAILY_LIMIT - count, 0), quota: pay.quotaView(q0) };
+    }
+    if (count >= AD_REWARD_DAILY_LIMIT) {
+      const q = await pay.loadQuota(db, OPENID);
+      return { ok: false, code: 'LIMIT', msg: '今天看视频补画的机会已经用完，明天再来', quota: pay.quotaView(q), left: 0 };
+    }
+    if (cur) {
+      await col.doc(cur._id).update({ data: { count: count + 1, updatedAt: Date.now() } });
+    } else {
+      await col.add({ data: { _openid: OPENID, type: 'ad_reward', ymd, count: 1, updatedAt: Date.now() } });
+    }
+    const q = await pay.loadQuota(db, OPENID);
+    await col.doc(q._id).update({ data: { paid: (q.paid || 0) + 1, updatedAt: Date.now() } });
+    const after = await pay.loadQuota(db, OPENID);
+    return { ok: true, quota: pay.quotaView(after), left: AD_REWARD_DAILY_LIMIT - (count + 1) };
+  } catch (e) {
+    return { ok: false, msg: '奖励入账失败：' + String((e && e.message) || e).slice(0, 60) };
+  }
+}
+
+/**
+ * 公共发货（4.20.0 官方文档精读对照）：payNotify 推送分支与 payQuery 对账分支共用。
+ * 幂等：订单已 delivered / refunded 直接返回不重复加额度。
+ * 官方推荐「推送 + 主动查单」两分支至少实现一个、结合更可靠——success 回调可能丢失。
+ * @returns {{delivered:boolean, reason?:string}}
+ */
+const MAX_ORDER_QTY = 1; // 单笔订单可发货的最大件数：payCreate 服务端写死 buyQuantity:1，多件不可信
+
+async function deliverOrder(db, openid, outTradeNo, productId, quantity, priceFen) {
+  const product = pay.PRODUCTS[productId];
+  const col = db.collection('prefs');
+  const found = await col.where({ _openid: openid, type: 'pay_order', outTradeNo }).limit(1).get();
+  const order = found.data && found.data[0];
+  if (order && order.status === 'delivered') return { delivered: false, reason: 'dup' };
+  if (order && order.status === 'refunded') return { delivered: false, reason: 'refunded' };
+  // 5.0.0 修 P0-3：件数夹紧（原实现按 产品幅数 × Quantity 加额度，Quantity 客户端可控且无上限）
+  const qty = Math.min(Math.max(Number(quantity) || 1, 1), MAX_ORDER_QTY);
+  const addQuota = (product ? product.quota : 0) * qty;
+  if (order) {
+    await col.doc(order._id).update({
+      data: { status: 'delivered', deliveredAt: Date.now(), quantity: qty, updatedAt: Date.now() }
+    });
+  } else {
+    // 兜底：推送先于订单可见（极端时序）→ 落一笔 delivered 记录防丢单
+    await col.add({
+      data: {
+        _openid: openid, type: 'pay_order', outTradeNo, productId,
+        priceFen: Number(priceFen) || 0, quantity: qty,
+        status: 'delivered', deliveredAt: Date.now(), updatedAt: Date.now()
+      }
+    });
+  }
+  const q = await pay.loadQuota(db, openid);
+  await col.doc(q._id).update({ data: { paid: (q.paid || 0) + addQuota, updatedAt: Date.now() } });
+  return { delivered: true };
+}
+
+/**
+ * 单笔订单对账（查单兜底分支）：本地仍 created 的订单查微信侧真实状态并落地。
+ * paid（status 2/3/4）→ deliverOrder 补发货；refunded（5/8）→ 标记不发货；
+ * 查单失败（签名/session_key 过期 268490009/网络）→ 只更新 lastCheckAt 维持限频，不动状态。
+ */
+async function reconcileOrder(db, openid, order) {
+  try {
+    const cfg = await pay.loadPayConfig(db);
+    const session = await getSession(db, openid);
+    if (!cfg || !session) {
+      await db.collection('prefs').doc(order._id).update({ data: { lastCheckAt: Date.now() } }).catch(() => {});
+      return { order };
+    }
+    const r = await pay.queryOrderOnWx(cloud.getWXContext().APPID, cfg, openid, session.sessionKey, order.outTradeNo);
+    if (r.ok && r.paid) {
+      await deliverOrder(db, openid, order.outTradeNo, order.productId, 1, r.paidFee);
+      return { order: { ...order, status: 'delivered' }, delivered: true };
+    }
+    if (r.ok && r.refunded) {
+      await db.collection('prefs').doc(order._id).update({ data: { status: 'refunded', updatedAt: Date.now() } });
+      return { order: { ...order, status: 'refunded' } };
+    }
+    // 4.22.0：查单成功但微信侧未支付——下单超 15 分钟 → 关单清理（expired，
+    // 不留无限滞留的垃圾单）；未超时维持 created（支付流程中）仅刷新限频时间戳。
+    if (r.ok && !r.paid) {
+      if (Date.now() - (order.createdAt || 0) > 15 * 60 * 1000) {
+        await db.collection('prefs').doc(order._id).update({ data: { status: 'expired', updatedAt: Date.now() } });
+        return { order: { ...order, status: 'expired' } };
+      }
+    }
+    await db.collection('prefs').doc(order._id).update({ data: { lastCheckAt: Date.now() } }).catch(() => {});
+    return { order };
+  } catch (e) {
+    return { order };
+  }
+}
+
+/**
+ * 支付订单审计留痕（5.0.0 修 P0-3）：一切「不发货」的异常分支都落一条带明确 status 的
+ * 记录，便于事后人工排查与对账。已有订单就地改状态，没有则新建一条。
+ * ⚠️ 已 delivered / refunded 的订单不覆盖 —— 审计绝不能把发货结果改回去。
+ */
+async function auditPayOrder(db, openid, outTradeNo, productId, status, extra) {
+  try {
+    const col = db.collection('prefs');
+    const data = Object.assign({ status, updatedAt: Date.now() }, extra || {});
+    const found = await col.where({ _openid: openid, type: 'pay_order', outTradeNo }).limit(1).get();
+    const order = found.data && found.data[0];
+    if (order) {
+      if (order.status === 'delivered' || order.status === 'refunded') return;
+      await col.doc(order._id).update({ data });
+      return;
+    }
+    await col.add({
+      data: Object.assign({
+        _openid: openid, type: 'pay_order', outTradeNo, productId: productId || '',
+        priceFen: 0, createdAt: Date.now()
+      }, data)
+    });
+  } catch (e) { /* 审计落库失败不拦路：留痕是尽力而为，不能反过来阻断主流程 */ }
+}
+
 /** 微信发货推送（消息推送 → 本函数；Event=xpay_goods_deliver_notify）。必须幂等。 */
 async function payNotifyAction(event) {
   // 官方字段语义（2026-09 文档核对）：FromUserName 在道具发货场景固定为微信官方的 openid，
@@ -82,49 +739,6 @@ async function payNotifyAction(event) {
   }
 }
 
-/** 退款落地公共函数：置 refunded + 已发货单回退次数（下探 0 不负数）。退款推送与对账兜底共用 */
-async function applyRefundToOrder(db, openid, order, refundFee) {
-  const col = db.collection('prefs');
-  const _ = db.command;
-  if (!order) return;
-  // 6.6.5（P0）：退款幂等改为「原子 CAS 抢占 + 子标记补做」，修两个资损面：
-  //   ① 旧实现只凭调用方传入的 order 快照判断 status==='refunded' → 退款推送重试（最长 6h/15 次）
-  //      与对账兜底并发时，两侧都持「非 refunded」快照 → 双双通过 → 额度重复回退。
-  //   ② 旧实现先置 refunded 再回退额度：若置位后崩溃，后续重试在开头直接 return → 额度永久不回退。
-  // 改法：用 refundApplied 子标记做「额度回退」的幂等闸门；CAS 抢占该标记（原子），
-  // 谁抢到谁做回退；无论回退是否已完成，最后都把 status 幂等置为 refunded。
-  const cas = await col.where({ _id: order._id, refundApplied: _.neq(true) }).update({
-    data: { refundApplied: true, refundedAt: Date.now(), refundFee: Number(refundFee) || 0, updatedAt: Date.now() }
-  });
-  const claimed = !!(cas && cas.stats && cas.stats.updated);
-  if (!claimed) {
-    // 已被并发分支处理（或历史单无该字段）→ 仍需保证 status=refunded，但不重复回退
-    await col.where({ _id: order._id, status: _.neq('refunded') }).update({
-      data: { status: 'refunded', refundedAt: Date.now(), updatedAt: Date.now() }
-    });
-    return;
-  }
-  if (order.status === 'delivered' || order.status === 'refund_pending') {
-    const product = pay.PRODUCTS[order.productId];
-    const wantBack = ((product && product.quota) || 0) * (Number(order.quantity) || 1);
-    const q = await pay.loadQuota(db, openid);
-    // 6.6.5：回退上限 = paid - bonus。bonus 是看视频等奖励带来的次数（非付费），
-    // 退款不应把奖励次数也回退掉（否则「买 10 送 1 奖励」退款会退走 11 幅中的奖励额）。
-    const refundable = Math.max((q.paid || 0) - (q.bonus || 0), 0);
-    const back = Math.min(wantBack, refundable);
-    if (back > 0) {
-      // 6.6.3：原子自减且不下探负数——条件 paid >= back 才 inc(-back)。
-      const r = await col.where({ _id: q._id, paid: _.gte(back) })
-        .update({ data: { paid: _.inc(-back), updatedAt: Date.now() } });
-      // 条件未命中（并发已扣空）→ 不再强制归零整个 paid（会把奖励次数一起清零）
-      void r;
-    }
-  }
-  await col.where({ _id: order._id, status: _.neq('refunded') }).update({
-    data: { status: 'refunded', updatedAt: Date.now() }
-  });
-}
-
 /**
  * 退款推送（Event=xpay_refund_notify）：用户退款成功后回退次数额度。
  * 官方字段（2026-09 核对）：OpenId（用户）/ MchOrderId（=原单 outTradeNo）/
@@ -152,9 +766,15 @@ async function payRefundAction(event) {
       return { ErrCode: 0, ErrMsg: 'ok(no order)' };
     }
     if (order.status === 'refunded') return { ErrCode: 0, ErrMsg: 'ok(dup)' }; // 幂等
-    // 6.6.5（P0）：回退逻辑收敛到 applyRefundToOrder——refundApplied CAS 幂等抢占
-    //（防推送重试 6h/15 次与对账并发重复回退）+ 回退上限 paid-bonus（奖励不退）+ 原子自减
-    await applyRefundToOrder(db, openid, order, event.RefundFee);
+    await col.doc(order._id).update({
+      data: { status: 'refunded', refundedAt: Date.now(), refundFee: Number(event.RefundFee) || 0, updatedAt: Date.now() }
+    });
+    if (order.status === 'delivered') {
+      const product = pay.PRODUCTS[order.productId];
+      const back = ((product && product.quota) || 0) * (Number(order.quantity) || 1);
+      const q = await pay.loadQuota(db, openid);
+      await col.doc(q._id).update({ data: { paid: Math.max((q.paid || 0) - back, 0), updatedAt: Date.now() } });
+    }
     return { ErrCode: 0, ErrMsg: 'ok' };
   } catch (e) {
     console.error('[payRefund] 退款处理异常：', e);
@@ -502,42 +1122,14 @@ async function duoStatsAction(OPENID, full) {
     if (!mine || mine.status !== 'bound') return { ok: false, msg: '尚未绑定' };
     const partner = (mine.members || []).find((m) => m !== OPENID) || '';
     const _ = db.command;
-    // 6.6.3（P2-7）：云函数端单次上限 100 条，limit(500) 会被静默截断到 100 →
-    // total/shows/cities 全部少算且无任何提示。改为 count() 取真实总数 + 分批拉取。
-    const baseWhere = { _openid: _.in([OPENID, partner]) };
-    const col = db.collection('tickets');
-    let grandTotal = 0;
-    let countOk = true;
-    try { const c = await col.where(baseWhere).count(); grandTotal = (c && c.total) || 0; } catch (e) { countOk = false; }
-    const PAGE = 100, MAXP = 20; // 最多拉 2000 张，防极端数据量拖死云函数
-    const pages = Math.min(Math.ceil(grandTotal / PAGE) || 1, MAXP);
-    // 6.6.5：改用 allSettled——旧实现任一页 reject 会让整个统计失败；count 失败又静默当 0 →
-    // total/truncated 双双失真。现在失败页跳过、失败计数计入 truncated，保证尽量出结果。
-    const batches = await Promise.allSettled(
-      Array.from({ length: pages }, (_, i) =>
-        col.where(baseWhere).orderBy('date', 'desc').skip(i * PAGE).limit(PAGE).get()
-      )
-    );
-    let list = [];
-    let pageFailed = 0;
-    batches.forEach((r) => {
-      if (r && r.status === 'fulfilled' && r.value && r.value.data) list = list.concat(r.value.data);
-      else pageFailed += 1;
-    });
-    // 仍触顶（超 MAXP×PAGE / count 失败 / 有失败页）→ 在返回值里明示截断，前端可提示
-    const truncated = !countOk || grandTotal > list.length || pageFailed > 0;
+    const res = await db.collection('tickets')
+      .where({ _openid: _.in([OPENID, partner]) })
+      .limit(500)
+      .get();
+    const list = res.data || [];
     const cities = new Set(list.filter((t) => t.city).map((t) => t.city));
-    // 6.6.3（P2-21）：按日期倒序后，优先排「我的」票根——duo 页「生成双人纪念卡片」取 recent[0]
-    // 直接跳 card?id=，若最近一张是 TA 的票，card 页归属校验会落 notFound 空态。
-    // 服务端已保证 recent[0] 是我的票，前端无需再猜。
     const recent = list
-      .slice()
-      .sort((a, b) => {
-        const am = a._openid === OPENID ? 0 : 1;
-        const bm = b._openid === OPENID ? 0 : 1;
-        if (am !== bm) return am - bm; // 我的票整体排前
-        return String(b.date || '').localeCompare(String(a.date || ''));
-      })
+      .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
       .slice(0, 5)
       .map((t) => ({
         id: t._id,
@@ -546,8 +1138,7 @@ async function duoStatsAction(OPENID, full) {
         type: t.type,
         owner: t._openid === OPENID ? 'me' : 'partner'
       }));
-    // M4-b：full 模式返回双方全量精简票根（timeline/report 页同源数据）
-    // 7.0.0（稿屏10）：items 保留 img——双人票根卡的缩略图（云存储 fileID），无图卡退类型图标
+    // M4-b：full 模式返回双方全量精简票根（timeline/report 页同源数据；list 已被上面的 sort 原地倒序）
     const items = full
       ? list.map((t) => ({
           id: t._id,
@@ -555,7 +1146,7 @@ async function duoStatsAction(OPENID, full) {
           type: t.type,
           date: t.date,
           time: t.time || '',
-          img: t.img || '',
+          img: t.img || '',   // 稿屏10 双人票根卡的缩略图（云存储 fileID）
           city: t.city || '',
           venue: t.venue || '',
           seat: t.seat || '',
@@ -568,7 +1159,6 @@ async function duoStatsAction(OPENID, full) {
     return {
       ok: true,
       total: list.length,
-      truncated, // 6.6.3（P2-7）：true = 数据量超分批上限，统计不完整（前端可提示）
       shows: list.filter((t) => t.type === 'show').length,
       cities: cities.size,
       recent,
@@ -719,19 +1309,8 @@ exports.main = async (event) => {
   delete t.sameOptOut; // 偏好不入库，只在当次入库生效并写进隐私协议口径
   t.eventKey = sameOptOut ? '' : makeEventKey(t.venue, t.date);
   t.type = ['show', 'movie', 'traffic'].includes(t.type) ? t.type : 'show';
-  // 6.6.5（P1）：price 拒绝负数/Infinity/NaN（typeof NaN === 'number'，Number('-100') 原实现直接入库污染报表）
-  const _pv = Number(t.price);
-  t.price = Number.isFinite(_pv) && _pv >= 0 ? Math.min(_pv, 1e7) : null;
-  // 6.6.5（P1）：rating 夹到 [0,5]，防负数/超大值溢出前端星级渲染
-  if (t.rating !== undefined && t.rating !== null) {
-    const _rv = Number(t.rating);
-    t.rating = Number.isFinite(_rv) ? Math.min(Math.max(_rv, 0), 5) : 0;
-  }
-  // 6.6.5（P1）：geo 加 lng + isFinite + 范围校验——NaN 的 typeof 也是 'number'，
-  // 旧校验只查 lat 类型会放 NaN 坐标/缺 lng 的脏数据入库，污染地图与 haversine 里程累加
-  t.geo = (t.geo && typeof t.geo.lat === 'number' && isFinite(t.geo.lat) &&
-    typeof t.geo.lng === 'number' && isFinite(t.geo.lng) &&
-    t.geo.lat >= -90 && t.geo.lat <= 90 && t.geo.lng >= -180 && t.geo.lng <= 180) ? t.geo : null;
+  t.price = Number(t.price) || null;
+  t.geo = t.geo && typeof t.geo.lat === 'number' ? t.geo : null;
   // 4.18.0 P0 geo 断链修复：OCR/手填通常只有 city 文本、没有坐标，导致天气/足迹/勋章
   // 全链路拿不到 geo。此处用城市静态字典按 city 配中心坐标（查不到保持 null，不猜）。
   // 4.18.1 场馆级精化：配了腾讯位置服务 key 且场馆名可解析 → 精确到 POI 坐标
