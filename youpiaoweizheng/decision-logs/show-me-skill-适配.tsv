@@ -21,3 +21,4 @@ ts	phase	decision	why	evidence	result
 2026-09-12T09:44:00Z	push	三文件推入 main：index.js(e48d28ac) pay.js(ffb343f1) package.json(7460d2e6)	index.js 曾在 push_files 中因同 path 双子项被后段覆盖，须走全量单子项重推；其余两文件一次成功	commit 81f96aa + f006f20，远程 blob SHA 与本地 git hash-object 逐一比对一致	adopted
 2026-09-12T09:44:20Z	deploy	saveTicket 7.0.1 部署至 cloud1-d5gpnyzjw64a60ac7	合并版六项语义已本地 163 断言通过，须落到线上才算交付	miniprogram-ci cloud.uploadFunction → DEPLOY-SUCCESS {"filesCount":9,"packSize":41146}，云函数状态 Active	adopted
 2026-09-12T09:54:16Z	upload	小程序 v7.0.1 开发版本上传微信后台（6.6.2~7.0.1 前端积压 43 文件首发）	6.6.4/6.6.5 两轮只部署了云函数，前端停在 6.6.1；P0 级前端修复（等级显示/隐私授权/日期渲染）用户真机一直看不到	miniprogram-ci upload：95 文件 / zip 517693B / robot 1 / 上传成功，待后台提交审核发布	adopted
+2026-09-12T11:20:00Z	audit	7.1.1（远程）vs 7.0.1（已部署）代码线差异审计：确认为两条独立演进线，前端几乎不重叠	用户提出发布 7.1.1；若不先核实就上传，会用未经验证的版本整体覆盖已修好的前端	逐文件 wc -c 比对 + 代码逐行阅读；5 项退化（date.js 日期脏数据/duoData 容错/pay 轮询可中止/track 节流/alive 存活守卫）均为确认缺失	adopted: 建议先合并再发布
