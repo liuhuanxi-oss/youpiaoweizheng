@@ -18,6 +18,8 @@ const deco = require('../../utils/deco.js');
 const enter = require('../../utils/enter.js');
 const { iconSrc } = require('../../utils/icons.js');
 const share = require('../../utils/share.js'); // 7.3.0 A6：长按菜单里的「分享」要转发这一张
+const sign = require('../../utils/sign.js');   // 7.4.0 R1：今日时光签（端上只读，判定在服务端）
+const memory = require('../../utils/memory.js'); // 7.4.0 R4：那年今天（没命中就不显示，不造假）
 
 // —— 尺寸（rpx）：WXSS 里写死的宽高必须与这里一致 ——
 const CARD_W = 310, CARD_H = 240;   // 一张票根卡（(750 - 48×2 - 34) / 2 的列宽）
@@ -79,7 +81,11 @@ Page({
     // A8 新用户引导：0 = 不显示，1..3 = 当前步号
     guide: 0, guideTitle: '', guideDesc: '', guideIc: '',
     // A6 长按快捷菜单（7.3.0）：menuId/menuTitle 是「被长按的那一张」
-    menu: false, menuId: '', menuTitle: ''
+    menu: false, menuId: '', menuTitle: '',
+    // 7.4.0 R1 今日时光签：sign 为 null 时整块不渲染（演示模式 / 云失败都保持这样）
+    sign: null, signText: { title: '', sub: '', btn: '' }, signing: false,
+    // 7.4.0 R4 那年今天：null = 今天没有可回忆的（新用户常态），整行不显示
+    mem: null
   },
 
   _all: [],
@@ -91,6 +97,7 @@ Page({
     this.buildArt();
     this.getTabBar && this.getTabBar().setData({ selected: 0, theme: themeUtil.getTheme() });
     this.refresh();
+    this.refreshSign();
   },
 
   onPullDownRefresh() {
@@ -120,13 +127,55 @@ Page({
         fav: favIds.indexOf(t.id) >= 0
       }, stampParts(t)));
       // 每次都写（含 null）：上一次亮过横幅、这次恢复正常时必须能收回去
-      this.setData({ netBar });
+      // 那年今天跟着列表一起算（没命中就是 null，整行不显示 —— 不编一句假的回忆）
+      this.setData({ netBar, mem: memory.row(this._all) });
       this.applyFilter();
       this.maybeGuide();
     } catch (e) {
       // 兜底链本身也抛（storage 损坏等）：不许留下一句与当前数据不符的横幅
       this.setData({ loading: false, netBar: null });
     }
+  },
+
+  // ===== 7.4.0 R1 今日时光签（每天来的第一个理由）=====
+
+  /** 拉签到状态：只看不动。取不到就整块不显示 —— 不摆一个点不动的假横条 */
+  refreshSign() {
+    sign.status().then((s) => {
+      if (!s) return;
+      this.setData({ sign: s, signText: sign.bannerText(s) });
+    });
+  },
+
+  /**
+   * 收下今日时光签。服务端判定 + 发奖，端上只负责把结果说出来：
+   * 命中连签阶梯（第 3/7/14 天）用弹窗，普通签到用轻提示 —— 重量级要和奖励匹配。
+   */
+  async onCheckIn() {
+    if (this.data.signing) return;
+    if (this.data.sign && this.data.sign.signed) return; // 已经收过就别再发一次请求
+    this.setData({ signing: true });
+    wx.vibrateShort({ type: 'light' });
+    const r = await sign.checkIn();
+    this.setData({ signing: false });
+    if (!r || !r.ok) {
+      wx.showToast({ title: (r && r.msg) || '签到失败，请再点一次', icon: 'none' });
+      return;
+    }
+    track.track('sign_in', { streak: r.streak || 0, milestone: r.milestone || 0 });
+    this.setData({ sign: r, signText: sign.bannerText(r) });
+    const text = sign.rewardText(r);
+    if (r.milestone) wx.showModal({ title: '连签有礼', content: text, showCancel: false, confirmText: '收下' });
+    else wx.showToast({ title: text, icon: 'none' });
+  },
+
+  /** 那年今天 → 直接进那一天（回忆该有的落点：点开就是那张票根本身） */
+  goMemory() {
+    const m = this.data.mem;
+    if (!m || !m.id) return;
+    wx.vibrateShort({ type: 'light' });
+    track.track('memory_open', { years: m.years || 0 });
+    wx.navigateTo({ url: `/pages/detail/detail?id=${m.id}` });
   },
 
   /** 云故障横幅重试（截断提示不可点，故只认 retry） */
@@ -186,6 +235,8 @@ Page({
         brand: iconSrc('user', m.text, 0.72, 1.6),
         search: iconSrc('search', m.text, 0.5, 1.5),
         pin: iconSrc('pin', m.text, 0.5, 1.4),
+        memIc: iconSrc('clock', m.text, 0.5, 1.5),   // 7.4.0 R4 那年今天
+        goIc: iconSrc('chevron', m.text, 0.4, 1.5),
         heartOn: iconSrc('heart', '#E8AFA8', 1, 1.5, true),
         heartOff: iconSrc('heart', m.text, 0.35, 1.5),
         emptyIc: iconSrc('ticket', m.text, 0.28, 1.4)

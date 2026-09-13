@@ -1292,8 +1292,9 @@ async function refBindAction(event, OPENID) {
   }
 }
 
-/** 邀请奖励入账 +1（并入 paid 池并记 bonus：奖励次数不算付费资产，退款不退还） */
-async function grantRefBonus(db, openid) {
+/** 奖励入账 +1 幅（并入 paid 池并记 bonus：奖励次数不算付费资产，退款不退还）
+ *  7.4.0 起邀请有礼与每日连签共用同一入账口径，故不再叫 Ref。 */
+async function grantBonusArt(db, openid) {
   const _ = db.command;
   const q = await pay.loadQuota(db, openid);
   await db.collection('prefs').doc(q._id).update({
@@ -1325,8 +1326,8 @@ async function refRewardAction(OPENID) {
     if (!claim.stats || !claim.stats.updated) return { ok: true, granted: false };
 
     try {
-      await grantRefBonus(db, OPENID);
-      await grantRefBonus(db, link.inviter);
+      await grantBonusArt(db, OPENID);
+      await grantBonusArt(db, link.inviter);
     } catch (e) {
       // 入账失败：把结算权还回去，下次启动自动补发（与掉单自愈同一思路）
       try { await col.doc(link._id).update({ data: { status: 'pending' } }); } catch (e2) { /* 下次再说 */ }
@@ -1335,6 +1336,156 @@ async function refRewardAction(OPENID) {
     return { ok: true, granted: true };
   } catch (e) {
     return { ok: false, msg: '邀请奖励结算异常' };
+  }
+}
+
+// ============================================================
+// 7.4.0 R1/R2 每日时光签 + 积分账本
+// 为什么签到必须落在服务端：这里是**发东西**的地方（积分能换真金白银的 AI 重绘）。
+//   若把「今天签过没有」交给客户端，改一下手机日期就能天天领；
+//   所以日期口径、是否已签、连签几天、发不发奖，全部在这里判定，客户端只读。
+// 存储（仍走 prefs，沿用项目约定：不新建云函数，也不为单点功能新建集合）：
+//   type='daily_sign' { _openid, ymd, lastYmd, streak, best, total }
+//   type='points'     { _openid, balance, lifetime, log[] }   ← 流水只留最近 50 条
+// 连签阶梯的发放口径：streak 恰好等于键名时发一次。断签后 streak 归 1，下个周期可再拿
+//   —— 想再拿就得再连着来 7 天，天数本身就是成本闸门（重绘是真实成本）。
+// ============================================================
+const SIGN_BASE_POINTS = 5; // 每日签到基础分（R2 表：每日签到 +5）
+const SIGN_MILESTONES = {
+  3: { points: 10 },  // 连签 3 天：+10 分
+  7: { art: 1 },      // 连签 7 天：+1 次 AI 重绘（真实成本，只给 1 次）
+  14: { points: 50 }  // 连签 14 天：+50 分
+  // 原方案第 30 天档是「1 次高清导出」——当前卡片导出本来就没有水印，等口径定了再补
+};
+
+/** 积分账本：读一份（没有就建一条）；余额与服务端记账同源，客户端只读 */
+async function loadPoints(db, openid) {
+  const col = db.collection('prefs');
+  const res = await col.where({ _openid: openid, type: 'points' }).limit(1).get();
+  if (res.data && res.data[0]) return res.data[0];
+  const added = await col.add({
+    data: { _openid: openid, type: 'points', balance: 0, lifetime: 0, log: [], updatedAt: Date.now() }
+  });
+  return { _id: added._id, balance: 0, lifetime: 0, log: [] };
+}
+
+/**
+ * 记账：余额用原子自增（并发不丢更新），流水单独写一条。
+ * 两笔写分开是刻意的——流水那笔即便失败（如运行环境不支持 push.slice），
+ * 余额也已经入账：账目优先，明细其次。流水只留最近 50 条。
+ */
+async function addPoints(db, openid, delta, reason) {
+  const d = Number(delta) || 0;
+  if (!d) return;
+  const _ = db.command;
+  const p = await loadPoints(db, openid);
+  const col = db.collection('prefs');
+  await col.doc(p._id).update({
+    data: { balance: _.inc(d), lifetime: d > 0 ? _.inc(d) : _.inc(0), updatedAt: Date.now() }
+  });
+  await col.doc(p._id).update({
+    data: { log: _.push({ each: [{ at: Date.now(), delta: d, reason: String(reason || '') }], slice: -50 }) }
+  }).catch(() => {});
+}
+
+/**
+ * 签到状态视图（前端展示用）。streak 的「活着」判定：
+ *   只有今天签了、或昨天签过（今天还没签）才算连签还在 —— 前天签的就已经断了，
+ *   若还显示「连续 5 天」就是骗人，用户明天发现归零反而更受伤。
+ */
+function signView(d, today, yesterday) {
+  const signed = !!d && d.ymd === today;
+  const alive = !!d && (signed || d.ymd === yesterday);
+  return {
+    signed,
+    streak: alive ? (d.streak || 0) : 0,
+    best: (d && d.best) || 0,
+    total: (d && d.total) || 0,
+    today
+  };
+}
+
+/**
+ * 每日时光签：签到 / 查状态（event.check=true 只看不动）。
+ * 幂等三道闸：① 今天签过直接返回；② 并发用条件更新抢签发权（只有一支能改到）；
+ * ③ 发奖失败把今天退回「未签」，用户再点一次即可补上（与邀请奖励还回结算权同一思路）。
+ */
+async function dailySignAction(event, OPENID) {
+  try {
+    const db = cloud.database();
+    const _ = db.command;
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+    const today = pay.ymdNow();
+    const yesterday = pay.ymdNow(-1);
+    const rec = await col.where({ _openid: OPENID, type: 'daily_sign' }).limit(1).get();
+    const d = rec.data && rec.data[0];
+
+    // 只看不动：首页横条与我的页进页面时拉状态，不签发（用户没点就不算签到）
+    if (event.check) {
+      const p = await loadPoints(db, OPENID);
+      return Object.assign({ ok: true, balance: p.balance || 0 }, signView(d, today, yesterday));
+    }
+
+    if (d && d.ymd === today) {
+      const p = await loadPoints(db, OPENID);
+      return Object.assign({ ok: true, already: true, balance: p.balance || 0 }, signView(d, today, yesterday));
+    }
+
+    const streak = d && d.ymd === yesterday ? (d.streak || 0) + 1 : 1;
+    const next = {
+      ymd: today,
+      lastYmd: today,
+      streak,
+      best: Math.max(streak, (d && d.best) || 0),
+      total: ((d && d.total) || 0) + 1,
+      updatedAt: Date.now()
+    };
+
+    let addedId = '';
+    if (d) {
+      // 抢签发权：条件更新只有一支能改到，并发/重试不会发第二次奖
+      const claim = await col.where({ _id: d._id, ymd: _.neq(today) }).update({ data: next });
+      if (!claim.stats || !claim.stats.updated) {
+        const p0 = await loadPoints(db, OPENID);
+        return Object.assign({ ok: true, already: true, balance: p0.balance || 0 }, signView(d, today, yesterday));
+      }
+    } else {
+      // 首次签到没有旧文档可抢：同一毫秒双击理论上能落两条，概率可忽略，不做额外去重
+      // ponytail: 首次签到无并发闸；真有人刷再加唯一键（自定义 _id）
+      const added = await col.add({ data: Object.assign({ _openid: OPENID, type: 'daily_sign' }, next) });
+      addedId = added._id;
+    }
+
+    let points = SIGN_BASE_POINTS;
+    let art = 0;
+    const ms = SIGN_MILESTONES[streak];
+    if (ms) { points += ms.points || 0; art += ms.art || 0; }
+    try {
+      await addPoints(db, OPENID, points, ms ? ('sign_d' + streak) : 'sign');
+      if (art) await grantBonusArt(db, OPENID);
+    } catch (e) {
+      // 发奖失败 → 把今天退回未签：否则这一天的签到被吃掉，用户连点也补不回来
+      try {
+        if (d) await col.doc(d._id).update({ data: { ymd: d.ymd || '', streak: d.streak || 0, best: d.best || 0, total: d.total || 0, updatedAt: Date.now() } });
+        else if (addedId) await col.doc(addedId).remove();
+      } catch (e2) { /* 回滚失败不阻塞：返回失败让用户重试，最坏是这天的奖没发 */ }
+      return { ok: false, msg: '签到奖励入账失败，请再点一次' };
+    }
+
+    const p = await loadPoints(db, OPENID);
+    const out = Object.assign({
+      ok: true,
+      already: false,
+      points,
+      art,
+      milestone: ms ? streak : 0,
+      balance: p.balance || 0
+    }, signView(next, today, yesterday));
+    if (art) out.quota = pay.quotaView(await pay.loadQuota(db, OPENID));
+    return out;
+  } catch (e) {
+    return { ok: false, msg: '签到失败：' + String((e && e.message) || e).slice(0, 60) };
   }
 }
 
@@ -1557,6 +1708,10 @@ exports.main = async (event) => {
   }
   if (event.action === 'refReward') {
     return refRewardAction(OPENID);
+  }
+  // 7.4.0 R1 每日时光签：签到 / 查状态（前端只读，判定与发奖都在服务端）
+  if (event.action === 'dailySign') {
+    return dailySignAction(event, OPENID);
   }
   if (event.action === 'eventStats') {
     return eventStatsAction(event);

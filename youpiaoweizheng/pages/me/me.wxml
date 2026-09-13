@@ -125,6 +125,23 @@
     </view>
   </view>
 
+  <!-- ③′ 7.4.0 R1 时光签 + 积分（留存中心的第一屏：今天来过了吗、攒到多少了）
+       取不到服务端状态时整块不渲染 —— 不留一个点了没反应的假入口 -->
+  <view class="me-sign card" wx:if="{{sign}}">
+    <view class="me-sign-head">
+      <text class="me-sign-t">{{signText.title}}</text>
+      <text class="me-sign-streak" wx:if="{{sign.streak > 0}}">连续 {{sign.streak}} 天</text>
+    </view>
+    <text class="me-sign-sub">{{signText.sub}}</text>
+    <view class="me-sign-foot">
+      <text class="me-sign-points">积分 <text class="me-sign-num">{{signPoints}}</text></text>
+      <view class="me-sign-btn pressable" wx:if="{{signText.btn}}"
+            hover-class="press-hover" bindtap="onCheckIn"
+            aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
+      <text class="me-sign-done" wx:else>今天已收下</text>
+    </view>
+  </view>
+
   <!-- ④ AI 重绘额度（7.2.0 L2：从设置页迁来；取不到服务端额度时整块不渲染） -->
   <view class="me-quota card" wx:if="{{quotaLeftNum >= 0}}">
     <view class="me-quota-head">

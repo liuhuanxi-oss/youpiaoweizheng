@@ -108,6 +108,29 @@
     <image class="hc-greet-wave" src="{{art.wave}}" mode="aspectFit" aria-hidden="true" />
   </view>
 
+  <!-- ============ 7.4.0 R1 今日时光签 ============
+       这是「今天没票可拍」的人也来的理由，所以放在问候语正下方、搜索之上。
+       已签后不消失（消失会让人以为没签上），改成「今天已收下」。 -->
+  <view class="hc-sign {{sign.signed ? 'is-done' : ''}}" wx:if="{{sign}}">
+    <view class="hc-sign-txt">
+      <text class="hc-sign-t">{{signText.title}}</text>
+      <text class="hc-sign-s">{{signText.sub}}</text>
+    </view>
+    <view class="hc-sign-btn pressable" wx:if="{{signText.btn}}"
+          hover-class="press-hover" bindtap="onCheckIn"
+          aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
+  </view>
+
+  <!-- ============ 7.4.0 R4 那年今天：有命中才出现 ============
+       没有命中就整行不显示 —— 编一句「去年的今天你在……」是假的，用户一眼看得出来 -->
+  <view class="hc-mem pressable" wx:if="{{mem}}" hover-class="press-hover" bindtap="goMemory"
+        aria-role="button" aria-label="{{mem.text}} {{mem.title}}">
+    <image class="hc-mem-ic" src="{{ic.memIc}}" mode="aspectFit" aria-hidden="true" />
+    <text class="hc-mem-t">{{mem.text}}</text>
+    <text class="hc-mem-s">{{mem.title}}</text>
+    <image class="hc-mem-go" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
+  </view>
+
   <!-- ============ 搜索 ============ -->
   <view class="hc-search pressable" bindtap="goSearch" hover-class="press-hover" aria-role="searchbox" aria-label="搜索票根">
     <image class="hc-search-ic" src="{{ic.search}}" mode="aspectFit" aria-hidden="true" />

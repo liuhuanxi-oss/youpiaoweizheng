@@ -34,6 +34,15 @@ function ymNow() {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+/**
+ * 7.4.0：北京时间的日期串 YYYY-MM-DD（与 ymNow 同一口径，供每日签到判重/连签使用）。
+ * offsetDays 可偏移：-1 = 昨天（判「昨天签过没」决定连签 +1 还是归 1）。
+ */
+function ymdNow(offsetDays) {
+  const d = new Date(Date.now() + 8 * 3600 * 1000 + (Number(offsetDays) || 0) * 86400000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
 function hmacSha256(key, msg) {
   return crypto.createHmac('sha256', String(key)).update(String(msg)).digest('hex');
 }
@@ -331,7 +340,7 @@ function humanizePayErr(errno, errMsg) {
 }
 
 module.exports = {
-  FREE_PER_MONTH, PRODUCTS, ymNow, hmacSha256, loadPayConfig, code2Session,
+  FREE_PER_MONTH, PRODUCTS, ymNow, ymdNow, hmacSha256, loadPayConfig, code2Session,
   pickAppKey, isPaidStatus, getStableToken, queryOrderOnWx,
   makeOutTradeNo, loadQuota, consumeQuota, refundQuota, quotaView, humanizePayErr
 };

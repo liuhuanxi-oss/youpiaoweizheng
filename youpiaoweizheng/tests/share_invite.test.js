@@ -260,12 +260,13 @@ t('幂等：靠条件更新抢占结算权，并发与重试只发一次', () =>
 });
 
 t('入账：双方各 +1，且并入 paid 池同时记 bonus（退款回退上限不受影响）', () => {
-  const fn = /async function grantRefBonus[\s\S]*?\n}/.exec(cloud);
-  ok(fn, '找不到 grantRefBonus');
+  // 7.4.0 起这个入账函数被连签复用，改名 grantRefBonus → grantBonusArt（口径不变）
+  const fn = /async function grantBonusArt[\s\S]*?\n}/.exec(cloud);
+  ok(fn, '找不到 grantBonusArt');
   ok(/pay\.loadQuota\(db, openid\)/.test(fn[0]), '没走统一的额度读取（同一个人会开出两条额度记录）');
   ok(/paid: _\.inc\(1\), bonus: _\.inc\(1\)/.test(fn[0]), '入账口径与看视频奖励不一致');
   const reward = /async function refRewardAction[\s\S]*?\n}/.exec(cloud);
-  ok(/grantRefBonus\(db, OPENID\)[\s\S]{0,80}grantRefBonus\(db, link\.inviter\)/.test(reward[0]),
+  ok(/grantBonusArt\(db, OPENID\)[\s\S]{0,80}grantBonusArt\(db, link\.inviter\)/.test(reward[0]),
     '不是双方各 +1');
 });
 

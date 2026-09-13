@@ -1,0 +1,74 @@
+// utils/sign.js —— 7.4.0 R1 每日时光签（端上只读 + 触发签到）
+// ============================================================
+// 【为什么这一层这么薄】
+//   「今天签过没有 / 连签几天 / 该不该发奖」全部由云函数说了算，这里只干两件事：
+//   进页面拉一次状态（check=true，只看不动）、用户点了「收下」才真签。
+//   任何把判重挪到端上的改动都是错的 —— 手机时间用户自己说了算，改一下就能天天领。
+// 演示模式（USE_CLOUD=false）：一律返回 null，页面整块不渲染，不留点了没反应的假入口。
+// ============================================================
+const { USE_CLOUD } = require('./env.js');
+
+const POINTS_PER_SIGN = 5; // 与云函数 SIGN_BASE_POINTS 同源：这里只用于「说」，账在服务端
+
+async function call(data) {
+  const res = await wx.cloud.callFunction({ name: 'saveTicket', data });
+  return (res && res.result) || {};
+}
+
+/** 拉状态：只看不动。失败返回 null —— 页面保持「没有这一块」，不摆假数据 */
+async function status() {
+  if (!USE_CLOUD) return null;
+  try {
+    const r = await call({ action: 'dailySign', check: true });
+    return r && r.ok ? r : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 收下今日时光签（用户主动点）。服务端返回值：
+ * { ok, already, points, art, milestone, balance, signed, streak, best, total }
+ * already=true 表示今天已经签过（重复点/换页面点都会走到这里，不会重复发奖）。
+ */
+async function checkIn() {
+  if (!USE_CLOUD) return { ok: false, msg: '演示模式不支持签到' };
+  try {
+    return await call({ action: 'dailySign' });
+  } catch (e) {
+    return { ok: false, msg: '签到失败，请再点一次' };
+  }
+}
+
+/**
+ * 横条 / 卡片的文案（首页与我的页共用一套 —— 同一个动作在两处说不一样的话最伤人）。
+ * 从没签过的人不提「连签」：那是给已经连着来的人看的。
+ */
+function bannerText(s) {
+  const signed = !!(s && s.signed);
+  const streak = (s && s.streak) || 0;
+  if (signed) {
+    return {
+      title: '今天已收下',
+      sub: streak > 0 ? `已连签 ${streak} 天 · 明天再来` : '明天再来收一张',
+      btn: ''
+    };
+  }
+  return {
+    title: '今日时光签',
+    sub: streak > 0
+      ? `连签 ${streak} 天 · 再收一张得 ${POINTS_PER_SIGN} 积分`
+      : '每天来收一张 · 攒积分换 AI 重绘',
+    btn: '收下'
+  };
+}
+
+/** 签到成功的反馈：命中连签阶梯时说得更重一点 —— 那才是用户该记住的一天 */
+function rewardText(r) {
+  const streak = (r && r.milestone) || 0;
+  if (r && r.art) return `连签 ${streak} 天 · 已送你 ${r.art} 次 AI 重绘`;
+  if (streak) return `连签 ${streak} 天 · 积分 +${(r && r.points) || 0}`;
+  return `积分 +${(r && r.points) || POINTS_PER_SIGN}`;
+}
+
+module.exports = { status, checkIn, bannerText, rewardText, POINTS_PER_SIGN };

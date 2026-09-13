@@ -16,6 +16,7 @@ const deco = require('../../utils/deco.js');
 const enter = require('../../utils/enter.js');
 const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const track = require('../../utils/track.js'); // 7.3.0 S1：分享埋点
+const sign = require('../../utils/sign.js');   // 7.4.0 R1：今日时光签（端上只读，判定在服务端）
 
 const LS_SHARE = 'sp_share_count';
 
@@ -90,6 +91,9 @@ Page({
     quotaPct: 0,       // 进度条宽度：WXML 里做不了这个算术，JS 算好再给
     badges: [],
     unlocked: 0,
+    // 7.4.0 R1：时光签（null = 取不到，整块不渲染；演示模式与云失败都走这条）
+    sign: null, signText: { title: '', sub: '', btn: '' }, signing: false,
+    signPoints: 0,   // 积分余额（服务端权威，端上只显示）
     profile: { nickname: '', avatar: '' },
     nickFocus: false,  // 4.22.0：编程聚焦昵称输入框（原生 input 无法 selectComponent 唤起键盘）
     refreshing: false, // 7.2.0 下拉刷新
@@ -131,6 +135,36 @@ Page({
     this.refresh();
     this.refreshProfile(); // 4.20.0：授权资料回显
     this.refreshQuota();   // 7.2.0 L2：额度卡从设置页迁来
+    this.refreshSign();    // 7.4.0 R1：时光签 + 积分
+  },
+
+  // ===== 7.4.0 R1 今日时光签（留存中心的第一屏）=====
+
+  /** 拉签到状态：只看不动。取不到就整块不显示（演示模式 / 云失败） */
+  refreshSign() {
+    sign.status().then((s) => {
+      if (!s) return;
+      this.setData({ sign: s, signText: sign.bannerText(s), signPoints: s.balance || 0 });
+    });
+  },
+
+  /** 收下今日时光签：判定与发奖在服务端，这里只负责说结果 */
+  async onCheckIn() {
+    if (this.data.signing) return;
+    if (this.data.sign && this.data.sign.signed) return;
+    this.setData({ signing: true });
+    wx.vibrateShort({ type: 'light' });
+    const r = await sign.checkIn();
+    this.setData({ signing: false });
+    if (!r || !r.ok) {
+      wx.showToast({ title: (r && r.msg) || '签到失败，请再点一次', icon: 'none' });
+      return;
+    }
+    track.track('sign_in', { from: 'me', streak: r.streak || 0, milestone: r.milestone || 0 });
+    this.setData({ sign: r, signText: sign.bannerText(r), signPoints: r.balance || 0 });
+    const text = sign.rewardText(r);
+    if (r.milestone) wx.showModal({ title: '连签有礼', content: text, showCancel: false, confirmText: '收下' });
+    else wx.showToast({ title: text, icon: 'none' });
   },
 
   /** 按当前主题编译图形 + 组装 5 个入口（一次 setData，约 12KB） */

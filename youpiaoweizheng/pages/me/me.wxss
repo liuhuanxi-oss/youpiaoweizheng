@@ -250,6 +250,26 @@
 }
 
 /* ===== 7.2.0 L1：AI 重绘额度（从设置页迁来） ===== */
+/* ===== 7.4.0 R1 时光签 + 积分 ===== */
+.me-sign { margin: 24rpx 44rpx 0; padding: 28rpx 32rpx; }
+.me-sign-head { display: flex; align-items: baseline; justify-content: space-between; }
+.me-sign-t { font-size: 29rpx; font-weight: 600; color: var(--brown, #6B5B50); }
+.me-sign-streak { font-size: 23rpx; color: var(--text2, #A5968A); }
+.me-sign-sub { display: block; margin-top: 10rpx; font-size: 23rpx; color: var(--text2, #A5968A); }
+.me-sign-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 22rpx; }
+.me-sign-points { font-size: 24rpx; color: var(--brown, #6B5B50); }
+.me-sign-num { font-size: 34rpx; font-weight: 700; }
+.me-sign-btn {
+  padding: 0 34rpx;
+  height: 62rpx;
+  line-height: 62rpx;
+  border-radius: 31rpx;
+  font-size: 25rpx;
+  color: var(--on-primary, #FFF8F2);
+  background: var(--stamp, #C26B5E);
+}
+.me-sign-done { font-size: 24rpx; color: var(--sage, #A9C3A6); }
+
 .me-quota { margin: 24rpx 44rpx 0; padding: 28rpx 32rpx; }
 .me-quota-head { display: flex; align-items: baseline; justify-content: space-between; }
 .me-quota-t { font-size: 29rpx; font-weight: 600; color: var(--brown, #6B5B50); }
