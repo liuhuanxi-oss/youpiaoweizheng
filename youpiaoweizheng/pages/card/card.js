@@ -23,6 +23,7 @@ const track = require('../../utils/track.js');             // 4.17.0：拉新埋
 const share = require('../../utils/share.js');             // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const invite = require('../../utils/invite.js');           // 7.3.0 R6：海报码带邀请人短码
 const pay = require('../../utils/pay.js');                 // 4.20.3：署名（昵称 → 卡面落款）
+const points = require('../../utils/points.js');           // 7.4.0 B 段 R2：生成卡片 +2（端上唯一的得分上报）
 const { iconSrc } = require('../../utils/icons.js');       // 稿屏6：按钮与空态图标（全页无 emoji）
 const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外那几处手绘点缀
 // 与年报长图共用的画笔（齿边 / 圆角 / 折行 / 花枝 / 星点 / 水彩晕）。
@@ -1114,6 +1115,9 @@ Page({
       const n = (wx.getStorageSync(LS_SHARE) || 0) + 1;
       wx.setStorageSync(LS_SHARE, n);
     } catch (e) { /* 忽略 */ }
+    // 7.4.0 B 段 R2：生成卡片 +2 分（服务端白名单只认这一个端上行为，日上限 2 次）。
+    // 不 await、不看返回值：积分是附赠，绝不能因为记账慢/失败打断「已存入相册」的反馈
+    points.earnCard();
   },
 
   /** 导出 PNG 到相册 */

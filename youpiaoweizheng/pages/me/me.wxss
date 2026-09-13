@@ -269,6 +269,7 @@
   background: var(--stamp, #C26B5E);
 }
 .me-sign-done { font-size: 24rpx; color: var(--sage, #A9C3A6); }
+.me-sign-hint { display: block; margin-top: 14rpx; font-size: 22rpx; color: var(--text2, #A5968A); }
 
 .me-quota { margin: 24rpx 44rpx 0; padding: 28rpx 32rpx; }
 .me-quota-head { display: flex; align-items: baseline; justify-content: space-between; }

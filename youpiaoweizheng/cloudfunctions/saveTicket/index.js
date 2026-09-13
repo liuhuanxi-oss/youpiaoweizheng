@@ -593,7 +593,11 @@ async function artRewardGrantAction(event, OPENID) {
     // 奖励次数（看视频等）不属于付费资产，退款时不应被一并回退（旧实现混入 paid 且读-改-写会丢更新）
     await col.doc(q._id).update({ data: { paid: _.inc(1), bonus: _.inc(1), updatedAt: Date.now() } });
     const after = await pay.loadQuota(db, OPENID);
-    return { ok: true, quota: pay.quotaView(after), left: AD_REWARD_DAILY_LIMIT - (count + 1) };
+    // 7.4.0 B 段：看激励视频 +3 分（日上限 3 次，与上面这道日限额同一个数，
+    // 所以「今天还能看几次视频」和「还能得几次分」永远对得上，不会一个用完一个还剩）
+    let points = null;
+    try { points = await earnPoints(db, OPENID, 'video'); } catch (e) { points = null; }
+    return { ok: true, quota: pay.quotaView(after), left: AD_REWARD_DAILY_LIMIT - (count + 1), points };
   } catch (e) {
     return { ok: false, msg: '奖励入账失败：' + String((e && e.message) || e).slice(0, 60) };
   }
@@ -1328,6 +1332,13 @@ async function refRewardAction(OPENID) {
     try {
       await grantBonusArt(db, OPENID);
       await grantBonusArt(db, link.inviter);
+      // 7.4.0 B 段：好友完成首次上传，双方各 +50 分。
+      // 幂等靠上面那道「抢结算权」，所以这里失败**不重试也不回滚**：结算权已经用掉，
+      // 回滚会连带把已经到账的 2 次重绘再发一遍（真实成本），宁可这次丢 50 分。
+      try {
+        await earnPoints(db, OPENID, 'invite');
+        await earnPoints(db, link.inviter, 'invite');
+      } catch (e2) { /* 积分丢了就丢了，见上 */ }
     } catch (e) {
       // 入账失败：把结算权还回去，下次启动自动补发（与掉单自愈同一思路）
       try { await col.doc(link._id).update({ data: { status: 'pending' } }); } catch (e2) { /* 下次再说 */ }
@@ -1346,7 +1357,8 @@ async function refRewardAction(OPENID) {
 //   所以日期口径、是否已签、连签几天、发不发奖，全部在这里判定，客户端只读。
 // 存储（仍走 prefs，沿用项目约定：不新建云函数，也不为单点功能新建集合）：
 //   type='daily_sign' { _openid, ymd, lastYmd, streak, best, total }
-//   type='points'     { _openid, balance, lifetime, log[] }   ← 流水只留最近 50 条
+//   type='points'     { _openid, balance, lifetime, log[], earn }  ← 流水只留最近 50 条；
+//                       earn = { ymd, n:{上传/卡片/…: 今天已发几次} } —— 日上限的计数器
 // 连签阶梯的发放口径：streak 恰好等于键名时发一次。断签后 streak 归 1，下个周期可再拿
 //   —— 想再拿就得再连着来 7 天，天数本身就是成本闸门（重绘是真实成本）。
 // ============================================================
@@ -1386,6 +1398,119 @@ async function addPoints(db, openid, delta, reason) {
   await col.doc(p._id).update({
     data: { log: _.push({ each: [{ at: Date.now(), delta: d, reason: String(reason || '') }], slice: -50 }) }
   }).catch(() => {});
+}
+
+// ------------------------------------------------------------
+// B 段（R2 积分体系）：按行为的得分规则。
+//   日上限是成本闸门 —— 积分最终能换成真金白银的 AI 重绘（POINTS_PER_ART），
+//   没有上限就等于「随便点几下换一张图」。给不给分、今天还能给几次，全在服务端判，
+//   客户端只报「我做了这件事」（哪怕它说谎，也过不了这里）。
+//   cap: 0 = 不设日上限：邀请按人头算，刷它得先多开微信号，代价远高于收益。
+//   签到（sign）不走这张表：它自带「一天一次」的幂等（见 dailySignAction），此处只用于文案。
+// ------------------------------------------------------------
+const POINTS_RULES = {
+  sign: { points: 5, cap: 1 },     // 每日签到
+  video: { points: 3, cap: 3 },    // 看激励视频
+  upload: { points: 10, cap: 2 },  // 上传一张票根（产品核心行为，给最高权重）
+  card: { points: 2, cap: 2 },     // 生成卡片 / 海报
+  share: { points: 5, cap: 3 },    // 分享被好友打开（记给分享人）
+  invite: { points: 50, cap: 0 }   // 好友完成首次上传（双方各一次）
+};
+const POINTS_PER_ART = 100;        // 100 分 = 1 次 AI 重绘（可调，见 v8.0 方案 R2）
+
+/**
+ * 按行为记账（B 段唯一的加分入口）。
+ * @param {string} reason POINTS_RULES 的键
+ * @param {string} [key]  计数器口径，默认同 reason；同一 reason 若想分开计数（如按码）再传
+ * @returns {{ok:boolean, granted:boolean, points?:number, balance?:number, capped?:boolean}}
+ * ponytail: 上限判定是「读-判-写」，同一用户并发两条只可能多给一次（4~10 分）；
+ *   真实成本闸门在兑换那一步（原子条件扣减），这里不值得上事务
+ */
+async function earnPoints(db, openid, reason, key) {
+  const rule = POINTS_RULES[reason];
+  if (!rule) return { ok: false, msg: '未知的得分行为' };
+  const _ = db.command;
+  const col = db.collection('prefs');
+  const p = await loadPoints(db, openid);
+  const today = pay.ymdNow();
+  const earn = (p.earn && p.earn.ymd === today) ? p.earn : { ymd: today, n: {} };
+  const k = String(key || reason);
+  const used = (earn.n && earn.n[k]) || 0;
+  if (rule.cap > 0 && used >= rule.cap) {
+    return { ok: true, granted: false, capped: true, balance: p.balance || 0 };
+  }
+  const n = Object.assign({}, earn.n);
+  n[k] = used + 1;
+  await col.doc(p._id).update({
+    data: {
+      balance: _.inc(rule.points),
+      lifetime: _.inc(rule.points),
+      earn: { ymd: today, n },
+      updatedAt: Date.now()
+    }
+  });
+  await col.doc(p._id).update({
+    data: { log: _.push({ each: [{ at: Date.now(), delta: rule.points, reason }], slice: -50 }) }
+  }).catch(() => {});
+  return { ok: true, granted: true, points: rule.points, balance: (p.balance || 0) + rule.points };
+}
+
+/** 积分状态（端上只读）：余额、累计、兑换门槛、各行为的每日上限 */
+async function pointsGetAction(OPENID) {
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const p = await loadPoints(db, OPENID);
+    return {
+      ok: true,
+      balance: p.balance || 0,
+      lifetime: p.lifetime || 0,
+      cost: POINTS_PER_ART,
+      rules: POINTS_RULES
+    };
+  } catch (e) {
+    return { ok: false, msg: '积分读取失败' };
+  }
+}
+
+/**
+ * 端上上报的得分行为。白名单只有「生成卡片」——它是纯端上动作（Canvas 画完存相册），
+ * 服务端看不到；其余行为（上传 / 签到 / 看视频）由服务端在自己的流程里记账，不容端上插嘴。
+ * 每日 2 次封顶，所以就算有人循环调用，一天也只有 4 分。
+ */
+const CLIENT_EARN_REASONS = ['card'];
+
+async function pointsEarnAction(event, OPENID) {
+  const reason = String(event.reason || '');
+  if (CLIENT_EARN_REASONS.indexOf(reason) < 0) return { ok: false, msg: '该行为不由客户端上报' };
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    return await earnPoints(db, OPENID, reason);
+  } catch (e) {
+    return { ok: false, msg: '积分入账失败' };
+  }
+}
+
+/**
+ * 「分享被打开」归因（R2 的 +5 分）。
+ *   分享卡的 path 带的是**分享人**的短码（?ref=XXXX，见 utils/invite.js），
+ *   所以打开者的这一次调用就是记给分享人的凭据：先按码找到分享人，再给他记账。
+ *   自己点自己的分享卡不加分（否则人人自刷）。日上限 3 次，一天最多 15 分。
+ */
+async function shareOpenAction(event, OPENID) {
+  try {
+    const code = String(event.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    if (code.length < 4) return { ok: false, msg: '缺少邀请码' };
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const from = await db.collection('prefs').where({ type: 'ref_code', code }).limit(1).get();
+    const owner = (from.data && from.data[0] && from.data[0]._openid) || '';
+    if (!owner || owner === OPENID) return { ok: true, granted: false };
+    return await earnPoints(db, owner, 'share');
+  } catch (e) {
+    return { ok: false, msg: '分享归因失败' };
+  }
 }
 
 /**
@@ -1713,6 +1838,16 @@ exports.main = async (event) => {
   if (event.action === 'dailySign') {
     return dailySignAction(event, OPENID);
   }
+  // 7.4.0 B 段 R2 积分：查余额 / 端上行为上报（白名单只有「生成卡片」）/ 分享被打开归因
+  if (event.action === 'pointsGet') {
+    return pointsGetAction(OPENID);
+  }
+  if (event.action === 'pointsEarn') {
+    return pointsEarnAction(event, OPENID);
+  }
+  if (event.action === 'shareOpen') {
+    return shareOpenAction(event, OPENID);
+  }
   if (event.action === 'eventStats') {
     return eventStatsAction(event);
   }
@@ -1777,7 +1912,11 @@ exports.main = async (event) => {
     const db = cloud.database();
     await ensureCollection(db, 'tickets');
     const res = await db.collection('tickets').add({ data: t });
-    return { ok: true, _id: res._id, weather: t.weather };
+    // 7.4.0 B 段：上传一张票根 +10 分（日上限 2 次）。积分是附赠，
+    // 记账失败绝不能把已经入库的票判成失败——那会诱使用户重传，凭空多一张票。
+    let points = null;
+    try { points = await earnPoints(db, OPENID, 'upload'); } catch (e) { points = null; }
+    return { ok: true, _id: res._id, weather: t.weather, points };
   } catch (e) {
     return { ok: false, msg: '入库失败：' + (e.message || 'unknown') };
   }

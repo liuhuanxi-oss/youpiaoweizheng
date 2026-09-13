@@ -106,9 +106,20 @@ function settle() {
 /** 启动入口：捞码 → 取我的码 → 绑定 → 催结算（全部静默，失败不影响任何界面） */
 function boot(options) {
   if (!USE_CLOUD) return;
-  capture(options);
+  const code = capture(options);
   ensureCode();
+  if (code) reportOpen(code);
   bind().then(settle);
+}
+
+// 同一张分享卡在一次使用期间只报一次「被打开」。
+// 为什么要有这个开关：onShow 每次切回前台都会重跑 boot，同一张卡会被反复上报，
+// 服务端虽然封顶 3 次/天，但那 15 分是白送的（不是真的被打开了三次）。
+let _openedCode = '';
+function reportOpen(code) {
+  if (!code || code === _openedCode) return;
+  _openedCode = code;
+  require('./points.js').shareOpened(code); // 7.4.0 B 段 R2：分享被打开 +5（记给分享人）
 }
 
 /** 取（首次时生成）我的短码并缓存到本地 —— 分享 path 同步读它，必须先备好 */

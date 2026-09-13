@@ -17,6 +17,7 @@ const enter = require('../../utils/enter.js');
 const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const track = require('../../utils/track.js'); // 7.3.0 S1：分享埋点
 const sign = require('../../utils/sign.js');   // 7.4.0 R1：今日时光签（端上只读，判定在服务端）
+const points = require('../../utils/points.js'); // 7.4.0 B 段 R2：积分（端上只读，兑换门槛的文案）
 
 const LS_SHARE = 'sp_share_count';
 
@@ -94,6 +95,7 @@ Page({
     // 7.4.0 R1：时光签（null = 取不到，整块不渲染；演示模式与云失败都走这条）
     sign: null, signText: { title: '', sub: '', btn: '' }, signing: false,
     signPoints: 0,   // 积分余额（服务端权威，端上只显示）
+    pointsHint: '',  // 7.4.0 B 段：积分离「1 次 AI 重绘」还差多少
     profile: { nickname: '', avatar: '' },
     nickFocus: false,  // 4.22.0：编程聚焦昵称输入框（原生 input 无法 selectComponent 唤起键盘）
     refreshing: false, // 7.2.0 下拉刷新
@@ -144,7 +146,13 @@ Page({
   refreshSign() {
     sign.status().then((s) => {
       if (!s) return;
-      this.setData({ sign: s, signText: sign.bannerText(s), signPoints: s.balance || 0 });
+      this.setData({
+        sign: s,
+        signText: sign.bannerText(s),
+        signPoints: s.balance || 0,
+        // 积分与签到取同一次返回值：两处各拉一次会出现「这里 128、那里 118」的自相矛盾
+        pointsHint: points.artHint(s.balance).text
+      });
     });
   },
 
@@ -161,7 +169,12 @@ Page({
       return;
     }
     track.track('sign_in', { from: 'me', streak: r.streak || 0, milestone: r.milestone || 0 });
-    this.setData({ sign: r, signText: sign.bannerText(r), signPoints: r.balance || 0 });
+    this.setData({
+      sign: r,
+      signText: sign.bannerText(r),
+      signPoints: r.balance || 0,
+      pointsHint: points.artHint(r.balance).text
+    });
     const text = sign.rewardText(r);
     if (r.milestone) wx.showModal({ title: '连签有礼', content: text, showCancel: false, confirmText: '收下' });
     else wx.showToast({ title: text, icon: 'none' });

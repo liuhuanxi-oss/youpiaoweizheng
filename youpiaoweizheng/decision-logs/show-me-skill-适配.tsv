@@ -34,3 +34,8 @@ ts	phase	decision	why	evidence	result
 2026-09-13T12:21:00Z	fix	上传连续 5 次崩在「Zone Allocation failed / exit 134」，根因是编译并发默认跟着 CPU 核数走	miniprogram-ci 的 ci.upload 默认 threads=0，内部把它写进 COMPILE_THREADS，worker 池按 os.cpus().length 最多开 8 个；每个 worker 是独立 V8 实例，本机空闲提交内存只剩约 2G，撑不住 8 个	只编译不上传（ci.getCompiledResult）能跑通 → 排除代码问题；只传 threads=2 后一次通过	adopted: scripts/ci/upload.js 增加 threads（可用 CI_THREADS 覆盖），默认 2；注意环境变量 COMPILE_THREADS 无效——会被 upload 内部的 threads=0 覆盖
 2026-09-13T12:21:00Z	upload	小程序 7.4.1 上传至微信后台，待人工提审	真机图形全线失效（只有文字没有图案）必须在手机上复验，且 7.4.0 及之前各版在真机都是白板，不能提审	miniprogram-ci upload → 版本 7.4.1，备注「有票为证 v7.4.1 | 2026/9/13 20:21:17 | ab9f041」，包体 624109 字节	adopted
 2026-09-13T12:21:00Z	fix	cloudfunctions/ 源码不再随小程序包上传	客户端只用 wx.cloud.callFunction 调用，云函数源码由 deploy:fn 单独上传；此前一直被打进用户下载的包	config.uploadIgnores 增加 cloudfunctions/**/*；已核对 miniprogram-ci 的 cloud.uploadFunction 不受该忽略清单影响（该文件内无 ignores 引用）	adopted
+2026-09-13T16:45:00Z	build	端上能上报的得分行为收成白名单，只有「生成卡片」	积分能换成真实成本的 AI 重绘；端上可循环调用的口子等于开放刷分	CLIENT_EARN_REASONS=[card] + pointsEarnAction 白名单校验	adopted
+2026-09-13T16:45:00Z	build	日上限计数器存积分文档 earn 字段，按北京时间换天	日上限就是成本闸门；跟运行环境时区走会让「今天」在两处不是同一天	earnPoints + pay.ymdNow()，测试钉住换天重置	adopted
+2026-09-13T16:45:00Z	build	上传加分的记账失败不改入库结果（try 兜底）	把已入库的票回成「入库失败」会诱使用户重传，凭空多一张票	反向验证：去掉兜底断言即响	adopted
+2026-09-13T16:45:00Z	build	「分享被打开」记给码的主人（不是打开者），自点自分享不加分	分给错人等于鼓励自刷；端上还要按会话去重，否则切一次前台就报一次	shareOpenAction + invite.reportOpen 去重	adopted
+2026-09-13T16:45:00Z	defer	兑换（pointsRedeem）先不写代码，出接口设计待确认	项目铁律 2：涉及额度写入（积兑换）先出接口设计交用户确认再动手	PROJECT.md §4.3 + CHANGELOG 7.4.0 B 段「未做」	pending

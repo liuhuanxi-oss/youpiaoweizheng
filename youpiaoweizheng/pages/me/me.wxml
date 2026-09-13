@@ -140,6 +140,8 @@
             aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
       <text class="me-sign-done" wx:else>今天已收下</text>
     </view>
+    <!-- 7.4.0 B 段：积分要让用户知道它能干嘛（终点比数字重要） -->
+    <text class="me-sign-hint" wx:if="{{pointsHint}}">{{pointsHint}}</text>
   </view>
 
   <!-- ④ AI 重绘额度（7.2.0 L2：从设置页迁来；取不到服务端额度时整块不渲染） -->
