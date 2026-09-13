@@ -169,11 +169,11 @@
     </view>
   </view>
 
-  <!-- ============ 空态：这一分类还没票 ============ -->
+  <!-- ============ 空态：分两种，「有票但这一分类没有」不能写成「你还没有票」============ -->
   <view class="tk-empty hc-empty" wx:if="{{!loading && !colA.length && !colB.length}}">
     <image class="hc-empty-ic" src="{{ic.emptyIc}}" mode="aspectFit" aria-hidden="true" />
-    <view class="hc-empty-t">这里还没贴上票根</view>
-    <view class="hc-empty-s">拍一张，让它成为这一页的第一张</view>
+    <view class="hc-empty-t">{{hasAny ? '这个分类还没有票根' : '这里还没贴上票根'}}</view>
+    <view class="hc-empty-s">{{hasAny ? '再点一下亮着的分类，就能看全部' : '拍一张，让它成为这一页的第一张'}}</view>
     <view class="hc-empty-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="拍一张票根">拍一张票根</view>
   </view>
 

@@ -1486,7 +1486,9 @@ exports.main = async (event) => {
     return getGroupOrderAction(OPENID);
   }
   if (event.action === 'wxacode') {
-    return wxacodeAction();
+    // ⚠️ 必须把 event 传进去：卡页会带 ref（我的邀请短码）来换「带邀请码的海报码」，
+    // 漏传就恒为全局码 —— 分享链路照样能走通，只是归因永远算不到邀请人头上。
+    return wxacodeAction(event);
   }
   if (event.action === 'backfillGeo') {
     return backfillGeoAction(OPENID);

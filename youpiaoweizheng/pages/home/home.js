@@ -64,10 +64,14 @@ Page({
     enter: true,
     loading: true,
     filters: [],
-    active: 'show',      // 稿里默认亮着「演出」（= 空 时不过滤，四个都灭）
+    // 空 = 不过滤（「全部」，四个胶囊都不亮）。原为 'show'（默认亮着「演出」）：
+    // 那样只有电影票 / 车票的用户进首页看到的是「这里还没贴上票根」——
+    // 有票却被说成一张都没有，这是假空态；分类是筛选，不该决定首屏能不能看到自己的票。
+    active: '',
     colA: [],
     colB: [],
     total: 0,
+    hasAny: false,       // 账号里到底有没有票根 —— 空态文案要分清「这个分类没票」和「一张都没有」
     ic: {}, art: {},
     // 云故障 / 超上限横幅（{ text, retry }；null = 不显示）。同 album 的 netBar
     netBar: null,
@@ -137,15 +141,18 @@ Page({
     const colA = [];
     const colB = [];
     list.forEach((t, i) => (i % 2 ? colB : colA).push(t));
-    this.setData({ colA, colB, total: list.length, loading: false });
+    this.setData({ colA, colB, total: list.length, hasAny: this._all.length > 0, loading: false });
   },
 
   onFilter(e) {
-    const key = e.currentTarget.dataset.key;
-    if (key === this.data.active) return;
+    const key = e.currentTarget.dataset.key || '';
+    // 再点一下亮着的胶囊 = 取消筛选。默认显示「全部」时必须有这条路回家，
+    // 否则点进一个空分类就再也回不到全部票根了
+    const next = key === this.data.active ? '' : key;
+    if (next === this.data.active) return;
     wx.vibrateShort({ type: 'light' });
-    track.track('home_filter', { key });
-    this.setData({ active: key });
+    track.track('home_filter', { key: next });
+    this.setData({ active: next });
     this.applyFilter();
   },
 

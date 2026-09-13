@@ -1145,7 +1145,8 @@ Page({
             content: '设置昵称后，你的卡片落款会带上「你的昵称 · 有票为证」。随时可清除。',
             confirmText: '去设置',
             cancelText: '暂不',
-            success: (r) => { if (r.confirm) wx.navigateTo({ url: '/pages/me/me' }); }
+            // 「我的」是 tab 页：navigateTo 打不开 tab 页（点了没反应），必须 switchTab
+            success: (r) => { if (r.confirm) wx.switchTab({ url: '/pages/me/me' }); }
           });
         }, 1200); // 让「已存入相册」toast 先走完
       }

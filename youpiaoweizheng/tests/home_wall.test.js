@@ -159,12 +159,18 @@ t('收藏心：实心 / 空心两个地址，点了有反馈', () => {
   ok(/heartOn: iconSrc\('heart'[\s\S]{0,60}true\)/.test(jsClean), 'heartOn 不是实心');
   ok(/\.hc-fav \{[\s\S]{0,80}width: 44rpx/.test(wxssClean), '心的热区不到 44rpx');
 });
-t('分类筛选：同键不重复计算，换键才重分组', () => {
-  ok(/if \(key === this\.data\.active\) return;/.test(jsClean), '重复点同一个胶囊会重算');
+t('分类筛选：默认「全部」不过滤，同键不重复计算，换键才重分组', () => {
+  // 首页默认亮着「演出」时，只有电影票 / 车票的用户看到的是「这里还没贴上票根」——
+  // 有票却被说成一张都没有。分类是筛选，不该决定首屏能不能看到自己的票。
+  ok(/active: ''/.test(jsClean), '首页默认又变成按分类过滤了 —— 非演出类的用户会看到假空态');
+  ok(/const next = key === this\.data\.active \? '' : key;/.test(jsClean), '亮着的胶囊再点一下不能取消筛选，回不到全部');
+  ok(/if \(next === this\.data\.active\) return;/.test(jsClean), '重复点同一个胶囊会重算');
   ok(/filter\(\(t\) => t\.type === key\)/.test(jsClean), '筛选口径变了');
 });
 t('空态 + 去拍一张', () => {
   ok(/wx:if="\{\{!loading && !colA\.length && !colB\.length\}\}"/.test(wxmlClean), '空态条件不对');
+  ok(/hasAny: this\._all\.length > 0/.test(jsClean), '没算 hasAny，空态没法区分是「分类空」还是「真没票」');
+  ok(/hasAny \? '这个分类还没有票根' : '这里还没贴上票根'/.test(wxmlClean), '空态文案又只剩一种了');
   ok(/bindtap="goScan"/.test(wxmlClean), '空态按钮没了');
   ok(/goScan\(\)[\s\S]{0,160}\/pages\/scan\/scan/.test(jsClean), 'goScan 没跳扫描页');
 });

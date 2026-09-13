@@ -279,6 +279,19 @@ t('海报码升级为带邀请人短码的 scene 码，且缓存按码分开', (
   ok(/const type = ref \? 'wxacode_ref' : 'wxacode_poster'/.test(cloud), '带码的图没单独一类（会命中旧缓存）');
 });
 
+t('云函数路由不吞参数：要 event 的处理函数，调用点必须把 event 传进去', () => {
+  // 卡页调 wxacode 时带着 ref（我的邀请短码）上来换「带码海报」。路由要是写成
+  // wxacodeAction()，ref 就被静默丢掉：海报照常能分享、能扫码，只是归因永远
+  // 算不到邀请人头上 —— 不报错、不失败，只是这个功能白做。参数一对不上就跑这条。
+  const wants = new Set([...cloud.matchAll(/async function (\w+)\(\s*event\b/g)].map((m) => m[1]));
+  const bad = [];
+  for (const m of cloud.matchAll(/return (\w+)\(([^)]*)\)/g)) {
+    const [, fn, args] = m;
+    if (wants.has(fn) && !/\bevent\b/.test(args)) bad.push(`${fn}(${args})`);
+  }
+  ok(bad.length === 0, '这些处理函数拿不到 event，参数会被静默丢弃：' + bad.join('、'));
+});
+
 // ════════════════════════════════════════════════════════════
 console.log('\n【五、A6 长按快捷菜单】');
 const menuJs = decomment(read('components/ticket-menu/index.js'));

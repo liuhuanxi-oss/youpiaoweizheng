@@ -57,6 +57,23 @@ t('「足迹地图」勋章 b12 的解锁标记有人在打（页面换了标记
   ok(badge.includes('sp_map_visited') || /mapVisited/.test(badge), '勋章判定不再读 sp_map_visited');
 });
 
+t('跳转写法与目标匹配：tab 页只许 switchTab，二级页只许 navigateTo', () => {
+  // 微信的 navigateTo 打不开 tab 页，失败时**不报错、只是没反应**——v7 的卡片页
+  // 就这样把「去设置昵称」写成了 navigateTo('/pages/me/me')，用户点了什么也没发生。
+  const tabPages = new Set(((app.tabBar && app.tabBar.list) || []).map((x) => '/' + x.pagePath));
+  const bad = [];
+  for (const { f, text } of files) {
+    if (!/\.js$/.test(f)) continue;
+    for (const m of text.matchAll(/navigateTo\(\{\s*url:\s*[`'"]([^`'"?]+)/g)) {
+      if (tabPages.has(m[1])) bad.push(`${f} → navigateTo 打不开 tab 页 ${m[1]}`);
+    }
+    for (const m of text.matchAll(/switchTab\(\{\s*url:\s*[`'"]([^`'"?]+)/g)) {
+      if (!tabPages.has(m[1])) bad.push(`${f} → switchTab 只能跳 tab 页，${m[1]} 不是`);
+    }
+  }
+  ok(bad.length === 0, bad.join('; '));
+});
+
 console.log('\n──────────────────────────────');
 console.log('结果：' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
