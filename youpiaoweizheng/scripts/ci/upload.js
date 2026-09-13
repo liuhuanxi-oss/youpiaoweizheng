@@ -39,6 +39,11 @@ async function main() {
     version: config.upload.version, // 必须 数字.数字.数字
     desc,
     robot: config.upload.robot,
+    // 编译并发：默认跟着 CPU 核数走（最多 8 个 worker，每个都是一个独立 V8 实例）。
+    // 本机提交内存吃紧时（空闲提交约 2G），8 个 worker 会直接把进程撑爆
+    // ——报「Zone Allocation failed」然后 exit 134，且崩在哪个文件每次都不一样。
+    // 压到 2 个既躲开这个坑，速度也没差多少。
+    threads: Number(process.env.CI_THREADS || 2),
     setting: {
       es6: true,
       es7: true,

@@ -63,6 +63,7 @@ const config = {
     '.env',
     '**/*.md',
     'tests/**/*', // 280KB 的测试源码没人 require，却跟着用户一起下载 —— 排除
+    'cloudfunctions/**/*', // 云函数源码由 deploy:fn 单独上传，不该进小程序包（客户端只用 callFunction 调）
     'youpiaoweizheng/**/*' // 嵌套的历史重复目录，必须排除
   ]
 }
