@@ -1,5 +1,5 @@
 // tests/card_postcard.test.js —— 纪念卡片（品牌全案 · 稿屏6）回归测试
-// 核心断言：① 图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji / 字符当图标；
+// 核心断言：① 图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji / 字符当图标；
 //           ② 画布 600×960rpx 与 card.js 的 W×H 同比（差一点明信片就被拉扁）；
 //           ③ 齿边明信片是真在跑的默认风格，且**跑一遍**它：齿边、邮戳、码框都得画出来；
 //           ④ 保存 / 分享 / 小红书 / 空态这些既有链路一个都不能少。

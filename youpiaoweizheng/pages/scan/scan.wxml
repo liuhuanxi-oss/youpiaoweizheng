@@ -1,7 +1,7 @@
 <!-- pages/scan/scan.wxml —— 扫描票根（品牌全案 · 稿屏3 一比一）
      结构：装饰带（邮戳/小粉心/星点/邮票）→ 内嵌取景框（玫瑰 L 角标 + 提示胶囊）
           → 相册/快门/翻转三钮 → 撕边纸的「AI 智能处理中」四步卡 → 页脚装饰
-     所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     所有图形一律走 <image src="data:image/svg+xml;base64,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 scan.js 按当前主题编译成实色。 -->
 <view class="sc-page theme-{{theme}}">
 

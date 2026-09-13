@@ -1,7 +1,7 @@
 // tests/discover_map.test.js —— 回忆地图（品牌全案 · 稿屏7）回归测试
 // 核心断言：① 城市气泡的落点必须由真实经纬度算出，不能手摆；
 //           ② 气泡互相撞了只允许挪气泡、不许挪落点；
-//           ③ 页面里的图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji / var()。
+//           ③ 页面里的图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji / var()。
 const fs = require('fs');
 const path = require('path');
 

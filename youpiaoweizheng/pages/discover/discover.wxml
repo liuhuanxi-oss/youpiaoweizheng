@@ -1,6 +1,6 @@
 <!-- pages/discover/discover.wxml —— 回忆地图（品牌全案 · 稿屏7 一比一）
      结构：标题（星点 + 手写体 + 玫瑰笔触）→ 水彩地图卡（邮票/花枝/星点 + 城市气泡）→ 已走过 N 城
-     所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     所有图形一律走 <image src="data:image/svg+xml;base64,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 discover.js 按当前主题编译成实色。 -->
 <scroll-view class="tk-page theme-{{theme}} dc-page {{enter ? 'fade-up' : ''}}" scroll-y enhanced show-scrollbar="{{false}}"
              refresher-enabled bindrefresherrefresh="onPullDownRefresh">

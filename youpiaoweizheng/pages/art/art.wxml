@@ -4,7 +4,7 @@
           → 前后分隔（奶油圆 + 金星 + 一道笑弧 + 两侧短光线）
           → 「艺术重绘」卡（齿边画框：作画中 / 已画好 / 待作画 三态）
           → 说明句 + 玫瑰笔触 → 主按钮（保存重绘）→ 再画一张 → 页脚点缀
-     所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     所有图形一律走 <image src="data:image/svg+xml;base64,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 art.js 的 buildArt() 编译成实色。
      主/次按钮的文案随 phase 走（ctaText / subText 两张映射表），不在这里堆三元表达式。 -->
 <!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->

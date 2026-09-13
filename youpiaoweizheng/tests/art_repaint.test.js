@@ -1,5 +1,5 @@
 // tests/art_repaint.test.js —— AI 艺术重绘（品牌全案 · 稿屏5）回归测试
-// 核心断言：① 图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji / 字符当图标；
+// 核心断言：① 图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji / 字符当图标；
 //           ② 齿边画框的尺寸在 JS（FRAME_W/H）与 WXSS 里**同源**——两边对不上帧边就会缩在中间；
 //           ③ 主/次按钮的文案由 phase 映射表下发，页面能出现的每个 phase 都有对应文案；
 //           ④ 额度只在「还会花额度」的阶段露脸，作画中按钮是禁用态。

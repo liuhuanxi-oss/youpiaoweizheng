@@ -2,7 +2,7 @@
      六张统一版式卡片：顶部 IP 头像 → 主题名 → 6 色色板（含 hex）
                      → 字体层级样例 → 4 个装饰元素图形
      点卡片 = 即时预览；底部「应用此主题」= 落库。
-     头像与装饰图形走 <image src="data:image/svg+xml,...">（src 由 utils/deco.js
+     头像与装饰图形走 <image src="data:image/svg+xml;base64,...">（src 由 utils/deco.js
      按各主题色板在 JS 侧编译好）—— 不能写内联 <svg>，小程序 wxml 不渲染。 -->
 <view class="tk-page theme-{{preview}}">
 

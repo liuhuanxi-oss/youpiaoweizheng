@@ -1,5 +1,5 @@
 // tests/annual_report.test.js —— 年度回忆报告（品牌全案 · 稿屏9）回归测试
-// 核心断言：① 图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji / 字符当图标；
+// 核心断言：① 图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji / 字符当图标；
 //           ② 齿边面板的 viewBox 尺寸与 WXSS 盒子逐个对齐（差一点齿就偏出边框）；
 //           ③ 海报**跑一遍**：品牌行、大标题、统计卡、拼贴、邮戳、结语、水印都得画出来；
 //           ④ 保存 / 转发 / 署名 / 空态这些既有链路一个都不能少。

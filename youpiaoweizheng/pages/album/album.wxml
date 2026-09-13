@@ -1,7 +1,7 @@
 <!-- pages/album/album.wxml —— 时光机（品牌全案 · 稿屏8 一比一）
      结构：手写标题（星点 + 玫瑰笔触）→ 搜索 → 类型筛选 → 纵向时间轴
           （左侧虚线轴 + 年份节点 + 一年一叠明信片：胶带 / 照片 / 邮戳 / 日期）
-     所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     所有图形一律走 <image src="data:image/svg+xml;base64,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 album.js 的 buildArt() 编译成实色。
      邮戳的城市名与日期是**真文本**（不是 SVG 文字）：城市名逐字 rotate 排上圆弧，
      见 album.js 的 pmChars —— SVG 文字在真机上中文字形回落不可控。 -->

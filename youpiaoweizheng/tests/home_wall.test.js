@@ -1,5 +1,5 @@
 // tests/home_wall.test.js —— 票根墙（品牌全案 · 稿屏2）回归测试
-// 核心断言：① 图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji / 字符当图标
+// 核心断言：① 图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji / 字符当图标
 //            （旧版这里还留着 🎭🎬🚌✈️ ✦ ♥ ♡ 📍 六类字符）；
 //          ② 卡片模板只写一遍（旧版左右两列各抄一份，改一处必漏一处）；
 //          ③ 收藏心的主键必须是 id —— store.listTickets 把云库 _id 归一成了 id，

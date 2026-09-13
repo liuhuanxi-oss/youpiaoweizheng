@@ -1,7 +1,7 @@
 <!-- pages/me/me.wxml —— 我的 · 留存中心（品牌全案 · 稿屏11，7.2.0 L1 重整）
      结构：品牌行 → hero（水彩头像 + 手写标题 + 波浪下划线）→ 票根造型统计卡
            → AI 重绘额度 → 勋章横滑 → 2 张独立功能卡
-     所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     所有图形一律走 <image src="data:image/svg+xml;base64,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 me.js 按当前主题编译成实色。 -->
 <!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
 <import src="/templates/sp.wxml" />

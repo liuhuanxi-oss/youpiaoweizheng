@@ -1,5 +1,5 @@
 // tests/detail_icons.test.js —— 票根详情页（品牌全案 · 稿屏4）回归测试
-// 核心断言：页面里的图形一律走 <image src="data:image/svg+xml,...">，
+// 核心断言：页面里的图形一律走 <image src="data:image/svg+xml;base64,...">，
 // 不允许出现 emoji 当图标、不允许出现内联 <svg>、不允许出现 var() 色值。
 const fs = require('fs');
 const path = require('path');

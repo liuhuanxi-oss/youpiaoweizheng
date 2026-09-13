@@ -1,5 +1,5 @@
 // tests/scan_frame.test.js —— 扫描票根（品牌全案 · 稿屏3）回归测试
-// 核心断言：① 页面图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji；
+// 核心断言：① 页面图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji；
 //           ② 取景框是内嵌圆角框 + 玫瑰 L 角标（不是全屏相机 + 白虚线框）；
 //           ③ 四步流程的图文必须由 JS 编译出来，类名与样式对得上。
 const fs = require('fs');

@@ -1,5 +1,5 @@
 // tests/album_timemachine.test.js —— 时光机（品牌全案 · 稿屏8）回归测试
-// 核心断言：① 图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji；
+// 核心断言：① 图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji；
 //           ② 时间轴是一条虚线 + 年份圆点**正好压在轴上**（几何断言，不靠肉眼）；
 //           ③ 邮戳的弧形城市名落在双圈之间的环带里；
 //           ④ 分组口径是「年」，旧版按月分组的那套没有残留。

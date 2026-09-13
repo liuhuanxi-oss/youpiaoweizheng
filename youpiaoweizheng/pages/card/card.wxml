@@ -3,7 +3,7 @@
      这层只负责卡面舞台与底下那两枚按钮。
      稿屏6 顶栏那行（‹ 纪念卡片 ···）走的是原生导航栏（card.json），
      右侧「···」在真机上就是微信胶囊，故页面里不再重复画一个。
-     ⚠️ 图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
+     ⚠️ 图形一律走 <image src="data:image/svg+xml;base64,...">：小程序 wxml 不渲染内联 <svg>，
         且 SVG 是独立文档、不认 CSS 变量，颜色由 buildArt() 按主题编译成实色。 -->
 <!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
 <import src="/templates/sp.wxml" />

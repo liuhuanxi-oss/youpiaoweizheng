@@ -1,5 +1,5 @@
 // tests/duo_bind.test.js —— 双人回忆绑定（品牌全案 · 稿屏10）回归测试
-// 核心断言：① 图形一律走 <image src="data:image/svg+xml,...">，无内联 svg / emoji / 字符当图标；
+// 核心断言：① 图形一律走 <image src="data:image/svg+xml;base64,...">，无内联 svg / emoji / 字符当图标；
 //           ② 齿边纸片的 viewBox 尺寸与 WXSS 盒子逐个对齐（差一点齿就偏出边框）；
 //           ③ WXML 里 bind* 用到的每个处理器，JS 里都必须真的存在（goScan 那种漏挂）；
 //           ④ 生成双人卡片必须带共同票根的 id —— 不带会退回"自己一个人的卡片"（修过一次的倒退点）。
