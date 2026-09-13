@@ -60,6 +60,7 @@ const config = {
     'secret/**/*',
     '.env',
     '**/*.md',
+    'tests/**/*', // 280KB 的测试源码没人 require，却跟着用户一起下载 —— 排除
     'youpiaoweizheng/**/*' // 嵌套的历史重复目录，必须排除
   ]
 }
