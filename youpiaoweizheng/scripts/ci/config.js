@@ -42,7 +42,9 @@ const config = {
   },
   upload: {
     version: process.env.UPLOAD_VERSION || readPkgVersion(),
-    remark: process.env.UPLOAD_REMARK || '自动化上传',
+    // 备注默认跟着版本号走：原先靠 .env 里另写一行 UPLOAD_REMARK，
+    // 升版本时忘了改它，后台就会显示「版本 7.4.0 / 备注 v7.3.0」（已踩过一次）
+    remark: process.env.UPLOAD_REMARK || `有票为证 v${process.env.UPLOAD_VERSION || readPkgVersion()}`,
     robot: Number(process.env.CI_ROBOT || 1)
   },
   audit: {
