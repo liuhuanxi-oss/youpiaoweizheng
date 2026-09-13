@@ -140,8 +140,13 @@
             aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
       <text class="me-sign-done" wx:else>今天已收下</text>
     </view>
-    <!-- 7.4.0 B 段：积分要让用户知道它能干嘛（终点比数字重要） -->
-    <text class="me-sign-hint" wx:if="{{pointsHint}}">{{pointsHint}}</text>
+    <!-- 7.4.0 B 段：积分要让用户知道它能干嘛（终点比数字重要）；攒够了才出现兑换按钮 -->
+    <view class="me-sign-exchange-row">
+      <text class="me-sign-hint" wx:if="{{pointsHint}}">{{pointsHint}}</text>
+      <view class="me-sign-exchange pressable" wx:if="{{pointsReady}}"
+            hover-class="press-hover" bindtap="onOpenRedeem"
+            aria-role="button" aria-label="用积分兑换 1 次 AI 重绘">兑换</view>
+    </view>
   </view>
 
   <!-- ④ AI 重绘额度（7.2.0 L2：从设置页迁来；取不到服务端额度时整块不渲染） -->
@@ -200,6 +205,35 @@
     <text class="rf-text">{{refreshText}}</text>
   </view>
 </scroll-view>
+
+<!-- 7.4.0 B 段 R2：积分兑换确认（100 分 = 1 次 AI 重绘，一天 1 次）
+     为什么要有这一层确认：兑换是不可逆的（分扣了回不来），必须让用户看清楚花多少、还剩多少 -->
+<bottom-sheet show="{{redeemShow}}" title="兑换 AI 重绘" bind:close="onCloseRedeem">
+  <view class="redeem">
+    <view class="redeem-main">
+      <text class="redeem-t serif">1 次 AI 重绘</text>
+      <text class="redeem-s">图版页当月免费次数用完后，用它继续画</text>
+    </view>
+    <view class="redeem-lines">
+      <view class="redeem-line">
+        <text class="redeem-k">消耗积分</text>
+        <text class="redeem-v">{{redeemCost}} 分</text>
+      </view>
+      <view class="redeem-line">
+        <text class="redeem-k">当前积分</text>
+        <text class="redeem-v">{{signPoints}} 分</text>
+      </view>
+      <view class="redeem-line">
+        <text class="redeem-k">兑换后剩余</text>
+        <text class="redeem-v">{{redeemAfter}} 分</text>
+      </view>
+    </view>
+    <view class="redeem-btn pressable {{redeeming ? 'disabled' : ''}}"
+          hover-class="press-hover" bindtap="onConfirmRedeem"
+          aria-role="button" aria-label="确认兑换 1 次 AI 重绘">{{redeeming ? '兑换中…' : '确认兑换'}}</view>
+    <text class="redeem-note">每天最多兑换 1 次 · 换来的次数与你购买的次数一样用，不区分</text>
+  </view>
+</bottom-sheet>
 
 <!-- M5 隐私授权弹窗（me 页 chooseAvatar/nickname 走官方授权弹层） -->
 <privacy-sheet />

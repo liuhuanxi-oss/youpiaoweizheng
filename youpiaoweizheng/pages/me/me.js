@@ -96,6 +96,10 @@ Page({
     sign: null, signText: { title: '', sub: '', btn: '' }, signing: false,
     signPoints: 0,   // 积分余额（服务端权威，端上只显示）
     pointsHint: '',  // 7.4.0 B 段：积分离「1 次 AI 重绘」还差多少
+    pointsReady: false, // 攒够 100 分才显示兑换按钮（不够时不摆一个点了会失败的按钮）
+    // 兑换确认弹层（7.4.0 B 段 R2）
+    redeemShow: false, redeeming: false,
+    redeemCost: 0, redeemAfter: 0,
     profile: { nickname: '', avatar: '' },
     nickFocus: false,  // 4.22.0：编程聚焦昵称输入框（原生 input 无法 selectComponent 唤起键盘）
     refreshing: false, // 7.2.0 下拉刷新
@@ -142,17 +146,19 @@ Page({
 
   // ===== 7.4.0 R1 今日时光签（留存中心的第一屏）=====
 
+  /** 积分三件套只在这里算：余额 / 差额文案 / 能不能兑 —— 三个调用点说一样的话 */
+  _applyPoints(balance) {
+    const h = points.artHint(balance);
+    this.setData({ signPoints: Math.max(Number(balance) || 0, 0), pointsHint: h.text, pointsReady: h.ready });
+  },
+
   /** 拉签到状态：只看不动。取不到就整块不显示（演示模式 / 云失败） */
   refreshSign() {
     sign.status().then((s) => {
       if (!s) return;
-      this.setData({
-        sign: s,
-        signText: sign.bannerText(s),
-        signPoints: s.balance || 0,
-        // 积分与签到取同一次返回值：两处各拉一次会出现「这里 128、那里 118」的自相矛盾
-        pointsHint: points.artHint(s.balance).text
-      });
+      // 积分与签到取同一次返回值：两处各拉一次会出现「这里 128、那里 118」的自相矛盾
+      this.setData({ sign: s, signText: sign.bannerText(s) });
+      this._applyPoints(s.balance);
     });
   },
 
@@ -169,15 +175,56 @@ Page({
       return;
     }
     track.track('sign_in', { from: 'me', streak: r.streak || 0, milestone: r.milestone || 0 });
-    this.setData({
-      sign: r,
-      signText: sign.bannerText(r),
-      signPoints: r.balance || 0,
-      pointsHint: points.artHint(r.balance).text
-    });
+    this.setData({ sign: r, signText: sign.bannerText(r) });
+    this._applyPoints(r.balance);
     const text = sign.rewardText(r);
     if (r.milestone) wx.showModal({ title: '连签有礼', content: text, showCancel: false, confirmText: '收下' });
     else wx.showToast({ title: text, icon: 'none' });
+  },
+
+  // ===== 7.4.0 B 段 R2 兑换：100 分 = 1 次 AI 重绘（一天 1 次）=====
+
+  /** 打开兑换确认：把「花多少、还剩多少」摊开给用户看，再让他点确认 */
+  onOpenRedeem() {
+    const b = this.data.signPoints || 0;
+    if (b < points.POINTS_PER_ART) {
+      wx.showToast({ title: '积分还不够', icon: 'none' });
+      return;
+    }
+    wx.vibrateShort({ type: 'light' });
+    this.setData({
+      redeemShow: true,
+      redeemCost: points.POINTS_PER_ART,
+      redeemAfter: b - points.POINTS_PER_ART
+    });
+  },
+
+  onCloseRedeem() {
+    if (this.data.redeeming) return; // 兑换进行中不许关，避免用户以为没兑上又点一次
+    this.setData({ redeemShow: false });
+  },
+
+  /** 确认兑换：判定与入账都在服务端；这里只负责把结果显示出来 */
+  async onConfirmRedeem() {
+    if (this.data.redeeming) return;
+    this.setData({ redeeming: true });
+    const r = await points.redeem(points.makeReq());
+    this.setData({ redeeming: false });
+    if (!r || !r.ok) {
+      wx.showToast({ title: (r && r.msg) || '兑换失败，请稍后再试', icon: 'none' });
+      return;
+    }
+    wx.vibrateShort({ type: 'medium' });
+    this.setData({ redeemShow: false });
+    this._applyPoints(r.balance);
+    this.refreshQuota(); // 额度卡就在下面一张：不刷新就会出现「刚兑了 1 次，可用次数没变」
+    track.track('points_redeem', { cost: r.cost || points.POINTS_PER_ART, dup: r.dup ? 1 : 0, left: r.balance || 0 });
+    wx.showModal({
+      title: '兑换成功',
+      content: 'AI 重绘次数 +1，去「图版」用起来吧',
+      showCancel: false,
+      confirmText: '知道了'
+    });
   },
 
   /** 按当前主题编译图形 + 组装 5 个入口（一次 setData，约 12KB） */

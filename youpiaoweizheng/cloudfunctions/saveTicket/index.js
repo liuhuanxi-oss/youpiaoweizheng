@@ -1376,9 +1376,16 @@ async function loadPoints(db, openid) {
   const res = await col.where({ _openid: openid, type: 'points' }).limit(1).get();
   if (res.data && res.data[0]) return res.data[0];
   const added = await col.add({
-    data: { _openid: openid, type: 'points', balance: 0, lifetime: 0, log: [], updatedAt: Date.now() }
+    data: {
+      _openid: openid, type: 'points', balance: 0, lifetime: 0, log: [],
+      // 兑换的幂等与「今天兑过没有」也记在这一份文档上（见 pointsRedeemAction）。
+      // 刻意用扁平字段（redeemYmd）而不是嵌套对象：条件更新的 where 里点号路径在云开发上
+      // 语义不明确，钱的事不赌这个。
+      redeemYmd: '', redeemReq: '', redeemAt: 0,
+      updatedAt: Date.now()
+    }
   });
-  return { _id: added._id, balance: 0, lifetime: 0, log: [] };
+  return { _id: added._id, balance: 0, lifetime: 0, log: [], redeemYmd: '', redeemReq: '', redeemAt: 0 };
 }
 
 /**
@@ -1510,6 +1517,84 @@ async function shareOpenAction(event, OPENID) {
     return await earnPoints(db, owner, 'share');
   } catch (e) {
     return { ok: false, msg: '分享归因失败' };
+  }
+}
+
+// ------------------------------------------------------------
+// B 段「花分」：兑换 AI 重绘。
+//   上限 1 次/天。为 1 时，「今天兑过没有」用一次条件更新就够；
+//   将来要放开到 N 次，得改成按次数计数 —— 别只把这个常量改大，那样拦不住。
+// ------------------------------------------------------------
+const REDEEM_DAILY_LIMIT = 1;
+
+/**
+ * 兑换 1 次 AI 重绘（100 分）。
+ * 三件事必须同时成立，缺一条都不能上线：
+ *   ① 幂等：手抖双击、地铁断网重发，都只能扣一次分、发一次重绘（认客户端带来的 req 号）；
+ *   ② 不超扣：「余额够」与「今天没兑过」写在**同一条条件更新**里 —— 先读后写会被并发钻空子；
+ *   ③ 不白扣：发额度失败就把分和今天的名额一起退回（宁可让用户重试，也不能让他分没了图也没有）。
+ * 只加 bonus、不碰 paid：付费买的次数与这条路径无关（铁律 2）。
+ */
+async function pointsRedeemAction(event, OPENID) {
+  try {
+    const db = cloud.database();
+    const _ = db.command;
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+    const req = String(event.req || '').slice(0, 40);
+    const today = pay.ymdNow();
+    const p = await loadPoints(db, OPENID);
+
+    // A 段建的积分文档没有这三个字段：先补上，让下面的条件更新有东西可比
+    if (typeof p.redeemYmd !== 'string') {
+      p.redeemYmd = ''; p.redeemReq = ''; p.redeemAt = 0;
+      await col.doc(p._id).update({ data: { redeemYmd: '', redeemReq: '', redeemAt: 0 } }).catch(() => {});
+    }
+    // ① 同一笔请求已经兑过：只报结果，不再扣分（req 为空就跳过这一步，等于放弃幂等）
+    if (req && p.redeemReq === req) {
+      const q = await pay.loadQuota(db, OPENID);
+      return { ok: true, dup: true, cost: POINTS_PER_ART, balance: p.balance || 0, quota: pay.quotaView(q) };
+    }
+    if ((p.balance || 0) < POINTS_PER_ART) {
+      return { ok: false, code: 'NOBAL', msg: '积分还不够', balance: p.balance || 0, cost: POINTS_PER_ART };
+    }
+    if (p.redeemYmd === today) {
+      return { ok: false, code: 'LIMIT', msg: '今天已经兑换过了，明天再来', balance: p.balance || 0 };
+    }
+    // ② 扣分与占名额同一条条件更新：并发双击只有一支能改到
+    const claim = await col.where({
+      _id: p._id, balance: _.gte(POINTS_PER_ART), redeemYmd: _.neq(today)
+    }).update({
+      data: { balance: _.inc(-POINTS_PER_ART), redeemYmd: today, redeemReq: req, redeemAt: Date.now(), updatedAt: Date.now() }
+    });
+    if (!claim.stats || !claim.stats.updated) {
+      const now = await loadPoints(db, OPENID);
+      const used = now.redeemYmd === today;
+      return {
+        ok: false, code: used ? 'LIMIT' : 'NOBAL', balance: now.balance || 0,
+        msg: used ? '今天已经兑换过了，明天再来' : '积分还不够'
+      };
+    }
+    // ③ 发额度：失败把分与名额一起退回
+    try {
+      await grantBonusArt(db, OPENID);
+    } catch (e) {
+      await col.doc(p._id).update({
+        data: { balance: _.inc(POINTS_PER_ART), redeemYmd: '', redeemReq: '', redeemAt: 0, updatedAt: Date.now() }
+      }).catch(() => {});
+      return { ok: false, code: 'GRANT', msg: '兑换失败，分数已退回，请再点一次' };
+    }
+    await col.doc(p._id).update({
+      data: { log: _.push({ each: [{ at: Date.now(), delta: -POINTS_PER_ART, reason: 'redeem' }], slice: -50 }) }
+    }).catch(() => {});
+    const after = await loadPoints(db, OPENID);
+    const q = await pay.loadQuota(db, OPENID);
+    return {
+      ok: true, dup: false, cost: POINTS_PER_ART, limit: REDEEM_DAILY_LIMIT,
+      balance: after.balance || 0, quota: pay.quotaView(q)
+    };
+  } catch (e) {
+    return { ok: false, msg: '兑换失败：' + String((e && e.message) || e).slice(0, 60) };
   }
 }
 
@@ -1847,6 +1932,10 @@ exports.main = async (event) => {
   }
   if (event.action === 'shareOpen') {
     return shareOpenAction(event, OPENID);
+  }
+  // 7.4.0 B 段 R2 兑换（花分）：100 分 = 1 次 AI 重绘，一天 1 次，幂等
+  if (event.action === 'pointsRedeem') {
+    return pointsRedeemAction(event, OPENID);
   }
   if (event.action === 'eventStats') {
     return eventStatsAction(event);

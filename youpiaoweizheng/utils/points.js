@@ -43,6 +43,33 @@ function shareOpened(code) {
 }
 
 /**
+ * 兑换 1 次 AI 重绘（100 分，一天最多 1 次）。
+ * req 是幂等键：一次点击生成一个，重试时带同一个 —— 服务端认它，
+ * 双击或断网重发都只会扣一次分、发一次重绘。
+ * 失败按 code 说人话：LIMIT 今天兑过了 / NOBAL 分不够 / GRANT 入账失败已退分。
+ */
+function makeReq() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+const REDEEM_MSG = {
+  LIMIT: '今天已经兑换过了，明天再来',
+  NOBAL: '积分还不够',
+  GRANT: '兑换失败，分数已退回，请再点一次'
+};
+
+async function redeem(req) {
+  if (!USE_CLOUD) return { ok: false, msg: '演示模式不支持兑换' };
+  const r = await call({ action: 'pointsRedeem', req: req || makeReq() });
+  if (r && r.ok) return r;
+  return {
+    ok: false,
+    code: (r && r.code) || '',
+    msg: REDEEM_MSG[(r && r.code) || ''] || (r && r.msg) || '兑换失败，请稍后再试'
+  };
+}
+
+/**
  * 「还差多少分能换 1 次 AI 重绘」—— 攒积分得有个看得见的终点，
  * 否则数字涨到 100 也不会有人知道它能干嘛。
  */
@@ -54,4 +81,4 @@ function artHint(balance) {
   return { ready: false, text: `再攒 ${POINTS_PER_ART - b} 分可换 1 次 AI 重绘` };
 }
 
-module.exports = { status, earnCard, shareOpened, artHint, POINTS_PER_ART };
+module.exports = { status, earnCard, shareOpened, artHint, redeem, makeReq, POINTS_PER_ART };

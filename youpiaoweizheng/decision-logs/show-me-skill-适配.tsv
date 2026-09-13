@@ -39,3 +39,9 @@ ts	phase	decision	why	evidence	result
 2026-09-13T16:45:00Z	build	上传加分的记账失败不改入库结果（try 兜底）	把已入库的票回成「入库失败」会诱使用户重传，凭空多一张票	反向验证：去掉兜底断言即响	adopted
 2026-09-13T16:45:00Z	build	「分享被打开」记给码的主人（不是打开者），自点自分享不加分	分给错人等于鼓励自刷；端上还要按会话去重，否则切一次前台就报一次	shareOpenAction + invite.reportOpen 去重	adopted
 2026-09-13T16:45:00Z	defer	兑换（pointsRedeem）先不写代码，出接口设计待确认	项目铁律 2：涉及额度写入（积兑换）先出接口设计交用户确认再动手	PROJECT.md §4.3 + CHANGELOG 7.4.0 B 段「未做」	pending
+2026-09-14T02:10:00Z	build	兑换定论：100 分 = 1 次 AI 重绘、每天最多 1 次、只进 art_quota.bonus	兑换是真金白银的 AI 成本；不限次则攒了分的人可一天花光；碰 paid 等于动现有扣减逻辑（铁律 2）	POINTS_PER_ART=100 / REDEEM_DAILY_LIMIT=1，复用 grantBonusArt（只 _.inc，只新增写入路径）	adopted
+2026-09-14T02:10:00Z	build	扣分用一条条件更新同时守「余额够」与「今天没兑过」	先读后写会被并发钻空子，而这条路径上的并发等于白送一次重绘	col.where({_id, balance: _.gte(100), redeemYmd: _.neq(today)}).update({balance: _.inc(-100)})；反向验证：去掉 neq 断言即响	adopted
+2026-09-14T02:10:00Z	build	兑换幂等键 redeemReq 由端上生成、服务端认领，认领在扣分之前	双击与断网重试都不能多扣分或多送重绘；判幂等必须在扣分前	utils/points.js makeReq() + pointsRedeemAction 早退返回 dup:true	adopted
+2026-09-14T02:10:00Z	build	发额度失败就把分与今天的名额一起退回	宁可让用户重试，也不能扣了分不给货；失败路径必须有明确文案	catch 内 _.inc(+100) 且 redeemYmd:''，返回 code GRANT，端上 REDEEM_MSG 翻译成人话	adopted
+2026-09-14T02:10:00Z	build	兑换字段用扁平 redeemYmd/redeemReq/redeemAt，不用嵌套对象	条件更新的 where 里点号路径在云开发上语义不明确，钱的事不赌这个	扣分前先给 A 段建的老文档补上这三个字段	adopted
+2026-09-14T02:10:00Z	defer	200 分那档「高清无水印导出」本轮不做	当前卡片导出本来就没有水印（水印只在小红书竖版海报上），得先说清「换的是什么」	PROJECT.md §4.3 B 段表第 5 条	rejected
