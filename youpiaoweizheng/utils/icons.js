@@ -4,8 +4,10 @@
 //   微信小程序 **WXML 不支持内联 svg 标签**（小程序视图层没有 SVG 原生渲染树，
 //   <svg>/<path> 会被当作未知自定义组件容器，子元素全部丢弃 —— 视觉上就是
 //   「什么都不显示」）。本仓库 CHANGELOG 4.10.7 与 components/svg-icon 都记录过这个坑。
-//   唯一稳妥且官方支持的落地方式：把 SVG 拼成字符串 → encodeURIComponent →
-//   塞进 <image src>（image 组件原生支持 SVG）。
+//   唯一稳妥且官方支持的落地方式：把 SVG 拼成字符串 → **base64** →
+//   塞进 <image src>（见 utils/svg.js）。
+//   ⚠️ 必须是 base64：百分号编码（encodeURIComponent）在开发者工具里正常、
+//      在**真机上整片不显示** —— 2026-09-13 因此栽过一次「只有文字没有图案」。
 //
 // 因此所有需要线性图标的页面，统一走：
 //   const { iconSrc } = require('../../utils/icons.js');
@@ -15,6 +17,8 @@
 // ⚠️ 颜色必须是十六进制实色：SVG 属性不认 CSS 变量 var()，也不建议依赖 rgba()。
 //    需要半透明时用第 3 个参数 opacity，它会写成 stroke-opacity 属性。
 // ============================================================
+
+const { toDataUri } = require('./svg.js');
 
 const P = (d) => '<path d="' + d + '"/>';
 const C = (cx, cy, r) => '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/>';
@@ -198,9 +202,10 @@ function iconSrc(name, color, opacity, width, solid) {
   const paint = solid
     ? "fill='" + safe + "' stroke='none'"
     : "fill='none' stroke='" + safe + "'" + op + " stroke-width='" + sw + "'";
-  const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' " + paint +
+  // width/height 与 viewBox 同值：真机渲染器拿不到内在尺寸就不画（工具里会自动兜底）
+  const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24' " + paint +
     " stroke-linecap='round' stroke-linejoin='round'>" + body + '</svg>';
-  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+  return toDataUri(svg);
 }
 
 module.exports = { iconSrc, ICON_PATH };

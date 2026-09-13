@@ -14,7 +14,7 @@
 //   点与点之间天然连成大陆的体量，正是稿子里的做法。
 //
 // 【为什么颜色写死在 JS】
-//   同 utils/icons.js / utils/deco.js：产物是 <image src="data:image/svg+xml,...">，
+//   同 utils/icons.js / utils/deco.js：产物是 <image src="data:image/svg+xml;base64,...">，
 //   SVG 是独立文档，页面的 CSS 变量不会继承进去，var() 一律失效。
 //   好在陆地的三色（玫瑰 / 奶油黄 / 鼠尾草绿）是**品牌固定色**，六套主题下都不变，
 //   与 pages/me/me.js 的 TINT 同源 —— 变的只是承载它的卡片底色。
@@ -26,6 +26,8 @@
 //   mapArt.stampSrc(punchColor)           // → 装饰邮票 data-uri
 //   mapArt.toStage(lng, lat)              // → { x, y } 相对舞台的 rpx 落点
 // ============================================================
+
+const { toDataUri } = require('./svg.js');
 
 // —— 陆地的三色：与 pages/me/me.js 的 TINT、app.wxss 的 --sage 同源 ——
 const ROSE = '#EFA392';   // 东北 / 华北 / 华东
@@ -422,7 +424,7 @@ function markersOf(cities, m) {
 function toUri(w, h, body) {
   const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 " + w + ' ' + h +
     "' width='" + w + "' height='" + h + "'>" + body + '</svg>';
-  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+  return toDataUri(svg);
 }
 
 module.exports = {

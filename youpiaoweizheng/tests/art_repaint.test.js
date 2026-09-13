@@ -45,7 +45,8 @@ const META = {
   bg: '#F5F0E6', card: '#FFFFFF', primary: '#2B2420', accent: '#C26B5E',
   soft: '#E9E2D4', text: '#2B2420', text2: '#8A7E6E', border: '#E2D9C7'
 };
-const svgOf = (uri) => decodeURIComponent(String(uri).replace('data:image/svg+xml,', ''));
+// 7.4.1：data-uri 从百分号编码改成 base64（真机只认 base64，见 utils/svg.js）
+const svgOf = (uri) => Buffer.from(String(uri).replace('data:image/svg+xml;base64,', ''), 'base64').toString('utf8');
 
 console.log('\n【一、图形：不得有内联 svg / emoji / 字符当图标】');
 t('wxml 正文无 <svg> / <path> / <circle>', () => {

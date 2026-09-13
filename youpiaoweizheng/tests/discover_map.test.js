@@ -309,7 +309,8 @@ t('票根行的类型色块从 JS 下发，不在 wxss 里写死', () => {
 });
 
 console.log('\n【九、mapArt 产物本身是合法的 data-uri】');
-const dec = (u) => decodeURIComponent(u.replace(/^data:image\/svg\+xml,/, ''));
+// 7.4.1：data-uri 从百分号编码改成 base64（真机只认 base64，见 utils/svg.js）
+const dec = (u) => Buffer.from(String(u).replace(/^data:image\/svg\+xml;base64,/, ''), 'base64').toString('utf8');
 t('landSrc 随主题换纸浆色（深色主题不能烧出亮边）', () => {
   const light = dec(map.landSrc({ soft: '#E9E2D4' }));
   const dark = dec(map.landSrc({ soft: '#3A302A' }));
@@ -324,7 +325,7 @@ t('landSrc 缺参数不崩，回落暖米白', () => {
 t('routeSrc 少于两点返回空串（一个城市连不成线）', () => {
   ok(map.routeSrc([{ lng: 116, lat: 39 }]) === '', '单点仍出线');
   ok(map.routeSrc([]) === '' && map.routeSrc(null) === '', '空输入未拦住');
-  ok(map.routeSrc([{ lng: 116, lat: 39 }, { lng: 121, lat: 31 }]).startsWith('data:image/svg+xml,'), '两点未出线');
+  ok(map.routeSrc([{ lng: 116, lat: 39 }, { lng: 121, lat: 31 }]).startsWith('data:image/svg+xml;base64,'), '两点未出线');
 });
 t('routeSrc 丢掉脏点后不足两点就不画线（不能连到 (0,0) 去）', () => {
   ok(map.routeSrc([{ lng: 116, lat: 39 }, { lng: null, lat: 31 }]) === '', 'null 经度被当成了有效点');

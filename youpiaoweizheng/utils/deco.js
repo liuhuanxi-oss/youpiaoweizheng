@@ -7,7 +7,7 @@
 //   结果是真机上这 20 处图形**全是空白**，只剩底下的中文角标。
 //
 // 【为什么颜色要在 JS 里编译，不能继续用 var(--primary)】
-//   改成 <image src="data:image/svg+xml,..."> 之后，SVG 是一份**独立文档**，
+//   改成 <image src="data:image/svg+xml;base64,..."> 之后，SVG 是一份**独立文档**，
 //   页面的 CSS 变量不会继承进去，var() 一律失效、图形变黑或消失。
 //   所以这里在拼 SVG 时就把该主题的具体色值写进去 —— 这也是色彩能随
 //   主题切换的唯一办法（theme 页一次渲染 6 套主题，本来就各要一套实色）。
@@ -18,6 +18,8 @@
 //   deco.decoSrc('postmark', themeMeta) // → 装饰元素 data-uri
 //   themeMeta 直接传 utils/theme.js 里的 THEME_META 元素（含 bg/primary/accent…）
 // ============================================================
+
+const { toDataUri } = require('./svg.js');
 
 /**
  * 把 '#RRGGBB' / '#RGB' / 'rgba(r,g,b,a)' 解析成 {hex, a}
@@ -300,7 +302,7 @@ function avatarBody(c) {
 function toUri(viewBox, w, h, body) {
   const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='" + viewBox +
     "' width='" + w + "' height='" + h + "' fill='none'>" + body + '</svg>';
-  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+  return toDataUri(svg);
 }
 
 /**

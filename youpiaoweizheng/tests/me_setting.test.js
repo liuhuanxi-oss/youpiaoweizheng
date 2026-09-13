@@ -159,9 +159,10 @@ t('勋章墙真正渲染（computeBadges 不再只算不用）', () => {
   ok(/wx:for="\{\{badges\}\}"/.test(meWxml), 'me.wxml 未渲染 badges');
   ok(fs.existsSync(path.join(ROOT, 'utils/badges.js')), 'utils/badges.js 不存在');
 });
-t('隐私政策承诺的「我的-清除署名资料」真的点得到', () => {
+t('隐私政策承诺的「我的-清除昵称与头像」真的点得到', () => {
   const protocol = read('pages/protocol/protocol.js');
-  ok(/我的-清除署名资料/.test(protocol), '协议里这句话没了，这条断言要跟着改');
+  // 7.4.1：按钮文案由「清除署名资料」改成「清除昵称与头像」（前者是内部叫法，用户看不懂）
+  ok(/我的-清除昵称与头像/.test(protocol), '协议里这句话没了，这条断言要跟着改');
   ok(/bindtap="clearProfile"/.test(meWxml), '「我的」页没有这个入口 —— 协议承诺了做不到的事');
   ok(/pay\.clearProfile\(\)/.test(meJs), '按钮没接到数据层（云函数 profileClear 早就写好了）');
 });

@@ -304,7 +304,7 @@ Page({
    */
   clearProfile() {
     wx.showModal({
-      title: '清除署名资料',
+      title: '清除昵称与头像',
       content: '昵称与头像会从云端删除，票根卡上的落款一并取消。票根本身不受影响。',
       confirmText: '清除',
       confirmColor: '#C26B5E',

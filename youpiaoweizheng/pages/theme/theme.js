@@ -7,7 +7,7 @@
 //
 // 7.0.0 修：头像与装饰元素原先是**内联 <svg> 标签**，小程序 wxml 不渲染，
 //   真机上这 20 处图形全空白。现改为 utils/deco.js 在 JS 侧拼 SVG 实色 →
-//   encodeURIComponent → <image src="data:image/svg+xml,...">。
+//   base64 → <image src="data:image/svg+xml;base64,...">（见 utils/svg.js）。
 //   颜色不能再用 CSS 变量（<image> 载入的 SVG 是独立文档，继承不到页面变量），
 //   所以在 onLoad 时按每套主题的色板一次性编译好，随 cards 一起 setData。
 // ============================================================

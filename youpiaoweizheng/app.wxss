@@ -373,7 +373,7 @@ page {
   inset: 0;
   z-index: 999;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27160%27%20height%3D%27160%27%3E%3Cfilter%20id%3D%27n%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.6%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%270%200%200%200%200.55%20%200%200%200%200%200.55%20%200%200%200%200%200.55%20%201%200%200%200%200%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27160%27%20height%3D%27160%27%20filter%3D%27url%28%23n%29%27%20opacity%3D%270.85%27%2F%3E%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC42JyBudW1PY3RhdmVzPScyJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PGZlQ29sb3JNYXRyaXggdHlwZT0nbWF0cml4JyB2YWx1ZXM9JzAgMCAwIDAgMC41NSAgMCAwIDAgMCAwLjU1ICAwIDAgMCAwIDAuNTUgIDEgMCAwIDAgMCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJyBmaWx0ZXI9J3VybCgjbiknIG9wYWNpdHk9JzAuODUnLz48L3N2Zz4=");
   background-repeat: repeat;
   opacity: 0.05;
 }
@@ -756,16 +756,16 @@ page {
   right: 0;
   bottom: -10rpx;
   height: 12rpx;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M0 7 Q5 1 10 7 T20 7 T30 7 T40 7' fill='none' stroke='%23F26D8D' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PScxMicgdmlld0JveD0nMCAwIDQwIDEyJz48cGF0aCBkPSdNMCA3IFE1IDEgMTAgNyBUMjAgNyBUMzAgNyBUNDAgNycgZmlsbD0nbm9uZScgc3Ryb2tlPScjRjI2RDhEJyBzdHJva2Utd2lkdGg9JzIuNCcgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJy8+PC9zdmc+");
   background-repeat: repeat-x;
   background-size: 40rpx 12rpx;
   pointer-events: none;
 }
 .theme-blue .tk-underline::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M0 7 Q5 1 10 7 T20 7 T30 7 T40 7' fill='none' stroke='%234FA8E8' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PScxMicgdmlld0JveD0nMCAwIDQwIDEyJz48cGF0aCBkPSdNMCA3IFE1IDEgMTAgNyBUMjAgNyBUMzAgNyBUNDAgNycgZmlsbD0nbm9uZScgc3Ryb2tlPScjNEZBOEU4JyBzdHJva2Utd2lkdGg9JzIuNCcgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJy8+PC9zdmc+");
 }
 .theme-dream .tk-underline::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M0 7 Q5 1 10 7 T20 7 T30 7 T40 7' fill='none' stroke='%23A97FE0' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PScxMicgdmlld0JveD0nMCAwIDQwIDEyJz48cGF0aCBkPSdNMCA3IFE1IDEgMTAgNyBUMjAgNyBUMzAgNyBUNDAgNycgZmlsbD0nbm9uZScgc3Ryb2tlPScjQTk3RkUwJyBzdHJva2Utd2lkdGg9JzIuNCcgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJy8+PC9zdmc+");
 }
 
 /* 顶部 hero 氛围层：蓝天白云 → 主题底（规范里的"氛围"描述） */
@@ -1160,13 +1160,13 @@ page {
 /* 波浪销票线（SVG 平铺：暖褐细线） */
 .b-wave {
   height: 14rpx;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='14'%3E%3Cpath d='M0 7 Q4.5 1 9 7 T18 7 T27 7 T36 7' fill='none' stroke='%236B5B50' stroke-opacity='.45' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczNicgaGVpZ2h0PScxNCc+PHBhdGggZD0nTTAgNyBRNC41IDEgOSA3IFQxOCA3IFQyNyA3IFQzNiA3JyBmaWxsPSdub25lJyBzdHJva2U9JyM2QjVCNTAnIHN0cm9rZS1vcGFjaXR5PScuNDUnIHN0cm9rZS13aWR0aD0nMS42Jy8+PC9zdmc+");
   background-size: 36rpx 14rpx;
   background-repeat: repeat-x;
 }
 /* 灰玫粉波浪（图2 明信片款） */
 .b-wave.rose {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='14'%3E%3Cpath d='M0 7 Q4.5 1 9 7 T18 7 T27 7 T36 7' fill='none' stroke='%23D9A0A6' stroke-opacity='.55' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczNicgaGVpZ2h0PScxNCc+PHBhdGggZD0nTTAgNyBRNC41IDEgOSA3IFQxOCA3IFQyNyA3IFQzNiA3JyBmaWxsPSdub25lJyBzdHJva2U9JyNEOUEwQTYnIHN0cm9rZS1vcGFjaXR5PScuNTUnIHN0cm9rZS13aWR0aD0nMS42Jy8+PC9zdmc+");
 }
 
 /* 虚线路径（旅行足迹：虚线 + 可接定位点） */
