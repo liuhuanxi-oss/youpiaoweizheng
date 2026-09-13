@@ -1,9 +1,12 @@
 <!-- 票根卡：左右两列共用同一段模板（旧版把这段抄了两遍，改一处必漏一处） -->
 <template name="hcTicket">
   <view
-    class="hc-card"
+    class="hc-card pressable"
+    hover-class="press-item-hover"
     data-id="{{item.id}}"
+    data-title="{{item.title}}"
     bindtap="goDetail"
+    bindlongpress="onCardLong"
     aria-role="button"
     aria-label="查看票根 {{item.title}}"
   >
@@ -31,7 +34,8 @@
 
     <view class="hc-shot">
       <view class="hc-shot-frame">
-        <image wx:if="{{item.img}}" class="hc-shot-img" src="{{item.img}}" mode="aspectFill" lazy-load />
+        <!-- A1 近似共享元素：被点的那张照片放大淡出（.fly），详情页接住落位 -->
+        <image wx:if="{{item.img}}" class="hc-shot-img {{flyingId === item.id ? 'fly' : ''}}" src="{{item.img}}" mode="aspectFill" lazy-load />
         <image wx:else class="hc-shot-fb" src="{{item.ico}}" mode="aspectFit" aria-hidden="true" />
       </view>
       <!-- 照片角上那朵小白花与支出来的一枝绿叶（探出照片外，所以裁圆角的是内层 frame） -->
@@ -45,7 +49,7 @@
       <image class="hc-meta-ic" src="{{ic.pin}}" mode="aspectFit" aria-hidden="true" />
       <text class="hc-meta-t">{{item.city || '未记地点'}} · {{item.dateText}}</text>
       <view
-        class="hc-fav"
+        class="hc-fav pressable"
         catchtap="toggleFav"
         data-id="{{item.id}}"
         hover-class="press-hover"
@@ -58,7 +62,25 @@
   </view>
 </template>
 
-<view class="tk-page theme-{{theme}}">
+<!-- A8 新用户三步引导（拍一张 → AI 认字 → 上墙）。
+     挂在根节点外：根节点带 .fade-up，它的 transform 会让 fixed 后代跟着页面滚（见 app.wxss）。 -->
+<view class="guide-mask" wx:if="{{guide}}" catchtouchmove="noop" aria-role="dialog" aria-label="新手指引">
+  <view class="guide-card">
+    <view class="guide-badge">第 {{guide}} / 3 步</view>
+    <image class="guide-ic" src="{{guideIc}}" mode="aspectFit" aria-hidden="true" />
+    <view class="guide-t">{{guideTitle}}</view>
+    <view class="guide-s">{{guideDesc}}</view>
+    <view class="guide-dots">
+      <view class="guide-dot {{guide === item ? 'on' : ''}}" wx:for="{{[1,2,3]}}" wx:key="*this"></view>
+    </view>
+    <view class="guide-btn pressable" hover-class="press-hover" bindtap="guideNext"
+          aria-role="button" aria-label="{{guide >= 3 ? '去拍第一张' : '下一步'}}">{{guide >= 3 ? '去拍第一张' : '下一步'}}</view>
+    <view class="guide-skip pressable" hover-class="press-item-hover" bindtap="guideClose"
+          aria-role="button" aria-label="跳过引导">跳过</view>
+  </view>
+</view>
+
+<view class="tk-page theme-{{theme}} {{enter ? 'fade-up' : ''}}">
   <!-- 4.10.1 重装饰层：纸面噪点 -->
   <view class="grain"></view>
 
@@ -68,7 +90,7 @@
       <image class="hc-logo-img" src="/images/brand-logo.png" mode="aspectFit" aria-hidden="true" />
     </view>
     <text class="hc-brand serif">有票为证</text>
-    <view class="hc-user" bindtap="goProfile" hover-class="press-item-hover" aria-role="button" aria-label="个人中心">
+    <view class="hc-user pressable" bindtap="goProfile" hover-class="press-item-hover" aria-role="button" aria-label="个人中心">
       <image class="hc-user-ic" src="{{ic.brand}}" mode="aspectFit" aria-hidden="true" />
     </view>
   </view>
@@ -87,7 +109,7 @@
   </view>
 
   <!-- ============ 搜索 ============ -->
-  <view class="hc-search" bindtap="goSearch" hover-class="press-hover" aria-role="searchbox" aria-label="搜索票根">
+  <view class="hc-search pressable" bindtap="goSearch" hover-class="press-hover" aria-role="searchbox" aria-label="搜索票根">
     <image class="hc-search-ic" src="{{ic.search}}" mode="aspectFit" aria-hidden="true" />
     <text class="hc-search-ph">搜索演出、电影、城市...</text>
   </view>
@@ -95,7 +117,7 @@
   <!-- ============ 分类胶囊 ============ -->
   <view class="hc-chips">
     <view
-      class="hc-chip {{active === item.key ? 'on' : ''}}"
+      class="hc-chip pressable {{active === item.key ? 'on' : ''}}"
       wx:for="{{filters}}"
       wx:key="key"
       data-key="{{item.key}}"
@@ -107,6 +129,12 @@
       <image class="hc-chip-ic" src="{{active === item.key ? item.srcOn : item.srcOff}}" mode="aspectFit" aria-hidden="true" />
       <text class="hc-chip-t">{{item.name}}</text>
     </view>
+  </view>
+
+  <!-- ============ 云故障 / 超上限横幅（同 album 的 tm-net） ============ -->
+  <view wx:if="{{netBar}}" class="hc-net pressable" hover-class="press-item-hover" bindtap="onNetBarTap"
+        aria-role="button" aria-label="{{netBar.text}}">
+    <text class="hc-net-t">{{netBar.text}}</text>
   </view>
 
   <!-- ============ 票根墙：两列 ============ -->
@@ -151,3 +179,9 @@
 
   <view class="hc-foot-space"></view>
 </view>
+
+<!-- ============ A6 长按快捷菜单（7.3.0）============
+     长按任意票根卡 → 生成纪念卡片 / 分享给好友 / 删除。
+     show 由页面控制，删除成功后组件回抛 deleted，页面重取列表。 -->
+<ticket-menu show="{{menu}}" id="{{menuId}}" title="{{menuTitle}}"
+             bind:close="closeMenu" bind:deleted="onMenuDeleted" />

@@ -8,6 +8,9 @@ const { totalKmOf } = require('../../utils/geo.js');
 const themeUtil = require("../../utils/theme.js");
 const sk = require('../../utils/skeleton.js');
 const pay = require('../../utils/pay.js'); // 4.20.3：署名（昵称 → 报告尾款）
+const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
+const track = require('../../utils/track.js'); // 7.3.0 S1：朋友圈分享埋点
+const { iconSrc } = require('../../utils/icons.js');
 
 const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通' };
 
@@ -15,7 +18,14 @@ Page({
 
   onShow() {
     themeUtil.apply(this);
+    this.buildIc();
     this._loadSignature(); // 4.20.3：署名异步到货，晚到只补 setData（WXML 表达式自适应）
+  },
+
+  /** 错误态图标按当前主题编译（data-uri 里的颜色是编译时写死的） */
+  buildIc() {
+    const m = themeUtil.getThemeMeta(themeUtil.getTheme());
+    this.setData({ ic: { link: iconSrc('users', m.text, 0.28, 1.4) } });
   },
 
   /** 4.20.3 报告署名：有昵称 → 尾款带「昵称 · 时光有票为证」；无则保持品牌原样 */
@@ -28,6 +38,8 @@ Page({
   },
   data: {
     theme: "a", legacyTheme: "a",
+    // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡
+    sp: share.sp(),
     skeleton: false,
     demo: false,
     signature: '', // 4.20.3：报告尾款署名（昵称，截 10 字；空=品牌原样）
@@ -42,10 +54,13 @@ Page({
     together: 0,
     first: null,     // 最早一张
     last: null,      // 最近一张
-    error: ''
+    error: '',
+    bindNeeded: false, // 错误态分岔：没绑定（去绑定）vs 取数失败（重试）
+    ic: {}
   },
 
   onLoad() {
+    if (this.data.sp) return; // 单页模式：不读空数据（wxml 整页换成落地卡）
     this.load();
   },
 
@@ -55,7 +70,7 @@ Page({
     try {
       const c = await couple.queryCouple();
       if (!c || !c.boundAt) {
-        this.setData({ error: '尚未绑定双人空间' });
+        this.setData({ error: '尚未绑定双人空间', bindNeeded: true });
         return;
       }
       const m = await duoData.loadMerged(c);
@@ -101,7 +116,7 @@ Page({
         span, bars, cityTop, cityMore, km, together, first, last
       });
     } catch (e) {
-      this.setData({ error: String(e.message || e).slice(0, 60) });
+      this.setData({ error: String(e.message || e).slice(0, 60), bindNeeded: false });
     } finally {
       sk.end(this);
     }
@@ -109,11 +124,22 @@ Page({
 
   onShareAppMessage() {
     const { total, partnerName } = this.data;
-    return {
-      title: total
-        ? `我和${partnerName}一起收藏了 ${total} 张票根`
-        : '我们的时光报告 · 有票为证',
-      path: '/pages/duo/duo'
-    };
+    // 7.3.0 S2：文案与落地页走 share.js（双人场景；报告页本身没有邀请码，落地回双人空间）
+    return share.message('duo', { total, partnerName });
+  },
+
+  /** 7.3.0 S1：分享到朋友圈（朋友圈只能带 query、落地就是本页） */
+  onShareTimeline() {
+    const { total, partnerName } = this.data;
+    track.track('share_timeline', { from: 'report' });
+    return share.timeline('duo', { total, partnerName });
+  },
+
+  /** 错误态出路：没绑定去绑定，取数失败就重试（7.2.0 V10 空态规范） */
+  goDuo() {
+    wx.navigateTo({ url: '/pages/duo/duo' });
+  },
+  retry() {
+    this.load();
   }
 });

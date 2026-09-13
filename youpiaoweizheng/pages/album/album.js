@@ -16,7 +16,10 @@ const sk = require('../../utils/skeleton.js');
 const themeUtil = require('../../utils/theme.js');
 const { iconSrc } = require('../../utils/icons.js');
 const deco = require('../../utils/deco.js');
+const enter = require('../../utils/enter.js');
 const { todayMD, todaySign } = require('../../utils/date.js');
+const track = require('../../utils/track.js');   // 7.3.0 A6：长按菜单 + 分享埋点
+const share = require('../../utils/share.js');   // 7.3.0 A6：长按菜单里的「分享」要转发这一张
 
 const PEEK_AFTER = 3;      // 每个年份默认露出 3 张，其余折叠（点「还有 N 张」展开）
 const PM_R = 51;           // 邮戳城市名的弧半径（rpx），落在双圈之间的环带上（见 album.wxss）
@@ -115,6 +118,8 @@ function buildTimeMachine(all, isDemo) {
 Page({
   data: {
     theme: 'paper',
+    // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
+    enter: true,
     timeMachine: null,
     filters: [],
     activeFilter: 'all',
@@ -125,15 +130,17 @@ Page({
     // —— 下拉弹性（scroll-view refresher 状态机） ——
     refreshing: false,
     refreshText: '下拉翻册',
-    pullDeg: 0,
     hasTickets: false,
     pmR: PM_R,
     ic: {},           // 单色图标（主题色，buildArt 编译）
-    art: { tape: [], spot: [], wave: '', pm: {} }  // 胶带 / 点缀 / 排线 / 邮戳（图形层，buildArt 编译）
+    art: { tape: [], spot: [], wave: '', pm: {} }, // 胶带 / 点缀 / 排线 / 邮戳（图形层，buildArt 编译）
+    // A6 长按快捷菜单（7.3.0）：menuId/menuTitle 是「被长按的那一张」
+    menu: false, menuId: '', menuTitle: ''
   },
 
   onShow() {
     themeUtil.apply(this);
+    enter.replay(this);   // 切 tab 回来重播入场（tab 页常驻内存，动画不会自己重来）
     this.buildArt();
     // 同步自定义 tabBar 选中态（时光机 = 1）
     this.getTabBar() && this.getTabBar().setData({ selected: 1, theme: themeUtil.getTheme() });
@@ -180,18 +187,15 @@ Page({
 
   /** 下拉中：旋转角度跟随手指（60px 内一圈封顶），过阈值提示松手 */
   onPulling(e) {
+    // 7.2.0：原先还顺带算一个 pullDeg（下拉角度）喂给下拉头，但那个元素从来没被渲染出来，
+    // pullDeg 成了一条只进不出的状态 —— 连同为它写的「角度 >5° 才推送」节流一起删掉。
     const dy = (e && e.detail && e.detail.dy) || 0;
-    const deg = Math.round(Math.min(dy / 60, 1) * 360);
     const next = dy >= 60 ? '松手翻册' : '下拉翻册';
-    if (next !== this.data.refreshText) {
-      this.setData({ refreshText: next, pullDeg: deg });
-    } else if (Math.abs(deg - this.data.pullDeg) > 5) {
-      this.setData({ pullDeg: deg }); // 节流：角度变化 >5° 才推送
-    }
+    if (next !== this.data.refreshText) this.setData({ refreshText: next });
   },
 
   onRestore() {
-    this.setData({ refreshText: '下拉翻册', pullDeg: 0 });
+    this.setData({ refreshText: '下拉翻册' });
   },
 
   /** 拉全量票根 → 重算筛选胶囊 + 那年今日 + 按年分组 */
@@ -332,6 +336,32 @@ Page({
     const ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
     if (!ds.id) return;
     wx.navigateTo({ url: `/pages/detail/detail?id=${ds.id}` });
+  },
+
+  // ===== A6 长按快捷菜单（7.3.0）=====
+  /** 长按明信片 → 生成纪念卡片 / 分享给好友 / 删除（震一下是长按唯一的「握住了」反馈） */
+  onCardLong(e) {
+    const ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    if (!ds.id) return;
+    wx.vibrateShort({ type: 'light' });
+    track.track('menu_long', { from: 'album' });
+    this.setData({ menu: true, menuId: ds.id, menuTitle: ds.title || '' });
+  },
+
+  closeMenu() { this.setData({ menu: false }); },
+
+  /** 菜单里删掉了那张 → 重取列表（分组与折叠状态由 refresh 一并重算） */
+  onMenuDeleted() {
+    this.setData({ menu: false });
+    this.refresh();
+  },
+
+  /** 分享：菜单里点「分享给好友」时 target 是那个 button，带着被长按的那一张；
+   *  右上角菜单直接转发时没有 target → 走默认的「我的票根收藏册」。 */
+  onShareAppMessage(res) {
+    const ds = (res && res.target && res.target.dataset) || {};
+    track.track('share_click', { from: ds.id ? 'album_card' : 'album' });
+    return share.message('ticket', { id: ds.id, title: ds.title });
   },
 
   // 展开某个年份的折叠

@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "我们的时间线",
+  "enablePullDownRefresh": true,
   "usingComponents": {
     "animated-number": "/components/animated-number/index"
   }

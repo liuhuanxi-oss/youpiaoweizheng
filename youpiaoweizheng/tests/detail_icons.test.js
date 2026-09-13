@@ -84,7 +84,7 @@ t('iHeartOn 走了 solid 分支', () => ok(/iHeartOn:\s*iconSrc\([^)]*true\)/.te
 
 console.log('\n【五、WXSS 与 WXML 的类名对得上】');
 t('wxml 里的类名都在 wxss 里有定义（白名单放行全局公共类）', () => {
-  const GLOBAL = /^(tk-page|tk-safe-bottom|pressable|press-hover|card|b-tape|b-stamp|b-stamp-in|b-stamp-city|b-stamp-date|b-perf|b-serial|b-spark|b-dash-path|theme-|skeleton-bone|ad-cap)/;
+  const GLOBAL = /^(tk-page|tk-safe-bottom|pressable|press-hover|card|b-tape|b-stamp|b-stamp-in|b-stamp-city|b-stamp-date|b-perf|b-serial|b-spark|b-dash-path|theme-|skeleton-bone|ad-cap|fade-up)/;
   // 先剔掉 {{ ... }} 表达式再按空格切，否则 '{{imgLoaded ? 'ld' : ''}}' 会被切成 5 个垃圾类名
   const used = new Set([...wxmlClean.matchAll(/(?:^|\s)class="([^"]*)"/g)]
     .flatMap((m) => m[1].replace(/\{\{[\s\S]*?\}\}/g, ' ').split(/\s+/)).filter(Boolean));
@@ -104,9 +104,11 @@ t('新增的样式块都在（stamp-frame / rows / memo / btn-ic）', () => {
 
 console.log('\n【六、邮票框与照片的内外圆角必须匹配】');
 t('.dtc-img 圆角已收小（不再是大圆角裸图）', () => {
-  const img = wxss.slice(wxss.indexOf('.dtc-img {'), wxss.indexOf('.dtc-img.ld'));
-  const r = /border-radius:\s*(\d+)rpx/.exec(img);
-  ok(r && Number(r[1]) <= 8, '.dtc-img 圆角仍为 ' + (r && r[1]) + 'rpx，与外框 6rpx 不搭');
+  // A3 起圆角落在视差裁剪框 .dtc-par 上（照片被它 overflow:hidden 裁，自己不再需要圆角）
+  const par = wxss.slice(wxss.indexOf('.dtc-par {'), wxss.indexOf('.dtc-img {'));
+  const r = /border-radius:\s*(\d+)rpx/.exec(par);
+  ok(r && Number(r[1]) <= 8, '.dtc-par 圆角仍为 ' + (r && r[1]) + 'rpx，与外框 6rpx 不搭');
+  ok(/overflow:\s*hidden/.test(par), '.dtc-par 没裁剪照片，视差上移会露出框底');
 });
 t('.dtc-stamp-frame 有白边 + 齿孔两层', () => {
   ok(/\.dtc-stamp-frame\s*\{[\s\S]*?padding:\s*16rpx/.test(wxss), '白边不是 16rpx');
@@ -129,7 +131,8 @@ t('卡内三行是 时间/地点/票号', () => {
 console.log('\n【八、主题切换后图标会重编（不能只在 onLoad 编一次）】');
 t('onShow 里重新 buildIcons 并 setData', () => {
   const onShow = js.slice(js.indexOf('onShow()'), js.indexOf('onUnload()'));
-  ok(/buildIcons\(themeUtil\.getTheme\(\)\)/.test(onShow), 'onShow 未重编图标');
+  ok(/themeUtil\.getTheme\(\)/.test(onShow), 'onShow 没取当前主题');
+  ok(/buildIcons\(/.test(onShow), 'onShow 未重编图标');
   ok(/this\.setData\(\{\s*icons:/.test(onShow), 'onShow 未 setData icons');
 });
 

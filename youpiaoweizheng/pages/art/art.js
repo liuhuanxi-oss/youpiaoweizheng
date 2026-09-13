@@ -10,6 +10,7 @@
 const store = require('../../utils/store.js');
 const themeUtil = require('../../utils/theme.js');
 const track = require('../../utils/track.js'); // 4.19.0：图版埋点（art_generate/art_save）
+const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const { USE_CLOUD } = require('../../utils/env.js');
 const pay = require('../../utils/pay.js'); // 4.20.0：额度查询 + 次数包购买
 const ads = require('../../utils/ads.js'); // 4.21.0：激励视频（流量主变现：看视频免费补 1 幅）
@@ -56,6 +57,8 @@ function ymNow() {
 Page({
   data: {
     theme: 'a', legacyTheme: 'a',
+    // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡
+    sp: share.sp(),
     phase: 'loading', // loading | lost | empty | idle | running | done | failed
     t: null,
     quotaLeft: FREE_PER_MONTH,
@@ -124,6 +127,7 @@ Page({
   },
 
   async onLoad(options) {
+    if (this.data.sp) return; // 单页模式：不白跑一趟注定读不到的云库（wxml 整页换成落地卡）
     const id = (options && options.id) || '';
     let t = null;
     try { t = await store.getTicket(id); } catch (e) { /* 走 lost */ }
@@ -307,6 +311,7 @@ Page({
       return;
     }
     this.setData({ paywall: true });
+    track.track('paywall_show', { left: this.data.quotaLeft });
     this._checkReward();
   },
 
@@ -598,9 +603,14 @@ Page({
 
   onShareAppMessage() {
     const t = this.data.t;
-    return {
-      title: t ? `我收藏的「${t.title}」有了自己的藏品图版` : '票根博物志 · 有票为证',
-      path: t ? `/pages/detail/detail?id=${t.id}` : '/pages/album/album'
-    };
+    // 7.3.0 S2：文案与落地页走 share.js（标题带票名与口号，path 带邀请码）
+    return share.message('ticket', { title: t && t.title, id: t && t.id });
+  },
+
+  /** 7.3.0 S1：分享到朋友圈（朋友圈只能带 query、落地就是本页） */
+  onShareTimeline() {
+    const t = this.data.t;
+    track.track('share_timeline', { from: 'art' });
+    return share.timeline('ticket', { title: t && t.title, id: t && t.id });
   }
 });

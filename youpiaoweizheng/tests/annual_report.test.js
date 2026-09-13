@@ -240,7 +240,9 @@ t('画布吃不下的 cloud:// 文件 ID 先换临时链接（否则四张照片
 t('转发：onShareAppMessage 仍在，且带上海报图（稿里没有转发按钮，走右上角胶囊菜单）', () => {
   ok(/onShareAppMessage\(\)/.test(jsClean), '转发没了');
   ok(/track\.track\('annual_share'/.test(jsClean), 'annual_share 埋点没了');
-  ok(/payload\.promise/.test(jsClean), '转发不带海报图');
+  // 7.3.0 S2：文案改由 share.js 出，但海报图仍是本页画布导出后以 promise 交过去
+  ok(/canvasToTempFilePath/.test(jsClean), '没有从画布导出海报图');
+  ok(/share\.message\('annual'[\s\S]{0,80}\{\s*promise\s*\}/.test(jsClean), '画布导出的图没交给 share.js');
 });
 t('署名（昵称 → 海报落款）与「重新生成」都还在', () => {
   ok(/_loadSignature\(\)/.test(jsClean), '署名没了');

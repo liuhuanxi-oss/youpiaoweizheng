@@ -67,7 +67,10 @@ console.log('\n【三、类名与样式对得上】');
     const GLOBAL = /^(tk-|press|card$|b-|theme-|skeleton-|ad-)/;
     const used = new Set([...w.matchAll(/(?:^|\s)class="([^"]*)"/g)]
       .flatMap((m) => m[1].replace(/\{\{[\s\S]*?\}\}/g, ' ').split(/\s+/)).filter(Boolean));
-    const def = new Set([...s.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+    // 本页 wxss + app.wxss 一起算「有定义」—— 每往 app.wxss 加一个全局类
+    // 就得回来改一遍上面那串 GLOBAL 正则，早晚会漏（.refresher 就是这么漏的）
+    const def = new Set([...read('app.wxss').matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+    [...s.matchAll(/\.([a-zA-Z][\w-]*)/g)].forEach((m) => def.add(m[1]));
     const miss = [...used].filter((u) => !def.has(u) && !GLOBAL.test(u));
     ok(miss.length === 0, '缺：' + miss.join(', '));
   });
@@ -79,16 +82,26 @@ console.log('\n【三、类名与样式对得上】');
   });
 });
 
-console.log('\n【四、稿屏11 的关键结构】');
-t('「我的」页只剩 5 个功能入口', () => {
+console.log('\n【四、我的页：留存中心（7.2.0 L1 重整后的版面）】');
+t('功能入口只剩 2 个，且都是没有别的入口的二级页', () => {
   // 只看 ENTRIES 字面量到 _route 之间，避免把 _route 里的 key 判断也算进来
   const entries = meJs.slice(meJs.indexOf('const ENTRIES'), meJs.indexOf('/**', meJs.indexOf('const ENTRIES')));
-  const n = (entries.match(/key: '(collection|album|discover|annual|setting)'/g) || []).length;
-  ok(n === 5, '入口数不是 5：' + n);
+  const n = (entries.match(/key: '(duo|annual)'/g) || []).length;
+  ok(n === 2, '入口数不是 2：' + n);
+  // 收藏夹/时光机/回忆地图 是底部 tab，在「我的」里再摆一遍等于占着最贵的位置给零信息
+  ['collection', 'album', 'discover'].forEach((k) => {
+    ok(!new RegExp("key: '" + k + "'").test(entries), `「${k}」是 tab 页，不该再占一个功能卡`);
+  });
 });
-t('入口顺序与设计稿一致', () => {
-  const names = [...meJs.matchAll(/name: '([^']+)'/g)].map((m) => m[1]).slice(0, 5);
-  ok(JSON.stringify(names) === JSON.stringify(['我的收藏夹', '时光机', '回忆地图', '数据统计', '设置']), '实际：' + names.join('/'));
+t('入口顺序与文案', () => {
+  const names = [...meJs.matchAll(/name: '([^']+)'/g)].map((m) => m[1]).slice(0, 2);
+  ok(JSON.stringify(names) === JSON.stringify(['双人空间', '年度报告']), '实际：' + names.join('/'));
+});
+t('勋章与额度已从设置页搬到「我的」（荣誉摆在前面才看得见）', () => {
+  ok(/wx:for="\{\{badges\}\}"/.test(meWxml), '「我的」没有渲染 badges');
+  ok(/wx:if="\{\{quotaLeftNum >= 0\}\}"/.test(meWxml), '「我的」没有额度卡');
+  ok(/refreshQuota/.test(meJs), 'me.js 没有取额度');
+  ok(!/computeBadges|refreshQuota|quotaLeftNum/.test(stJs), '设置页仍留着勋章/额度 —— 两头各一份，改一处必漏一处');
 });
 t('统计卡三列标签与设计稿一致', () => {
   const labels = [...meWxml.matchAll(/class="me-stat-l">([^<]+)</g)].map((m) => m[1]);
@@ -115,7 +128,11 @@ t('me.js 在 onShow 里重建图标与装饰', () => {
   ok(/themeUtil\.apply\(this\)/.test(onShow), 'onShow 未 apply 主题');
 });
 t('setting.js 在 onShow 里重建图标', () => {
-  const onShow = stJs.slice(stJs.indexOf('onShow()'), stJs.indexOf('refreshBadges()'));
+  // 边界取「下一个方法定义」而不是某个具体方法名：那个方法名一改，切片就退化成整个文件，断言白写
+  const start = stJs.indexOf('onShow()');
+  const next = stJs.indexOf('\n  goTheme()');
+  ok(start > -1 && next > start, '找不到 onShow 的边界');
+  const onShow = stJs.slice(start, next);
   ok(/iconSrc\('chevron'/.test(onShow), 'onShow 未重编 chevron');
   ok(/themeUtil\.apply\(this\)/.test(onShow), 'onShow 未 apply 主题');
 });
@@ -138,13 +155,29 @@ t('旧「我的」页的死 toast 入口已迁走（goSetting 现在是真跳转
   ok(/pages\/setting\/setting/.test(meJs), 'me.js 未跳设置页');
 });
 t('勋章墙真正渲染（computeBadges 不再只算不用）', () => {
-  ok(/computeBadges/.test(stJs), 'setting.js 未调用 computeBadges');
-  ok(/wx:for="\{\{badges\}\}"/.test(stWxml), 'setting.wxml 未渲染 badges');
+  ok(/computeBadges/.test(meJs), 'me.js 未调用 computeBadges');
+  ok(/wx:for="\{\{badges\}\}"/.test(meWxml), 'me.wxml 未渲染 badges');
   ok(fs.existsSync(path.join(ROOT, 'utils/badges.js')), 'utils/badges.js 不存在');
 });
-t('me.js 里不再残留勋章计算（已整体迁出）', () => {
-  ok(!/computeBadges/.test(meJs), 'me.js 仍在算勋章');
-  ok(!/LS_SHARE/.test(meJs), 'me.js 仍读分享计数');
+t('隐私政策承诺的「我的-清除署名资料」真的点得到', () => {
+  const protocol = read('pages/protocol/protocol.js');
+  ok(/我的-清除署名资料/.test(protocol), '协议里这句话没了，这条断言要跟着改');
+  ok(/bindtap="clearProfile"/.test(meWxml), '「我的」页没有这个入口 —— 协议承诺了做不到的事');
+  ok(/pay\.clearProfile\(\)/.test(meJs), '按钮没接到数据层（云函数 profileClear 早就写好了）');
+});
+
+t('勋章只在「我的」算一次（设置页不再残留）', () => {
+  ok(!/computeBadges/.test(stJs), 'setting.js 仍在算勋章');
+  ok(!/LS_SHARE/.test(stJs), 'setting.js 仍读分享计数');
+});
+t('设置页只剩真正的设置：协议 / 关于 / 清除', () => {
+  ok(!/listTickets/.test(stJs), 'setting.js 还在拉票根列表 —— 那说明有内容没迁走');
+  const rows = /const ROWS = \[([\s\S]*?)\n\];/.exec(stJs);
+  ok(rows, '找不到 ROWS');
+  const keys = [...rows[1].matchAll(/key: '(\w+)'/g)].map((m) => m[1]);
+  ok(JSON.stringify(keys) === JSON.stringify(['privacy', 'terms', 'about', 'clear']), '实际：' + keys.join('/'));
+  // 这两个曾经是「点了一直弹『开发中』」的死入口，已随 L1/L2 清掉
+  ok(!/回收站/.test(stJs), '回收站入口仍在（功能没做，只留一句「开发中」）');
 });
 
 console.log('\n【七、全仓库：JS 里引用的图标名必须都存在】');

@@ -37,6 +37,11 @@ page { background: var(--bg, #FAF5EE); }
 }
 
 /* ═══ ① 品牌行：玫瑰票根标 + 有票为证 + No.年份 标签 + 注销波浪 ═══ */
+/* ═══ ⓪ 云故障 / 超上限横幅（视觉同 album 的 .tm-net） ═══
+   本类不写 transition：让全局 .pressable 的按压回弹原样生效（页面级同名属性会盖掉它） */
+.an-net { margin: 12rpx 40rpx 0; padding: 16rpx 24rpx; background: var(--soft, #E9E2D4); border-radius: 18rpx; }
+.an-net-t { font-size: 23rpx; color: var(--text2, #8A7B66); line-height: 1.5; }
+
 .an-brand {
   position: relative;
   display: flex;

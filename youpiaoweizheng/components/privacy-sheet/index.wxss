@@ -3,7 +3,7 @@
   text-align: center;
   padding: 8rpx 10rpx 24rpx;
 }
-.pv-ico { font-size: 56rpx; }
+.pv-ico { width: 92rpx; height: 92rpx; display: block; margin: 0 auto; }
 .pv-t { font-size: 30rpx; margin-top: 14rpx; letter-spacing: 2rpx; }
 .pv-s {
   font-size: 23rpx;

@@ -1,8 +1,24 @@
-<!-- pages/me/me.wxml —— 我的（品牌全案 · 稿屏11 一比一）
-     结构：品牌行 → hero（水彩头像 + 手写标题 + 波浪下划线）→ 票根造型统计卡 → 5 张独立功能卡
+<!-- pages/me/me.wxml —— 我的 · 留存中心（品牌全案 · 稿屏11，7.2.0 L1 重整）
+     结构：品牌行 → hero（水彩头像 + 手写标题 + 波浪下划线）→ 票根造型统计卡
+           → AI 重绘额度 → 勋章横滑 → 2 张独立功能卡
      所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 me.js 按当前主题编译成实色。 -->
-<scroll-view class="tk-page theme-{{theme}} me-page" scroll-y enhanced show-scrollbar="{{false}}">
+<!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
+<import src="/templates/sp.wxml" />
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这是别人的票根收藏册'}}" /></block>
+
+<scroll-view wx:if="{{!sp}}"
+             class="tk-page theme-{{theme}} me-page {{enter ? 'fade-up' : ''}}"
+             scroll-y enhanced show-scrollbar="{{false}}"
+             refresher-enabled="{{true}}"
+             refresher-default-style="none"
+             refresher-background="transparent"
+             refresher-threshold="{{60}}"
+             refresher-max-drag-rate="{{0.5}}"
+             refresher-triggered="{{refreshing}}"
+             bindrefresherrefresh="onRefresh"
+             bindrefresherpulling="onPulling"
+             bindrefresherrestore="onRestore">
 
   <!-- ① 顶部品牌行：logo + 名称 + 齿轮（齿轮 = 设置页入口，稿屏11 右上角） -->
   <view class="me-brand">
@@ -61,6 +77,12 @@
     <image class="me-hero-sprig" src="{{deco.sprig}}" mode="aspectFit" aria-hidden="true" />
   </view>
 
+  <!-- 4.20.3 清除署名资料：隐私政策承诺的入口，此前只有云函数没有按钮。
+       没设过昵称头像时不出现（没东西可清除时摆一个按钮只会让人误点）。 -->
+  <view class="me-clear pressable" wx:if="{{profile.nickname || profile.avatar}}"
+        hover-class="press-item-hover" bindtap="clearProfile"
+        aria-role="button" aria-label="清除昵称与头像">清除署名资料</view>
+
   <!-- ③ 统计卡：票根造型（左右齿孔 + 米白纸面），三列各是 图标+标签 / 大数字 / 单位 -->
   <view class="me-stat-card">
     <view class="me-stat">
@@ -70,7 +92,10 @@
       </view>
       <view class="me-stat-figure">
         <view class="me-blob me-blob-rose"></view>
-        <text class="me-stat-n">{{stats.total}}</text>
+        <!-- 数字滚动：与 report/timeline 同一套语言。
+             ⚠️ 样式挂在组件标签上（= 宿主节点），不要往里塞 <text> 包一层 ——
+                组件内部那句 <text class="an"> 的字号/颜色是从宿主继承的。 -->
+        <animated-number class="me-stat-n" value="{{stats.total}}" />
       </view>
       <text class="me-stat-u">张</text>
     </view>
@@ -82,7 +107,7 @@
       </view>
       <view class="me-stat-figure">
         <view class="me-blob me-blob-sage"></view>
-        <text class="me-stat-n">{{stats.cities}}</text>
+        <animated-number class="me-stat-n" value="{{stats.cities}}" />
       </view>
       <text class="me-stat-u">座</text>
     </view>
@@ -94,13 +119,39 @@
       </view>
       <view class="me-stat-figure">
         <view class="me-blob me-blob-butter"></view>
-        <text class="me-stat-n">{{stats.shows}}</text>
+        <animated-number class="me-stat-n" value="{{stats.shows}}" />
       </view>
       <text class="me-stat-u">段</text>
     </view>
   </view>
 
-  <!-- ④ 5 张独立功能卡（稿屏11）：水彩圆底图标 + 名称 + 手绘装饰 + 细线箭头 -->
+  <!-- ④ AI 重绘额度（7.2.0 L2：从设置页迁来；取不到服务端额度时整块不渲染） -->
+  <view class="me-quota card" wx:if="{{quotaLeftNum >= 0}}">
+    <view class="me-quota-head">
+      <text class="me-quota-t">AI 重绘额度</text>
+      <text class="me-quota-n"><text class="me-quota-num">{{quotaLeftNum}}</text> 次可用</text>
+    </view>
+    <view class="me-quota-bar">
+      <view class="me-quota-fill" style="width: {{quotaPct}}%;"></view>
+    </view>
+    <view class="me-quota-label">{{quotaLabel}}</view>
+  </view>
+
+  <!-- ⑤ 勋章横滑（7.2.0 L1：从设置页搬到最前面来——勋章是攒出来的荣誉，藏进设置等于白攒） -->
+  <view class="me-badges" wx:if="{{badges.length}}">
+    <view class="me-badges-head">
+      <text class="me-badges-t">我的勋章</text>
+      <text class="me-badges-c">已点亮 {{unlocked}} / {{badges.length}}</text>
+    </view>
+    <scroll-view class="me-badges-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="me-badge {{item.unlocked ? 'on' : ''}}" wx:for="{{badges}}" wx:key="id">
+        <image class="me-badge-ic" src="{{item.src}}" mode="aspectFit" aria-hidden="true" />
+        <text class="me-badge-name">{{item.name}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ⑥ 独立功能卡：水彩圆底图标 + 名称 + 手绘装饰 + 细线箭头 -->
   <view class="me-entries">
     <view
       class="me-entry pressable"
@@ -122,8 +173,13 @@
     </view>
   </view>
 
-  <view class="me-icp" bindtap="copyIcp" aria-role="button" aria-label="复制ICP备案号">粤ICP备20010271号-11X</view>
+  <view class="me-icp pressable" hover-class="press-item-hover" bindtap="copyIcp" aria-role="button" aria-label="复制ICP备案号">粤ICP备20010271号-11X</view>
   <view class="tk-safe-bottom"></view>
+
+  <!-- ===== 自定义下拉头（.refresher / .rf-text 见 app.wxss） ===== -->
+  <view slot="refresher" class="refresher">
+    <text class="rf-text">{{refreshText}}</text>
+  </view>
 </scroll-view>
 
 <!-- M5 隐私授权弹窗（me 页 chooseAvatar/nickname 走官方授权弹层） -->

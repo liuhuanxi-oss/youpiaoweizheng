@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": " "
+  "navigationBarTitleText": " ",
+  "usingComponents": {
+    "ticket-menu": "/components/ticket-menu/index"
+  }
 }

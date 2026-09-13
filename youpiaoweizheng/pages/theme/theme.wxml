@@ -37,7 +37,8 @@
       <!-- ② 主题名 + 气质 -->
       <view class="th-name-row">
         <text class="tk-h2 th-name" style="color: {{item.primary}};">{{item.name}}</text>
-        <text class="th-check" wx:if="{{preview === item.key}}" style="background: {{item.primary}};">✓</text>
+        <image class="th-check" wx:if="{{preview === item.key}}" style="background: {{item.primary}};"
+               src="{{ic.check}}" mode="aspectFit" aria-hidden="true" />
       </view>
       <view class="tk-cap th-tagline">{{item.tagline}}</view>
       <view class="tk-body th-desc">{{item.desc}}</view>
@@ -78,7 +79,7 @@
 
 <!-- ===== 底部操作条（固定）：还原 / 应用 ===== -->
 <view class="th-bar theme-{{preview}}">
-  <view class="th-bar-reset tk-pill" wx:if="{{preview !== theme}}" bindtap="onReset" hover-class="press-hover" aria-role="button" aria-label="放弃预览">还原</view>
+  <view class="th-bar-reset tk-pill pressable" wx:if="{{preview !== theme}}" bindtap="onReset" hover-class="press-hover" aria-role="button" aria-label="放弃预览">还原</view>
   <view class="tk-btn th-bar-apply {{preview === theme ? 'is-cur' : ''}}" bindtap="onApply" hover-class="tk-btn-hover" aria-role="button" aria-label="应用此主题">
     {{preview === theme ? '当前已应用' : '应用此主题'}}
   </view>

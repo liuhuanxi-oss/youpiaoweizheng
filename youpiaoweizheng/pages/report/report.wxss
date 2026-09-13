@@ -157,7 +157,7 @@ page { background: var(--bg, var(--paper)); }
   border: var(--card-border, none);
   box-shadow: var(--card-shadow, 0 6rpx 20rpx rgba(var(--text-rgb), 0.07));
 }
-.e-icon { font-size: 60rpx; }
+.e-ic { width: 96rpx; height: 96rpx; }
 .e-t { font-size: 30rpx; margin-top: 18rpx; }
 .e-s { font-size: 22rpx; color: var(--text2); margin-top: 10rpx; }
 

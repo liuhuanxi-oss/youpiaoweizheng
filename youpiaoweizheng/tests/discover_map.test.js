@@ -292,8 +292,13 @@ t('点气泡 → 升起面板 → 点票根进详情', () => {
 });
 t('面板可关闭，且遮罩点一下就收', () => {
   ok(/closeSheet/.test(wxmlClean) && /closeSheet\(\)/.test(js), '未实现关闭');
-  ok(/class="dc-mask"[^>]*bindtap="closeSheet"/.test(wxmlClean), '遮罩未绑关闭');
-  ok(/dc-sheet \{\{picked \? 'on' : ''\}\}/.test(wxmlClean), '面板无升起态');
+  // 容器走全局 bottom-sheet（遮罩 200ms / 面板 300ms / 防穿透一处维护），
+  // 本页不再自己写遮罩与升起动画
+  ok(/<bottom-sheet[^>]*show="\{\{!!picked\}\}"[^>]*bind:close="closeSheet"/.test(wxmlClean),
+    '面板未接全局 bottom-sheet，或未绑 close');
+  const cfg = JSON.parse(read('pages/discover/discover.json'));
+  ok(cfg.usingComponents && cfg.usingComponents['bottom-sheet'], 'json 未注册 bottom-sheet 组件');
+  ok(!/dc-mask|dc-sheet-bar/.test(wxmlClean + wxss), '仍留着自绘遮罩/手柄，两套容器会打架');
 });
 t('城市票根按日期倒序（最近的在最上面）', () => {
   ok(/list:\s*e\.list\.slice\(\)\.sort\(\(a, b\) => String\(b\.date/.test(js), '未倒序');
@@ -336,6 +341,41 @@ t('stampSrc 的齿孔骑在白边线上（圆心落在边线上才是咬口）',
   const s = dec(map.stampSrc('#F5F0E6'));
   ok(/cy='0'/.test(s), '上边缘的孔心不在边线上，会变成一排圆点');
   ok(s.includes('#F5F0E6'), '齿孔未用传入的卡片色');
+});
+
+console.log('\n【十、三态：空 / 加载 / 失败 —— 三者必须分得开】');
+t('空态在加载中与失败时都不许出现', () => {
+  const gate = /wx:if="\{\{([^}]*!total[^}]*)\}\}"[\s\S]{0,120}?dc-empty/.exec(wxmlClean);
+  ok(gate, '找不到空态那一块');
+  ok(/!loading/.test(gate[1]), '空态没排除 loading：加载期间会闪一下「还没有足迹」');
+  ok(/!error/.test(gate[1]), '空态没排除 error：拉取失败会被说成「你没有票根」——用户会以为攒的票根丢了');
+});
+t('失败态是独立分支，说「没取到」并给重试入口', () => {
+  ok(/wx:elif="\{\{error\}\}"/.test(wxmlClean), '失败态不是独立分支，会落进空态');
+  ok(/没取回来/.test(wxmlClean), '失败态没说清是「没取到」');
+  ok(/class="dc-empty-btn[^"]*"[\s\S]{0,160}?bindtap="refresh"/.test(wxmlClean), '失败态没有重试入口');
+});
+t('失败路径确实立 error 标（只在 wxml 里判 error、js 不置位，等于永远不显示）', () => {
+  // 必须先在 refresh() 自己的方法体里找——本文件另有一处单行
+  // `catch (e) { /* 忽略 */ }`（setStorageSync），按 catch 逐个匹配会先撞上它
+  const body = /async refresh\(\)\s*\{([\s\S]*?)\n  \},/.exec(js);
+  ok(body, '找不到 refresh() 方法体');
+  ok(/catch\s*\(\s*\w+\s*\)\s*\{[\s\S]*?error:\s*true/.test(body[1]),
+    'refresh 的失败分支没有置 error:true，重试块永远不会出现');
+});
+t('重试时 loading 与 error 同时置位（只清 error 会闪一下假空态）', () => {
+  ok(/setData\(\{\s*loading:\s*true\s*,\s*error:\s*false\s*\}\)/.test(js),
+    '重试时没把 loading 一起立起来：error 清掉的那一瞬，total 还是 0，刚好命中空态条件');
+});
+t('骨架接公共时序 utils/skeleton.js（300ms 防闪），不是页内自己写定时器', () => {
+  ok(/require\(['"][^'"]*utils\/skeleton\.js['"]\)/.test(js), '没引 skeleton.js');
+  ok(/sk\.start\(this\)/.test(js) && /sk\.end\(this\)/.test(js), 'start/end 没配对');
+  ok(/wx:if="\{\{skeleton\}\}"/.test(wxmlClean), 'wxml 里没有 skeleton 分支');
+});
+t('「已走过 N 座城市」在加载中/失败时不显示（那是一句数据断言，此刻并不成立）', () => {
+  const f = /<view class="dc-foot"([^>]*)>/.exec(wxmlClean);
+  ok(f, '找不到底部署名');
+  ok(/wx:if="\{\{!loading && !error\}\}"/.test(f[1]), '底部署名会在加载中或失败时报「已走过 0 座城市」');
 });
 
 console.log('\n──────────────────────────────');

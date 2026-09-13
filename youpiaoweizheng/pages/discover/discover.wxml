@@ -2,7 +2,7 @@
      结构：标题（星点 + 手写体 + 玫瑰笔触）→ 水彩地图卡（邮票/花枝/星点 + 城市气泡）→ 已走过 N 城
      所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 discover.js 按当前主题编译成实色。 -->
-<scroll-view class="tk-page theme-{{theme}} dc-page" scroll-y enhanced show-scrollbar="{{false}}"
+<scroll-view class="tk-page theme-{{theme}} dc-page {{enter ? 'fade-up' : ''}}" scroll-y enhanced show-scrollbar="{{false}}"
              refresher-enabled bindrefresherrefresh="onPullDownRefresh">
 
   <!-- ① 标题行：左侧星点 + 「回忆地图」手写体 + 玫瑰笔触，右侧品牌标 -->
@@ -17,6 +17,13 @@
       <image class="dc-brand-logo" src="/images/brand-logo.png" mode="aspectFit" aria-hidden="true" />
       <text class="dc-brand-name">有票为证</text>
     </view>
+  </view>
+
+  <!-- ①' 云故障 / 超上限横幅（同 album 的 tm-net）。
+       失败时地图上画的会是演示城市，不说明白等于替用户编了一段没走过的旅程 -->
+  <view wx:if="{{netBar}}" class="dc-net pressable" hover-class="press-item-hover" bindtap="onNetBarTap"
+        aria-role="button" aria-label="{{netBar.text}}">
+    <text class="dc-net-t">{{netBar.text}}</text>
   </view>
 
   <!-- ② 地图卡：虚线内框的水彩纸，四角点缀邮票与花枝 -->
@@ -61,6 +68,15 @@
         <image wx:else class="dc-layer" src="{{land}}" mode="scaleToFill" aria-hidden="true" />
         <image wx:if="{{view !== 'real' && route}}" class="dc-layer" src="{{route}}" mode="scaleToFill" aria-hidden="true" />
 
+        <!-- 加载中：气泡位置的呼吸骨料（300ms 后才会亮，见 utils/skeleton.js）。
+             水彩陆地是装饰、立即就绪，照常显示；只有「数据算出来的点」需要占位 -->
+        <view wx:if="{{skeleton}}" class="dc-sk" aria-hidden="true">
+          <view class="dc-sk-b" style="left:58%; top:26%;"></view>
+          <view class="dc-sk-b" style="left:36%; top:44%;"></view>
+          <view class="dc-sk-b" style="left:70%; top:56%;"></view>
+          <view class="dc-sk-b" style="left:48%; top:68%;"></view>
+        </view>
+
         <view wx:if="{{view !== 'real'}}" wx:for="{{cities}}" wx:key="city" class="dc-city" style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
 
           <!-- 连接杆：气泡被顶开时才有长度，平时被尾巴盖住看不见 -->
@@ -81,8 +97,9 @@
         </view>
       </view>
 
-      <!-- 底部署名：已走过 N 座城市 · M 段时光 -->
-      <view class="dc-foot">
+      <!-- 底部署名：已走过 N 座城市 · M 段时光。
+           加载中/失败时不显示——「已走过 0 座城市」是一句数据断言，此刻并不成立 -->
+      <view class="dc-foot" wx:if="{{!loading && !error}}">
         <view class="dc-foot-rule"></view>
         <image class="dc-foot-spark" src="{{ic.sparkSm}}" mode="aspectFit" aria-hidden="true" />
         <text class="dc-foot-txt">已走过 {{cityCount}} 座城市 · {{total}} 段时光</text>
@@ -92,12 +109,25 @@
     </view>
   </view>
 
-  <!-- ③ 空态：一张票都没有时不画气泡，只留一句话 -->
-  <view wx:if="{{!total}}" class="dc-empty pressable" hover-class="press-item-hover" bindtap="goHome"
+  <!-- ③ 空态：确实一张票都没有时才说这句话（loading 期间与失败时都不许落到这里） -->
+  <view wx:if="{{!loading && !error && !total}}" class="dc-empty pressable" hover-class="press-item-hover" bindtap="goHome"
         aria-role="button" aria-label="去收第一张票根">
     <image class="dc-empty-ic" src="{{ic.empty}}" mode="aspectFit" aria-hidden="true" />
     <text class="dc-empty-t">还没有足迹</text>
     <text class="dc-empty-s">收进第一张票根，地图就开始点亮</text>
+    <!-- 按钮只是把出路画出来（整块本就可点，点击在这里冒泡到外层 goHome），
+         故标 aria-hidden：读屏已经在外层念过同一件事，别念两遍 -->
+    <view class="dc-empty-btn" aria-hidden="true">收进第一张</view>
+  </view>
+
+  <!-- ③' 失败态：长得像空态是这里最要命的错——用户会以为自己攒的票根没了。
+       空态说「你没有」，失败态必须说「我们没取到」（重试写法同 annual.wxml） -->
+  <view wx:elif="{{error}}" class="dc-empty">
+    <image class="dc-empty-ic" src="{{ic.refresh}}" mode="aspectFit" aria-hidden="true" />
+    <text class="dc-empty-t">地图没取回来</text>
+    <text class="dc-empty-s">网络好像不太顺，点下面重试</text>
+    <view class="dc-empty-btn pressable" hover-class="press-hover" bindtap="refresh"
+          aria-role="button" aria-label="重新拉取">重试</view>
   </view>
 
   <!-- ④ 缺坐标提示：旧数据没有经纬度就落不了点，说清楚，别让票根凭空消失 -->
@@ -106,10 +136,10 @@
   <view class="tk-safe-bottom"></view>
 </scroll-view>
 
-<!-- ⑤ 城市票根面板：点气泡从底部升起（稿屏7 已删掉时间轴列表，改由这里看某座城的票） -->
-<view wx:if="{{picked}}" class="dc-mask" bindtap="closeSheet" aria-role="button" aria-label="收起"></view>
-<view class="dc-sheet {{picked ? 'on' : ''}}" catchtap="noop">
-  <view class="dc-sheet-bar"></view>
+<!-- ⑤ 城市票根面板：点气泡从底部升起（稿屏7 已删掉时间轴列表，改由这里看某座城的票）。
+     动效与防穿透走全局 bottom-sheet（遮罩 200ms / 面板 300ms 滑入）——
+     本页原先自己写了一套（0.28s + 自己画的遮罩），与别的页口径不一致 -->
+<bottom-sheet show="{{!!picked}}" bind:close="closeSheet">
   <view class="dc-sheet-head">
     <image class="dc-sheet-pin" src="{{ic.pin}}" mode="aspectFit" aria-hidden="true" />
     <text class="dc-sheet-city">{{picked}}</text>
@@ -133,4 +163,4 @@
     </view>
     <view class="tk-safe-bottom"></view>
   </scroll-view>
-</view>
+</bottom-sheet>

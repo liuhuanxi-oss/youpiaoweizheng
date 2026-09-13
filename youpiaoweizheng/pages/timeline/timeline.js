@@ -8,6 +8,7 @@ const couple = require('../../utils/couple.js');
 const { groupLabel } = require('../../utils/date.js');
 const themeUtil = require("../../utils/theme.js");
 const sk = require('../../utils/skeleton.js');
+const { iconSrc } = require('../../utils/icons.js');
 
 const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通' };
 
@@ -15,6 +16,7 @@ Page({
 
   onShow() {
     themeUtil.apply(this);
+    this.buildIc();
   },
   data: {
     theme: "a", legacyTheme: "a",
@@ -24,11 +26,32 @@ Page({
     cities: 0,
     months: [],     // [{ label:'2025 · 十月', rows:[...] }]
     expandId: '',   // TA 的票行内展开的 id
-    error: ''
+    error: '',
+    bindNeeded: false, // 错误态分岔：没绑定（去绑定）vs 取数失败（重试）
+    ic: {}
+  },
+
+  /** 空态/错误态图标按当前主题编译（data-uri 里的颜色是编译时写死的，切主题要重编） */
+  buildIc() {
+    const m = themeUtil.getThemeMeta(themeUtil.getTheme());
+    this.setData({
+      ic: {
+        empty: iconSrc('calendar', m.text, 0.28, 1.4),
+        link: iconSrc('users', m.text, 0.28, 1.4),
+        chevron: iconSrc('chevron', m.text, 0.5, 1.5)
+      }
+    });
   },
 
   onLoad() {
     this.load();
+  },
+
+  /** 下拉刷新（7.2.0 V9）：本页根节点是普通 view、由页面本身滚动，故走页面级下拉，
+      不用 scroll-view 的 refresher。TA 那边刚存了票根时，下拉是唯一的重取入口 ——
+      此前本页只有 onLoad 拉一次，切回来永远是旧的。 */
+  onPullDownRefresh() {
+    this.load().finally(() => wx.stopPullDownRefresh());
   },
 
   async load() {
@@ -37,7 +60,7 @@ Page({
     try {
       const c = await couple.queryCouple();
       if (!c || !c.boundAt) {
-        this.setData({ error: '尚未绑定双人空间' });
+        this.setData({ error: '尚未绑定双人空间', bindNeeded: true });
         return;
       }
       const merged = await duoData.loadMerged(c);
@@ -67,7 +90,7 @@ Page({
         expandId: ''
       });
     } catch (e) {
-      this.setData({ error: String(e.message || e).slice(0, 60) });
+      this.setData({ error: String(e.message || e).slice(0, 60), bindNeeded: false });
     } finally {
       sk.end(this);
     }
@@ -87,5 +110,13 @@ Page({
   /** 4.12.1 空态直达录入（与 wall 空态同构） */
   goScan() {
     wx.navigateTo({ url: '/pages/scan/scan' });
+  },
+
+  /** 错误态出路：没绑定去绑定，取数失败就重试 */
+  goDuo() {
+    wx.navigateTo({ url: '/pages/duo/duo' });
+  },
+  retry() {
+    this.load();
   }
 });

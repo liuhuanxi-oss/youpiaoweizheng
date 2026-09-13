@@ -110,7 +110,11 @@
   padding: 4rpx 16rpx;
   letter-spacing: 2rpx;
 }
-.go { flex-shrink: 0; font-size: 32rpx; color: var(--text2); width: 40rpx; text-align: center; }
+.go { flex-shrink: 0; width: 40rpx; display: flex; align-items: center; justify-content: center; }
+/* 箭头走 icons.js（原先是 › ﹀ ﹥ 三个字符，真机字形回落不可控）；
+   展开态把同一个右箭头转 90° */
+.go-ic { width: 26rpx; height: 26rpx; transition: transform 0.2s ease; }
+.go.dn .go-ic { transform: rotate(90deg); }
 
 /* —— TA 的票行内展开 —— */
 .r-detail {
@@ -136,7 +140,7 @@
   backdrop-filter: var(--card-blur, none);
   -webkit-backdrop-filter: var(--card-blur, none);
 }
-.e-icon { font-size: 60rpx; }
+.e-ic { width: 96rpx; height: 96rpx; }
 .e-t { font-size: 30rpx; margin-top: 18rpx; }
 .e-s { font-size: 22rpx; color: var(--text2); margin-top: 10rpx; }
 

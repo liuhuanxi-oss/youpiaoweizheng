@@ -3,6 +3,12 @@
      其下：手写风 AI 文案（打字机）+ 信息面板 + 「修复/重绘/分享」三胶囊
      业务保留：周年彩蛋 / 演示票提示 / 同场印记 / 广告位 / notFound 空态 -->
 
+<!-- A3 顶栏毛玻璃渐变：内容滚到导航栏下方时淡入。
+     挂在根节点**外**是必须的——根节点带 .fade-up，它的 transform 会让 fixed 相对根节点
+     定位（见 app.wxss 的 .fade-up 注释），那样遮罩会跟着页面滚，就不叫顶栏了。
+     底色由 JS 按主题编译（节点在根节点外，吃不到 --bg 变量）。 -->
+<view class="dtc-topfx" wx:if="{{t}}" style="background: {{fxTop}}; opacity: {{psFade}};" aria-hidden="true"></view>
+
 <!-- M4.5 骨架屏 -->
 <view class="tk-page theme-{{theme}}" wx:if="{{skeleton}}">
   <view class="sk-photo skeleton-bone"></view>
@@ -10,7 +16,8 @@
   <view class="sk-card short skeleton-bone"></view>
 </view>
 
-<view class="tk-page theme-{{theme}} dtc-page" wx:elif="{{t}}">
+<!-- .fade-up：接住首页票根卡那一下「放大淡出」（A1 的两段式近似，小程序无真共享元素） -->
+<view class="tk-page theme-{{theme}} dtc-page fade-up" wx:elif="{{t}}">
 
   <!-- 4.15.0 周年彩蛋（品牌稿外既有功能，保留） -->
   <view class="egg-layer" wx:if="{{eggShow}}" aria-hidden="true">
@@ -39,17 +46,21 @@
          点击全屏预览；无图落纸票兜底 -->
     <view class="dtc-photo">
       <view class="dtc-stamp-frame">
-        <image
-          wx:if="{{t.img && !imgFail}}"
-          class="dtc-img {{imgLoaded ? 'ld' : ''}}"
-          src="{{t.img}}"
-          mode="aspectFill"
-          bindload="onImgLoad"
-          binderror="onImgError"
-          bindtap="previewPhoto"
-          aria-role="button"
-          aria-label="点击全屏查看票根原图"
-        />
+        <!-- A3 视差裁剪框：照片比框高 12%，滚动时整框上移（见 onPageScroll），
+             上移的余量就是这 12%，不会再露出框底 -->
+        <view wx:if="{{t.img && !imgFail}}" class="dtc-par" style="transform: translateY(-{{psDy}}px);">
+          <image
+            class="dtc-img pressable {{imgLoaded ? 'ld' : ''}}"
+            hover-class="dtc-img-hover"
+            src="{{t.img}}"
+            mode="aspectFill"
+            bindload="onImgLoad"
+            binderror="onImgError"
+            bindtap="previewPhoto"
+            aria-role="button"
+            aria-label="点击全屏查看票根原图"
+          />
+        </view>
         <view class="dtc-img-fb" wx:else>
           <image class="dtc-fb-ic" src="{{icons.iTicketEmpty}}" mode="aspectFit" aria-hidden="true" />
           <text class="dtc-fb-title">{{t.title}}</text>
@@ -96,6 +107,7 @@
         <text class="b-serial dtc-row-serial">No. {{t.no}}</text>
         <image
           class="dtc-heart pressable"
+          hover-class="press-hover"
           src="{{t.fav ? icons.iHeartOn : icons.iHeart}}"
           mode="aspectFit"
           catchtap="toggleFav"
@@ -118,7 +130,10 @@
 
   <!-- ===== AI 时光手记（品牌全案·稿屏4：浅绿卡 + 左侧竖条 + 徽章；打字机保留）
        无文案时点按生成 ===== -->
-  <view class="dtc-memo" bindtap="{{t.aiCaption ? '' : 'genCaption'}}">
+  <!-- hover-class 跟着可点性走：已有文案时 bindtap 为空串（不可点），此时不给按压反馈，
+       否则会出现「按下去有反馈、点了没反应」 -->
+  <view class="dtc-memo pressable" hover-class="{{t.aiCaption ? 'none' : 'press-item-hover'}}"
+        bindtap="{{t.aiCaption ? '' : 'genCaption'}}">
     <view class="dtc-memo-bar"></view>
     <view class="dtc-memo-badge">
       <image class="dtc-memo-badge-ic" src="{{icons.iSpark}}" mode="aspectFit" aria-hidden="true" />
@@ -168,8 +183,21 @@
     </button>
   </view>
 
+  <!-- L4 朋友圈引导行：小程序没有任何接口能直接调起「分享到朋友圈」，
+       只能把右上角那颗胶囊指出来（照着微信自己的样子画，比写「点右上角更多」好认）。
+       S4 原本排在拉新包，已并入本批，不重复计工时。 -->
+  <view class="dtc-tl" aria-label="想分享到朋友圈，点右上角胶囊里的「分享到朋友圈」">
+    <text>想发到朋友圈？点右上角</text>
+    <view class="dtc-tl-cap" aria-hidden="true">
+      <view class="dtc-tl-dot"></view>
+      <view class="dtc-tl-dot"></view>
+      <view class="dtc-tl-dot"></view>
+    </view>
+    <text>分享到朋友圈</text>
+  </view>
+
   <!-- 导航「···」更多（生成纪念卡片 / AI 文案） -->
-  <view class="dtc-more pressable" bindtap="onMore" aria-role="button" aria-label="更多操作">···</view>
+  <view class="dtc-more pressable" hover-class="press-hover" bindtap="onMore" aria-role="button" aria-label="更多操作">···</view>
 
   <!-- 4.21.0 底部 Banner 广告位（品牌稿无此项，商业基建保留在页尾） -->
   <view class="ad-banner-wrap card" wx:if="{{adsBannerId}}">
@@ -185,6 +213,8 @@
     <image class="nf-ic" src="{{icons.iTicketEmpty}}" mode="aspectFit" aria-hidden="true" />
     <view>这张时光券不在你的册子里</view>
     <view class="nf-sub">它可能正在别人的回忆里 · 收好自己的第一张，让时光有迹可循</view>
-    <view class="nf-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去收第一张票">去收第一张票</view>
+    <!-- 7.3.0 S1：朋友圈单页模式不能跳页（redirectTo 会被拒），改指路微信自带的「前往小程序」 -->
+    <view wx:if="{{sp}}" class="nf-sub nf-sp">点底部「前往小程序」，收下你的第一张票根</view>
+    <view wx:else class="nf-btn pressable" hover-class="press-hover" bindtap="goScan" aria-role="button" aria-label="去收第一张票">去收第一张票</view>
   </view>
 </view>

@@ -1,22 +1,32 @@
-// pages/setting/setting.js —— 设置（v7.0 新建）
-// 收纳「我的」页放不下的东西：外观主题 / AI 重绘额度 / 勋章墙 / 双人空间 / 回收站 / 协议。
-// 全部是搬迁，不新增业务逻辑；唯一的净增是把 computeBadges 的结果真正渲染出来。
-const store = require('../../utils/store.js');
+// pages/setting/setting.js —— 设置（v7.0 新建，7.2.0 L2 精简）
+// 7.2.0 起只留真正的设置：外观主题 / 协议 / 关于 / 清除。
+// 原先堆在这里的 AI 重绘额度与 13 枚勋章墙已迁到「我的 · 留存中心」——
+// 荣誉与余额放在需要翻一层才能看到的地方，等于没有。
 const themeUtil = require('../../utils/theme.js');
-const couple = require('../../utils/couple.js');
-const { USE_CLOUD } = require('../../utils/env.js');
-const pay = require('../../utils/pay.js');
+const track = require('../../utils/track.js');
 const { iconSrc } = require('../../utils/icons.js');
-const { computeBadges } = require('../../utils/badges.js');
 
-const LS_SHARE = 'sp_share_count';
+/**
+ * 只清本地记录，不动云端。
+ * 不含 sp_theme：主题是用户当面选的外观，清「本地数据」把外观也换掉会像故障。
+ * 也不含票根：票根在云库，详情页「···」里有它自己的删除入口。
+ */
+const LS_CLEAR = [
+  'fav_ids',        // 收藏心（本地标记）
+  'sp_share_count', // 分享计数（勋章判定用）
+  'sp_first_saved', // 首次保存埋点标记
+  'sp_map_visited', // 去过回忆地图
+  'sp_invite_sent', // 发过邀请
+  'sp_poster_ab',   // 卡片 A/B 分组
+  'sp_cap_style',   // 卡片样式偏好
+  'sp_guide_done'   // 新手指引已读
+];
 
-/** 「更多」四项：都是原「我的」页的入口，按原行为原样搬迁 */
 const ROWS = [
-  { key: 'duo',     name: '双人空间',      icon: 'users' },
-  { key: 'recycle', name: '回收站',        icon: 'trash' },
-  { key: 'privacy', name: '隐私设置',      icon: 'lock' },
-  { key: 'terms',   name: '用户协议与隐私', icon: 'doc' }
+  { key: 'privacy', name: '隐私政策',     icon: 'lock' },
+  { key: 'terms',   name: '用户协议',     icon: 'doc' },
+  { key: 'about',   name: '关于有票为证', icon: 'help' },
+  { key: 'clear',   name: '清除本地数据', icon: 'trash' }
 ];
 
 Page({
@@ -25,67 +35,58 @@ Page({
     ic: {},
     curTheme: themeUtil.getThemeMeta('paper'),
     themeDots: themeUtil.THEME_META.map((t) => ({ key: t.key, primary: t.primary })),
-    quotaLabel: pay.quotaLabel({ freeLeft: 3, paid: 0, left: 3, freePerMonth: 3 }),
-    quotaLeftNum: -1,   // -1 = 未取到，整块不渲染
-    badges: [],
-    unlocked: 0,
     rows: ROWS
   },
 
   onShow() {
     themeUtil.apply(this);
-    this.setData({
-      ic: { chevron: iconSrc('chevron', themeUtil.getThemeMeta(themeUtil.getTheme()).text, 0.45) },
-      curTheme: themeUtil.getThemeMeta(themeUtil.getTheme()),
-      rows: ROWS.map((r) => Object.assign({}, r, { ico: iconSrc(r.icon, themeUtil.getThemeMeta(themeUtil.getTheme()).text, 0.6) }))
-    });
-    this.refreshBadges();
-    this.refreshQuota();
-  },
-
-  /** 13 枚勋章判定：已点亮的上色，未点亮的置灰（颜色按主题编译，SVG 不认 CSS 变量） */
-  async refreshBadges() {
     const m = themeUtil.getThemeMeta(themeUtil.getTheme());
-    const ts = await store.listTickets();
-    const c = couple.cachedCouple();
-    let shareCount = 0;
-    let mapVisited = false;
-    let inviteSent = false;
-    try { shareCount = wx.getStorageSync(LS_SHARE) || 0; } catch (e) { /* 忽略 */ }
-    try { mapVisited = !!wx.getStorageSync('sp_map_visited'); } catch (e) { /* 忽略 */ }
-    try { inviteSent = !!wx.getStorageSync('sp_invite_sent'); } catch (e) { /* 忽略 */ }
-
-    // 未解锁的用低透明度主题正文色置灰（iconSrc 对未知名会回落票根图标，所以这里不必再兜底）
-    const badges = computeBadges(ts, c && c.boundAt ? c : null, shareCount, mapVisited, inviteSent)
-      .map((b) => Object.assign(b, {
-        src: iconSrc(b.icon, b.unlocked ? m.accent : m.text, b.unlocked ? 1 : 0.25)
-      }));
-    this.setData({ badges, unlocked: badges.filter((b) => b.unlocked).length });
-  },
-
-  /** 服务端权威额度（云失败静默，保持本地默认） */
-  refreshQuota() {
-    if (!USE_CLOUD) return;
-    pay.getQuota().then((q) => {
-      if (q && typeof q.left === 'number') {
-        this.setData({ quotaLabel: pay.quotaLabel(q), quotaLeftNum: q.left });
-      }
+    this.setData({
+      ic: { chevron: iconSrc('chevron', m.text, 0.45) },
+      curTheme: m,
+      rows: ROWS.map((r) => Object.assign({}, r, { ico: iconSrc(r.icon, m.text, 0.6) }))
     });
   },
 
   goTheme() { wx.navigateTo({ url: '/pages/theme/theme' }); },
 
-  /** 「更多」分发：duo/协议是真实页面，回收站与勋章墙仍是待建功能，如实告知不装死链 */
   onRow(e) {
     const key = e.currentTarget.dataset.key;
     wx.vibrateShort({ type: 'light' });
     const JUMP = {
-      duo: '/pages/duo/duo',
       privacy: '/pages/protocol/protocol?type=privacy',
       terms: '/pages/protocol/protocol?type=terms'
     };
     if (JUMP[key]) { wx.navigateTo({ url: JUMP[key] }); return; }
-    if (key === 'recycle') wx.showToast({ title: '回收站开发中，敬请期待', icon: 'none' });
+    if (key === 'about') this.about();
+    if (key === 'clear') this.clearLocal();
+  },
+
+  /** 关于：版本取当前包的真实版本，不写死（写死的版本号迟早与线上不符） */
+  about() {
+    const v = (wx.getAccountInfoSync && (wx.getAccountInfoSync().miniProgram || {}).version) || '开发版';
+    wx.showModal({
+      title: '有票为证',
+      content: `版本 ${v}\n把看过的每一场，都留下来。\n\n粤ICP备20010271号-11X`,
+      showCancel: false,
+      confirmText: '知道了'
+    });
+  },
+
+  /** 清除本地数据：二次确认 + 逐键删（单键失败不连累其余的键） */
+  clearLocal() {
+    wx.showModal({
+      title: '清除本地数据',
+      content: '会清掉收藏标记、指引已读、分享与邀请记录等本机记录。票根与外观主题不受影响。',
+      confirmText: '清除',
+      confirmColor: '#C26B5E',
+      success: (r) => {
+        if (!r.confirm) return;
+        LS_CLEAR.forEach((k) => { try { wx.removeStorageSync(k); } catch (e) { /* 单键失败不影响其余 */ } });
+        track.track('setting_clear_local', { keys: LS_CLEAR.length });
+        wx.showToast({ title: '已清除', icon: 'success' });
+      }
+    });
   },
 
   copyIcp() {

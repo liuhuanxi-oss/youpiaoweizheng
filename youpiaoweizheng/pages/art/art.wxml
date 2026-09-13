@@ -7,7 +7,11 @@
      所有图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 art.js 的 buildArt() 编译成实色。
      主/次按钮的文案随 phase 走（ctaText / subText 两张映射表），不在这里堆三元表达式。 -->
-<view class="tk-page theme-{{theme}} ar-page">
+<!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
+<import src="/templates/sp.wxml" />
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这是别人票根的艺术图版'}}" /></block>
+
+<view class="tk-page theme-{{theme}} ar-page" wx:if="{{!sp}}">
 
   <!-- lost：票根不存在或不属于你（分享落地/过期 id） -->
   <view class="empty" wx:if="{{phase === 'lost'}}">

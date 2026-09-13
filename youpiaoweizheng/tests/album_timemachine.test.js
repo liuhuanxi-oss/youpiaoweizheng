@@ -184,9 +184,12 @@ t('wxml 里的类名都在 wxss 里有定义（放行全局公共类）', () => 
   const GLOBAL = /^(tk-|press|theme-|serif$|hand$|on$|is-|fade-in-)/;
   const used = new Set([...wxmlClean.matchAll(/(?:^|\s)class="([^"]*)"/g)]
     .flatMap((m) => m[1].replace(/\{\{[\s\S]*?\}\}/g, ' ').split(/\s+/)).filter(Boolean));
-  const defined = new Set([...wxss.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map((m) => m[1]));
+  // 本页 wxss + app.wxss 一起算「有定义」—— 每往 app.wxss 加一个全局类
+  // 就得回来改一遍上面那串 GLOBAL 正则，早晚会漏（.refresher 就是这么漏的）
+  const defined = new Set([...read('app.wxss').matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map((m) => m[1]));
+  [...wxss.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].forEach((m) => defined.add(m[1]));
   const miss = [...used].filter((u) => !defined.has(u) && !GLOBAL.test(u));
-  ok(miss.length === 0, 'wxss 缺样式：' + miss.join(', '));
+  ok(miss.length === 0, 'wxss（含 app.wxss）缺样式：' + miss.join(', '));
 });
 t('wxss 无写死的十六进制（只允许 var(--x, #兜底) 的兜底值）', () => {
   const stripped = wxss.replace(/var\([^)]*\)/g, 'VAR');

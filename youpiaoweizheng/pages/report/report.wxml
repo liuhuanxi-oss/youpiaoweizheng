@@ -1,4 +1,8 @@
-<view class="page theme-{{theme}} fade-up">
+<!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
+<import src="/templates/sp.wxml" />
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这是别人和 TA 的时光报告'}}" /></block>
+
+<view class="page theme-{{theme}} fade-up" wx:if="{{!sp}}">
 
 
   <!-- 4.10.1 重装饰层：纸面噪点（全主题）/ C 水彩晕染头 -->
@@ -88,12 +92,17 @@
     <view class="foot serif">{{signature ? '—— ' + signature + ' · 时光有票为证 ——' : '—— 时光有票为证 ——'}}</view>
   </view>
 
-  <!-- 错误态 -->
+  <!-- 错误态（7.2.0 V10 统一规范：图标 + 一句话 + 一个行动按钮。
+       原先是 emoji 🔗 且点无可点——报错只报不给出路，等于死胡同） -->
   <view class="fade-in" wx:else>
     <view class="empty card">
-      <view class="e-icon">🔗</view>
+      <image class="e-ic" src="{{ic.link}}" mode="aspectFit" aria-hidden="true" />
       <view class="e-t serif">{{error}}</view>
       <view class="e-s">绑定后，你们的故事会写在这里</view>
+      <view wx:if="{{bindNeeded}}" class="tk-empty-cta pressable" hover-class="press-hover"
+            bindtap="goDuo" aria-role="button" aria-label="去绑定双人空间">去绑定双人空间</view>
+      <view wx:else class="tk-empty-cta pressable" hover-class="press-hover"
+            bindtap="retry" aria-role="button" aria-label="重试">重试</view>
     </view>
   </view>
 

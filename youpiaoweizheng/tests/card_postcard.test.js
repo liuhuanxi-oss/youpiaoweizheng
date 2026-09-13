@@ -192,7 +192,11 @@ t('隐私授权弹窗组件还在（saveImageToPhotosAlbum 要用）', () => {
   ok(/<privacy-sheet/.test(wxmlClean), '组件节点没了');
   ok(/privacy-sheet/.test(json), '没在 json 里注册');
 });
-t('画布不能被 wx:if 包住（包住就取不到 canvas 节点，卡面永远空白）', () => {
+// 名字原先写成「画布不能被 wx:if 包住」，但正文只查节点存在，名实不符——
+// 而「被包住」这件事本身也没被绕开：canvas 确实挂在 wx:if="{{t}}" 下，
+// 是靠 _ensureCanvas 的幂等重试自愈的（见 4.22.4 注释与下一条断言）。
+// 留着那个错名字，将来有人会照着它去挪 wxml，反而拆掉重试的前提。
+t('canvas 节点本身没被删（卡面渲染的前提）', () => {
   ok(/<canvas type="2d" id="cardCanvas"/.test(wxmlClean), '取不到 canvas 节点');
 });
 t('canvas 初始化仍是幂等 + 重试（修过「卡片区域整块空白」的老 bug）', () => {
@@ -202,6 +206,27 @@ t('署名（昵称 → 卡面落款）与换一版文案都还在', () => {
   ok(/_loadSignature\(\)/.test(jsClean), '署名没了');
   ok(/pay\.getProfile\(\)/.test(jsClean), '取昵称没了');
   ok(/ai\.generateCaption\(/.test(jsClean), '换一版文案没了');
+});
+
+console.log('\n【七、取票期间不许白屏（7.2.0）】');
+t('三分支齐全且串在一条 if/elif 上：loading → t → notFound', () => {
+  const order = ['wx:if="{{loading}}"', 'wx:elif="{{t}}"', 'wx:elif="{{notFound}}"'];
+  const at = order.map((s) => wxmlClean.indexOf(s));
+  ok(at.every((i) => i >= 0), '分支不全：' + order.filter((s, i) => at[i] < 0).join(' / ') + ' 没找到');
+  ok(at[0] < at[1] && at[1] < at[2], '分支顺序不对：loading 必须在 t 之前，否则取票期间仍然白屏');
+});
+t('loading 初值为真（初值不立，t 到货前那一段照样没有任何分支命中）', () => {
+  ok(/loading:\s*true/.test(js), 'data 里没有 loading: true');
+});
+t('两条出口都把 loading 归位（漏一条，骨架就一直转下去）', () => {
+  ok(/notFound:\s*true\s*,\s*loading:\s*false/.test(js), '未命中分支没关 loading：会永远停在「正在生成卡片…」');
+  const succ = /setData\(\{\s*t,\s*loading:\s*false/.test(js);
+  ok(succ, '成功分支没关 loading');
+});
+t('骨架复用 .card-canvas 的盒子（几何与真卡一致，卡片落位时不跳）', () => {
+  const sk = /wx:if="\{\{loading\}\}"[\s\S]*?<\/view>\s*<\/view>/.exec(wxmlClean);
+  ok(sk, '找不到 loading 分支内容');
+  ok(/class="card-canvas tk-skeleton"/.test(sk[0]), '骨架没有复用 .card-canvas，落位时会跳一下');
 });
 
 console.log('\n测试套件：card_postcard —— ' + pass + ' 通过 / ' + fail + ' 失败\n');

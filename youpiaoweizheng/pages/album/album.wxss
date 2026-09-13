@@ -2,7 +2,7 @@
    六主题变量化：颜色一律读 --*；写死的十六进制只允许出现在 var(--x, #兜底) 里。
    品牌固定色（胶带三色）不在这里，由 album.js 一并下发。 */
 .tm-page { min-height: 100vh; }
-.tm-scroll { height: 100vh; }
+.tm-scroll { height: 100vh; }   /* 固定高 → 内部真的会滚 → refresher 才会触发（见 app.wxss 的自定义下拉头） */
 
 /* ═══ ① 标题行 ═══ */
 .tm-head {
@@ -52,7 +52,10 @@
   padding: 12rpx 28rpx; margin-right: 14rpx;
   font-size: 24rpx; color: var(--text2);
   background: var(--chip, #EFE8DA); border-radius: 999rpx;
-  transition: background 200ms ease, color 200ms ease;
+  /* 本类自带 transition（选中态 background/color 淡化），页面级声明会盖掉全局 .pressable
+     的同名属性——7.2.0 按压回弹要生效，transform/opacity 这两段必须在这里再写一遍 */
+  transition: background 200ms ease, color 200ms ease,
+              transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out;
 }
 .tm-tab.on {
   background: var(--primary); color: var(--on-primary); font-weight: 700;

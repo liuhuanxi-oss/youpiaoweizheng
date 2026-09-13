@@ -92,6 +92,11 @@
 .hc-chip-t { font-size: 28rpx; letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
 .hc-chip.on .hc-chip-t { color: var(--on-primary, #FFF8F2); font-weight: 600; }
 
+/* —— 云故障 / 超上限横幅（视觉同 album 的 .tm-net，左右边距跟本页的 48rpx） ——
+   本类不写 transition：让全局 .pressable 的按压回弹原样生效（页面级同名属性会盖掉它） */
+.hc-net { margin: 20rpx 48rpx 0; padding: 16rpx 24rpx; background: var(--soft, #E9E2D4); border-radius: 18rpx; }
+.hc-net-t { font-size: 23rpx; color: var(--text2, #8A7B66); line-height: 1.5; }
+
 /* —— 票根墙：左右两列等高卡（不是瀑布流，见 home.js 文件头） —— */
 .hc-grid {
   display: flex;
@@ -165,6 +170,16 @@
   justify-content: center;
 }
 .hc-shot-img { width: 100%; height: 100%; display: block; }
+
+/* A1 近似共享元素：点卡后照片在框内「推近」并淡出（框是 overflow:hidden，放大被裁在框里），
+   150ms 后跳详情；详情页那侧由 .fade-up 接住落位 */
+.hc-shot-img.fly { animation: hc-fly 150ms ease-out forwards; }
+@keyframes hc-fly {
+  to { transform: scale(1.14); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hc-shot-img.fly { animation: none; }   /* 前庭敏感：不推近，跳转照旧 */
+}
 .hc-shot-fb { width: 56rpx; height: 56rpx; }
 .hc-shot-bloom { position: absolute; left: -16rpx; bottom: -14rpx; width: 46rpx; height: 54rpx; z-index: 2; }
 .hc-shot-sprig { position: absolute; right: -14rpx; bottom: 4rpx; width: 52rpx; height: 35rpx; z-index: 2; }
@@ -238,3 +253,95 @@
 
 /* 悬浮 tab 栏（custom:true）压着内容，底部留出它的位置 */
 .hc-foot-space { height: 220rpx; }
+
+/* ============ A8 新用户三步引导 ============ */
+.guide-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 60rpx;
+  background: rgba(44, 44, 44, 0.42);
+  animation: guide-in 200ms ease-out both;
+}
+@keyframes guide-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.guide-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 56rpx 44rpx 36rpx;
+  border-radius: 28rpx;
+  background: var(--card, #FFFEFB);
+  border: 2rpx solid var(--border, #E8E4DD);
+  box-shadow: 0 24rpx 64rpx rgba(44, 44, 44, 0.18);
+  text-align: center;
+  animation: guide-pop 260ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+@keyframes guide-pop {
+  from { opacity: 0; transform: translateY(24rpx) scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
+.guide-badge {
+  display: inline-block;
+  padding: 6rpx 20rpx;
+  border-radius: 999rpx;
+  background: var(--soft, #F4EFE7);
+  color: var(--brown, #6B5B50);
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+}
+.guide-ic {
+  display: block;
+  width: 132rpx;
+  height: 132rpx;
+  margin: 32rpx auto 0;
+}
+.guide-t {
+  margin-top: 20rpx;
+  font-size: 36rpx;
+  color: var(--text, #2B2420);
+  letter-spacing: 2rpx;
+}
+.guide-s {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: var(--text, #2B2420);
+  opacity: 0.6;
+}
+.guide-dots {
+  display: flex;
+  justify-content: center;
+  gap: 14rpx;
+  margin-top: 34rpx;
+}
+.guide-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--border, #E2D9C7);
+}
+.guide-dot.on { background: var(--rose, #D9A0A6); }
+.guide-btn {
+  margin-top: 40rpx;
+  padding: 24rpx 0;
+  border-radius: 999rpx;
+  background: var(--rose, #D9A0A6);
+  color: var(--on-primary, #FFFFFF);
+  font-size: 29rpx;
+  letter-spacing: 3rpx;
+}
+.guide-skip {
+  margin-top: 12rpx;
+  padding: 18rpx 0;
+  font-size: 25rpx;
+  color: var(--brown, #6B5B50);
+  opacity: 0.7;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-mask, .guide-card { animation: none; }
+}

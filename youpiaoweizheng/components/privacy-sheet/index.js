@@ -5,8 +5,16 @@
 //   拒绝/点遮罩 → resolve({ event: 'disagree' })（接口 fail，页面自行提示）
 // 使用：在用到隐私接口的页面 json 注册本组件，wxml 放一个自闭合标签即可（scan / card）。
 // 兜底：低版本基础库无该 API 时组件静默，平台默认弹窗接管。
+// 图标走 utils/icons.js（原先是 🔐 emoji，真机字形回落不可控）。
+// 颜色编译一次即可：弹窗是瞬时出现的授权层，极少在「刚切完主题」的同一帧里弹出
+const { iconSrc } = require('../../utils/icons.js');
+const themeUtil = require('../../utils/theme.js');
+
 Component({
-  data: { show: false },
+  data: {
+    show: false,
+    ico: iconSrc('lock', themeUtil.getThemeMeta(themeUtil.getTheme()).text, 0.28, 1.4)
+  },
 
   lifetimes: {
     attached() {

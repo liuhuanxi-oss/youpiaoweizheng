@@ -45,7 +45,7 @@
 
       <!-- 处理态：刚拍的照片盖进框里，扫描光条扫过 -->
       <block wx:if="{{mode === 'scanning'}}">
-        <image class="sc-shot" src="{{imgPath}}" mode="aspectFill" bindtap="preview" aria-role="button" aria-label="查看这张照片" />
+        <image class="sc-shot pressable" hover-class="press-item-hover" src="{{imgPath}}" mode="aspectFill" bindtap="preview" aria-role="button" aria-label="查看这张照片" />
         <view class="sc-scanline"></view>
       </block>
 
@@ -54,11 +54,11 @@
            故移到取景框内的同一行右侧；胶囊改为占满剩余宽度、文字居中。 -->
       <view class="sc-topbar">
         <view class="sc-capsule">将票根放入框内，自动识别</view>
-        <view class="sc-tool {{flash === 'on' ? 'on' : ''}}" bindtap="toggleFlash"
+        <view class="sc-tool pressable {{flash === 'on' ? 'on' : ''}}" hover-class="press-hover" bindtap="toggleFlash"
               aria-role="button" aria-label="闪光灯">
           <image class="sc-tool-ic" src="{{ic.flash}}" mode="aspectFit" aria-hidden="true" />
         </view>
-        <view class="sc-tool" bindtap="showHelp" aria-role="button" aria-label="拍摄技巧">
+        <view class="sc-tool pressable" hover-class="press-hover" bindtap="showHelp" aria-role="button" aria-label="拍摄技巧">
           <image class="sc-tool-ic" src="{{ic.help}}" mode="aspectFit" aria-hidden="true" />
         </view>
       </view>
@@ -203,13 +203,22 @@
 <!-- M5 隐私授权弹窗（chooseMedia 相机/相册） -->
 <privacy-sheet />
 
-<!-- 4.13.0 品牌盖章：保存成功瞬间（对勾圆环一笔描边 + 三色粒子散出 + 浮层上移淡出） -->
+<!-- 4.13.0 品牌盖章：保存成功瞬间（对勾圆环一笔描边 + 三色粒子散出 + A2 撕票 + 浮层上移淡出） -->
 <view class="stamp-overlay" wx:if="{{stamped}}" aria-role="presentation">
   <view class="stamp-inner {{liftOff ? 'lift-off' : ''}}">
     <view class="check-wrap">
       <canvas type="2d" id="checkCv" class="check-cv" disable-scroll="{{true}}"></canvas>
     </view>
     <view class="stamp-text">已收进时光档案</view>
-    <image class="fly-ticket" wx:if="{{imgPath}}" src="{{imgPath}}" mode="aspectFill" aria-role="presentation" />
+    <!-- A2 撕票：存根留在原地，副券沿撕票线撕下、飞进收藏册 -->
+    <view class="tear" wx:if="{{imgPath}}" aria-role="presentation">
+      <view class="tear-half tear-stub">
+        <image class="tear-img" src="{{imgPath}}" mode="aspectFill" />
+      </view>
+      <view class="b-perf tear-line"></view>
+      <view class="tear-half tear-coupon">
+        <image class="tear-img" src="{{imgPath}}" mode="aspectFill" />
+      </view>
+    </view>
   </view>
 </view>

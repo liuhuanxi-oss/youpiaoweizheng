@@ -75,7 +75,9 @@ t('装饰图形全部 aria-hidden；唯一的例外是票根照片本身', () =>
   const imgTags = [...wxmlClean.matchAll(/<image\b[^>]*>/g)].map((m) => m[0]);
   const bare = imgTags.filter((tag) => !/aria-hidden="true"/.test(tag));
   ok(bare.length === 1, '没带 aria-hidden 的图有 ' + bare.length + ' 张：' + bare.map((b) => b.slice(0, 50)).join(' | '));
-  ok(/class="hc-shot-img"\s+src="\{\{item\.img\}\}"/.test(bare[0]), '唯一那张裸图必须是票根照片，实际：' + bare[0]);
+  // A1 起这张照片多挂了「飞行中」的动态类，故只认前缀
+  ok(/class="hc-shot-img[\s"]/.test(bare[0]) && /src="\{\{item\.img\}\}"/.test(bare[0]),
+    '唯一那张裸图必须是票根照片，实际：' + bare[0]);
 });
 t('用到的图标都在 icons.js 里注册过', () => {
   const names = new Set();
@@ -111,7 +113,8 @@ t('开了下拉刷新开关 —— 否则 onPullDownRefresh 是死代码', () =>
 t('品牌行：logo + 有票为证 + 人像入口', () => {
   ok(/class="hc-logo-img"\s+src="\/images\/brand-logo\.png"/.test(wxmlClean), 'logo 没了');
   ok(/class="hc-brand serif">有票为证</.test(wxmlClean), '品牌名没了');
-  ok(/class="hc-user"[\s\S]{0,160}bindtap="goProfile"/.test(wxmlClean), '人像入口没了');
+  // 类名允许挂附加类（pressable 等），只断言「人像入口 + 去个人中心」这件事还在
+  ok(/class="hc-user[^"]*"[\s\S]{0,160}bindtap="goProfile"/.test(wxmlClean), '人像入口没了');
 });
 t('问候语两行 + 句尾金星 + 左侧花枝 + 右侧波浪', () => {
   ok(/愿这些票根，/.test(wxmlClean), '第一行变了');
@@ -277,7 +280,8 @@ t('三个跳转都还在：详情 / 票夹 / 个人中心', () => {
 });
 t('主题切换会重编图形与两套胶囊图标（data-uri 里的颜色是编译时写死的）', () => {
   ok(/themeUtil\.getThemeMeta\(themeUtil\.getTheme\(\)\)/.test(jsClean), '没走主题元数据');
-  ok(/class="tk-page theme-\{\{theme\}\}"/.test(wxmlClean), '根节点没挂主题类');
+  // 类名允许挂附加类（7.2.0 起根节点还挂了入场动效的 fade-up），只断言「主题类是挂在根节点上」
+  ok(/class="tk-page theme-\{\{theme\}\}[^"]*"/.test(wxmlClean), '根节点没挂主题类');
   ok(/this\._ink === m\.text/.test(jsClean), '没有"主题没变就不重编"的短路，每次 onShow 都会重拼 data-uri');
   ok(/buildChips\(m/.test(jsClean), '胶囊图标没跟着主题重编');
 });

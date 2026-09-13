@@ -257,9 +257,11 @@ t('合并数据带 img（票根卡的照片），云函数与演示两条路都�
   ok(/img: t\.img \|\| ''/.test(duoFn), '云函数 duoStats 没补 img');
   ok(/img: t\.img \|\| ''/.test(jsClean), '本页没把 img 传进卡面');
 });
-t('转发带邀请码直达绑定页', () => {
-  ok(/path: code \? `\/pages\/bind\/bind\?code=\$\{code\}` : '\/pages\/duo\/duo'/.test(jsClean), '转发路径变了');
+t('转发带邀请码直达绑定页（7.3.0 S2：文案与路径改由 share.js 的场景表统一出）', () => {
+  // 页面只报「双人场景 + 我的码」；路径（bind?code=）与口号在 utils/share.js 的 SCENES.duo 里，
+  // 由 share_invite.test.js 钉住，这里只保证这一页真的把码传下去了
   ok(/onShareAppMessage\(\)/.test(jsClean), '转发回调没了');
+  ok(/share\.message\('duo',\s*\{\s*code:\s*this\.data\.myCode\s*\}\)/.test(jsClean), '转发没把邀请码交给 share.js');
 });
 t('主题与骨架屏：六主题变量化 + sk.start/end', () => {
   ok(/themeUtil\.getThemeMeta\(themeUtil\.getTheme\(\)\)/.test(jsClean), '没走主题元数据');

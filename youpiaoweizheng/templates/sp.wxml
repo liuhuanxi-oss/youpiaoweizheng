@@ -1,0 +1,21 @@
+<!-- templates/sp.wxml —— 朋友圈「单页模式」落地页（7.3.0 S1）
+     ============================================================
+     好友从朋友圈点开分享卡，进的是**单页模式**：拿不到用户身份、不能跳页。
+     票根、报告这些要读云库的页面在这里必然读不到数据 —— 与其让好友看见一个
+     空壳子（甚至点了没反应的按钮），不如给一张品牌卡 + 指路微信自带的
+     「前往小程序」：那是微信在单页模式底部固定挂的按钮，点它进完整小程序。
+
+     用法（页面根节点前）：
+       <import src="/templates/sp.wxml" />
+       <block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '…'}}" /></block>
+     样式在 app.wxss（.sp-gate 系列），各页不必各写一份。
+     ============================================================ -->
+<template name="spGate">
+  <view class="tk-page theme-{{theme}} sp-gate">
+    <image class="sp-logo" src="/images/brand-logo.png" mode="aspectFit" aria-hidden="true" />
+    <view class="sp-brand serif">有票为证</view>
+    <view class="sp-line">{{tip}}</view>
+    <view class="sp-go">点底部「前往小程序」</view>
+    <view class="sp-go2">收下你的第一张票根</view>
+  </view>
+</template>

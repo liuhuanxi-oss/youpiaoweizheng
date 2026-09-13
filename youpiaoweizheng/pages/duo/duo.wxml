@@ -1,4 +1,9 @@
+<!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
+<import src="/templates/sp.wxml" />
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这是别人和 TA 的双人回忆空间'}}" /></block>
+
 <scroll-view
+  wx:if="{{!sp}}"
   class="page-scroll theme-{{theme}}"
   scroll-y
   enhanced="{{true}}"
@@ -88,7 +93,8 @@
     <!-- ============ 票根卡：2 列 3 行 ============ -->
     <view class="duo-grid" wx:if="{{rows.length}}">
       <view
-        class="duo-card"
+        class="duo-card pressable"
+        hover-class="press-item-hover"
         wx:for="{{rows}}"
         wx:key="id"
         data-id="{{item.id}}"

@@ -5,7 +5,7 @@
      且 SVG 是独立文档、不认 CSS 变量，故颜色由 album.js 的 buildArt() 编译成实色。
      邮戳的城市名与日期是**真文本**（不是 SVG 文字）：城市名逐字 rotate 排上圆弧，
      见 album.js 的 pmChars —— SVG 文字在真机上中文字形回落不可控。 -->
-<view class="tk-page theme-{{theme}} tm-page">
+<view class="tk-page theme-{{theme}} tm-page {{enter ? 'fade-up' : ''}}">
 <scroll-view
   class="tm-scroll"
   scroll-y
@@ -58,7 +58,7 @@
     <view
       wx:for="{{filters}}"
       wx:key="key"
-      class="tm-tab {{activeFilter === item.key ? 'on' : ''}}"
+      class="tm-tab pressable {{activeFilter === item.key ? 'on' : ''}}"
       hover-class="press-item-hover"
       data-key="{{item.key}}"
       bindtap="onFilterTap"
@@ -117,10 +117,12 @@
           wx:for="{{group.list}}"
           wx:key="id"
           wx:for-item="t"
-          class="tm-post"
+          class="tm-post pressable"
           hover-class="press-item-hover"
           bindtap="goDetail"
+          bindlongpress="onCardLong"
           data-id="{{t.id}}"
+          data-title="{{t.title}}"
           aria-role="button"
           aria-label="{{t.title}}"
         >
@@ -220,5 +222,19 @@
   </view>
 
   <view class="tk-safe-bottom"></view>
+
+  <!-- ===== 自定义下拉头 =====
+       7.2.0 补回：onRefresh/onPulling/onRestore 三个处理器一直在算 refreshText，
+       但从来没有人把它渲染出来 —— 加上 refresher-default-style="none" 关掉了原生转圈，
+       下拉时屏幕上是**什么都没有**。用户拉一下、内容悄悄变了、零反馈。
+       写法照 duo.wxml 的同一处。 -->
+  <view slot="refresher" class="refresher">
+    <text class="rf-text">{{refreshText}}</text>
+  </view>
 </scroll-view>
+
+<!-- ============ A6 长按快捷菜单（7.3.0）============
+     长按任意明信片 → 生成纪念卡片 / 分享给好友 / 删除。 -->
+<ticket-menu show="{{menu}}" id="{{menuId}}" title="{{menuTitle}}"
+             bind:close="closeMenu" bind:deleted="onMenuDeleted" />
 </view>

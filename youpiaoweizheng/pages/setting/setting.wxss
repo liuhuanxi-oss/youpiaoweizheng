@@ -46,54 +46,7 @@
 .st-theme-dot { width: 20rpx; height: 20rpx; border-radius: 50%; }
 .st-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; opacity: 0.5; }
 
-/* ===== 额度卡 ===== */
-.st-quota { margin-top: 18rpx; }
-.st-quota-big {
-  font-size: 72rpx; font-weight: 700; line-height: 1;
-  color: var(--brown, #6B5B50);
-}
-.st-quota-cap { margin-top: 8rpx; font-size: 24rpx; color: var(--text2, #A5968A); }
-.st-quota-bar {
-  margin-top: 18rpx;
-  height: 12rpx; border-radius: 6rpx;
-  background: var(--soft, #F5EDE2);
-  overflow: hidden;
-}
-.st-quota-fill { height: 12rpx; border-radius: 6rpx; background: var(--sage, #A9C3A6); }
-.st-quota-label { margin-top: 12rpx; font-size: 23rpx; color: var(--text2, #A5968A); }
-
-/* ===== 勋章墙 ===== */
-.st-badges {
-  display: flex; flex-wrap: wrap;
-  gap: 18rpx 0;
-  margin-top: 22rpx;
-}
-.st-badge {
-  flex: 0 0 33.333%;
-  display: flex; flex-direction: column; align-items: center;
-  padding: 0 8rpx;
-  text-align: center;
-}
-.st-badge-ic {
-  width: 64rpx; height: 64rpx;
-  padding: 12rpx;
-  border-radius: 50%;
-  background: var(--soft, #F5EDE2);
-  box-sizing: content-box;
-}
-.st-badge.on .st-badge-ic { background: var(--sage-soft, #E9F0E6); }
-.st-badge-name {
-  margin-top: 12rpx;
-  font-size: 23rpx; font-weight: 600;
-  color: var(--brown, #6B5B50);
-}
-.st-badge-desc {
-  margin-top: 4rpx;
-  font-size: 20rpx; line-height: 1.4;
-  color: var(--text2, #A5968A);
-}
-
-/* ===== 更多入口 ===== */
+/* ===== 协议 / 关于 / 清除 ===== */
 .st-list { margin-top: 10rpx; }
 .st-row {
   display: flex; align-items: center; gap: 20rpx;

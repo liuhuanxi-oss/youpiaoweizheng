@@ -1,13 +1,23 @@
-// pages/me/me.js —— 我的（品牌全案 · 稿屏11）
-// 页面只剩三块：品牌行 → hero（头像/昵称）→ 统计卡 → 5 个功能入口。
-// 原来堆在这里的「外观主题卡 / 免费额度卡 / 勋章墙 / 双人空间 / 回收站 / 协议」全部
-// 迁到 pages/setting —— 稿屏11 只画 5 个入口，其余归设置页。
+// pages/me/me.js —— 我的 · 留存中心（品牌全案 · 稿屏11，7.2.0 L1 重整）
+// 版面：品牌行 → hero（头像/昵称）→ 统计卡 → AI 重绘额度 → 勋章横滑 → 2 个功能入口。
+//
+// 【7.2.0 为什么把它翻了一遍】稿屏11 画的是 5 个入口，其中收藏夹/时光机/回忆地图
+//   本来就是底部三个 tab —— 在自己家里又摆一遍，占的是最贵的位置，给的是零信息。
+//   换成：额度（还剩几次）在前、勋章（攒到什么程度）在中、真正的二级页只留两个。
+//   主题/协议/关于/清除归设置页，「我的」不再是个杂物间。
 const store = require('../../utils/store.js');
 const themeUtil = require('../../utils/theme.js');
 const { USE_CLOUD } = require('../../utils/env.js');
 const pay = require('../../utils/pay.js');
+const couple = require('../../utils/couple.js');
 const { iconSrc } = require('../../utils/icons.js');
+const { computeBadges } = require('../../utils/badges.js');
 const deco = require('../../utils/deco.js');
+const enter = require('../../utils/enter.js');
+const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
+const track = require('../../utils/track.js'); // 7.3.0 S1：分享埋点
+
+const LS_SHARE = 'sp_share_count';
 
 // 功能入口的水彩底色。这四色与 app.wxss 的 --rose/--butter/--sage 同源，
 // 六套主题下都不变（品牌固定色，不随主题走），与稿屏11 一致。
@@ -20,16 +30,14 @@ const TINT = {
 };
 
 /**
- * 5 个功能入口（稿屏11 顺序）。
+ * 2 个功能入口（7.2.0 L1：收藏夹 / 时光机 / 回忆地图 是底部 tab，不再重复摆一遍；
+ * 设置挪到右上角齿轮。留下的两个都是没有别的入口的二级页）。
  * icon  : utils/icons.js 的图标名，白色线性图形压在圆形水彩底上
  * decoL/decoR : 卡左右两侧的手绘装饰（走 utils/deco.js，随主题换色）
  */
 const ENTRIES = [
-  { key: 'collection', name: '我的收藏夹', icon: 'bookmark', tint: TINT.rose,   decoL: 'sprig',     decoR: 'wavelines' },
-  { key: 'album',      name: '时光机',     icon: 'clock',    tint: TINT.butter, decoL: 'wavelines', decoR: 'star4'     },
-  { key: 'discover',   name: '回忆地图',   icon: 'map',      tint: TINT.sage,   decoL: 'star4',     decoR: 'sprig'     },
-  { key: 'annual',     name: '数据统计',   icon: 'chart',    tint: TINT.rose,   decoL: 'sprig',     decoR: 'heartsmall' },
-  { key: 'setting',    name: '设置',       icon: 'settings', tint: TINT.mauve,  decoL: 'wavelines', decoR: 'sprig'     }
+  { key: 'duo',    name: '双人空间', icon: 'users', tint: TINT.rose,   decoL: 'sprig',     decoR: 'heartsmall' },
+  { key: 'annual', name: '年度报告', icon: 'chart', tint: TINT.butter, decoL: 'wavelines', decoR: 'star4'     }
 ];
 
 /**
@@ -68,20 +76,61 @@ function buildGraphics(themeKey) {
 Page({
   data: {
     theme: 'paper',
+    // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
+    enter: true,
+    // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡
+    sp: share.sp(),
     ic: {},            // 图标 data-uri（onShow 按主题填充）
     deco: {},          // 装饰 data-uri
-    entries: [],       // 5 个功能入口（含编译好的图标与装饰）
+    entries: [],       // 功能入口（含编译好的图标与装饰）
     stats: { total: 0, shows: 0, cities: 0 },
+    // 7.2.0 L1：额度与勋章从设置页搬到这一页（荣誉与余额得先被看见）
+    quotaLabel: '',
+    quotaLeftNum: -1,  // -1 = 未取到，整块不渲染（演示模式没有服务端额度）
+    quotaPct: 0,       // 进度条宽度：WXML 里做不了这个算术，JS 算好再给
+    badges: [],
+    unlocked: 0,
     profile: { nickname: '', avatar: '' },
-    nickFocus: false   // 4.22.0：编程聚焦昵称输入框（原生 input 无法 selectComponent 唤起键盘）
+    nickFocus: false,  // 4.22.0：编程聚焦昵称输入框（原生 input 无法 selectComponent 唤起键盘）
+    refreshing: false, // 7.2.0 下拉刷新
+    refreshText: '下拉翻册'
+  },
+
+  /** 下拉刷新：统计数字会变（加过票根之后），下拉是这一页唯一的手动重取入口 */
+  onRefresh() {
+    this.setData({ refreshing: true, refreshText: '正在翻册…' });
+    this.refresh().then(() => {
+      this.setData({ refreshing: false, refreshText: '已更新' });
+    }).catch(() => {
+      this.setData({ refreshing: false, refreshText: '刷新失败，再试一次' });
+    });
+  },
+
+  onPulling(e) {
+    const dy = (e && e.detail && e.detail.dy) || 0;
+    const next = dy >= 60 ? '松手翻册' : '下拉翻册';
+    if (next !== this.data.refreshText) this.setData({ refreshText: next });
+  },
+
+  onRestore() {
+    this.setData({ refreshText: '下拉翻册' });
   },
 
   onShow() {
     themeUtil.apply(this);
+    // 7.3.0 S1：朋友圈单页模式（朋友圈点进来的落地）——不读空数据（wxml 整页换成落地卡），
+    // 并尽量把 tab 栏收起来：单页模式不能切页，留着它就是一排点了没反应的按钮。
+    // hideTabBar 在单页模式下可能被拒，失败无妨（那排按钮点了也只是没反应，不会出错）。
+    if (this.data.sp) {
+      try { wx.hideTabBar({ animation: false, fail: () => {} }); } catch (e) { /* 见上 */ }
+      return;
+    }
+    enter.replay(this);   // 切 tab 回来重播入场（tab 页常驻内存，动画不会自己重来）
     this.getTabBar() && this.getTabBar().setData({ selected: 3, theme: themeUtil.getTheme() });
     this.buildView();
     this.refresh();
     this.refreshProfile(); // 4.20.0：授权资料回显
+    this.refreshQuota();   // 7.2.0 L2：额度卡从设置页迁来
   },
 
   /** 按当前主题编译图形 + 组装 5 个入口（一次 setData，约 12KB） */
@@ -175,29 +224,88 @@ Page({
     }
   },
 
-  /** 统计卡三列的数据源 */
+  /** 统计卡三列 + 勋章墙的数据源（一次 listTickets 供两处用） */
   async refresh() {
     const ts = await store.listTickets();
+    const m = themeUtil.getThemeMeta(themeUtil.getTheme());
+    let shareCount = 0;
+    let mapVisited = false;
+    let inviteSent = false;
+    try { shareCount = wx.getStorageSync(LS_SHARE) || 0; } catch (e) { /* 忽略 */ }
+    try { mapVisited = !!wx.getStorageSync('sp_map_visited'); } catch (e) { /* 忽略 */ }
+    try { inviteSent = !!wx.getStorageSync('sp_invite_sent'); } catch (e) { /* 忽略 */ }
+    const c = couple.cachedCouple();
+    // 未解锁的用低透明度正文色置灰（iconSrc 对未知名会回落票根图标，故不必再兜底）
+    const badges = computeBadges(ts, c && c.boundAt ? c : null, shareCount, mapVisited, inviteSent)
+      .map((b) => Object.assign(b, { src: iconSrc(b.icon, b.unlocked ? m.accent : m.text, b.unlocked ? 1 : 0.25) }));
     this.setData({
       stats: {
         total: ts.length,
         shows: ts.filter((t) => t.type === 'show').length,
         cities: new Set(ts.filter((t) => t.city).map((t) => t.city)).size
+      },
+      badges,
+      unlocked: badges.filter((b) => b.unlocked).length
+    });
+  },
+
+  /** 服务端权威额度（云失败静默，保持本地默认；演示模式取不到 → 整块不渲染） */
+  refreshQuota() {
+    if (!USE_CLOUD) return;
+    pay.getQuota().then((q) => {
+      if (!q || typeof q.left !== 'number') return;
+      const cap = (q.freePerMonth || 3) + (q.paid || 0);
+      this.setData({
+        quotaLabel: pay.quotaLabel(q),
+        quotaLeftNum: q.left,
+        quotaPct: cap > 0 ? Math.max(0, Math.min(100, Math.round((q.left / cap) * 100))) : 0
+      });
+    });
+  },
+
+  /**
+   * 4.20.3 清除署名资料 —— 隐私政策里白纸黑字写了「在『我的』一键删除」，
+   * 但界面上一直没有这个入口（云函数 profileClear 与 pay.clearProfile 早就写好了）。
+   * 这里把承诺补上；没设过昵称头像时按钮不出现。
+   */
+  clearProfile() {
+    wx.showModal({
+      title: '清除署名资料',
+      content: '昵称与头像会从云端删除，票根卡上的落款一并取消。票根本身不受影响。',
+      confirmText: '清除',
+      confirmColor: '#C26B5E',
+      success: async (r) => {
+        if (!r.confirm) return;
+        try {
+          await pay.clearProfile();
+          this.setData({ profile: { nickname: '', avatar: '' } });
+          wx.showToast({ title: '已清除', icon: 'success' });
+        } catch (e) {
+          wx.showToast({ title: (e && e.message) || '清除失败，请重试', icon: 'none' });
+        }
       }
     });
   },
 
-  /** 5 个入口的路由（稿屏11：收藏夹/时光机/回忆地图走 tab，统计与设置走二级页） */
+  /** 两个入口的路由：都是没有别的入口的二级页（tab 与设置另有入口） */
   _route(key) {
     wx.vibrateShort({ type: 'light' });
-    const TAB = { collection: '/pages/home/home', album: '/pages/album/album', discover: '/pages/discover/discover' };
-    if (TAB[key]) { wx.switchTab({ url: TAB[key] }); return; }
-    const PAGE = { annual: '/pages/annual/annual', setting: '/pages/setting/setting' };
+    const PAGE = { duo: '/pages/duo/duo', annual: '/pages/annual/annual', setting: '/pages/setting/setting' };
     if (PAGE[key]) wx.navigateTo({ url: PAGE[key] });
   },
 
   onEntry(e) { this._route(e.currentTarget.dataset.key); },
   goSetting() { this._route('setting'); },
+
+  // ===== 7.3.0 S1/S2：分享我的收藏册（此前「我的」没有分享出口，好友与朋友圈一起补上） =====
+  onShareAppMessage() {
+    track.track('share_click', { from: 'me' });
+    return share.message('ticket', {}); // 无 id → 落地回收藏册（别人点开读不到我的票，见 share.js）
+  },
+  onShareTimeline() {
+    track.track('share_timeline', { from: 'me' });
+    return share.timeline('ticket', {});
+  },
 
   // ===== 4.22.2 ICP 备案展示（工信部要求：小程序底部标注备案号；点击复制） =====
   copyIcp() {

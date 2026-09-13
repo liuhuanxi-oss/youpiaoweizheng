@@ -1,9 +1,9 @@
 <bottom-sheet show="{{show}}" title="隐私保护提示" bind:close="onClose">
   <view class="pv-body">
-    <view class="pv-ico">🔐</view>
+    <image class="pv-ico" src="{{ico}}" mode="aspectFit" aria-hidden="true" />
     <view class="pv-t serif">为了完成这个操作</view>
     <view class="pv-s">我们需要按你的指示处理相应信息（如访问相机与相册、保存图片到相册）。收集与处理规则以</view>
-    <view class="pv-link" bindtap="goProtocol">《有票为证隐私协议》</view>
+    <view class="pv-link pressable" hover-class="press-hover" bindtap="goProtocol">《有票为证隐私协议》</view>
     <view class="pv-s">为准，你可以随时在「我的-隐私协议」中查看。</view>
   </view>
   <!-- 修复：同意必须走官方协议 button（open-type="agreePrivacyAuthorization"），

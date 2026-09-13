@@ -28,6 +28,15 @@ page { background: var(--bg, #F4EFE6); }
   opacity: 0.5;
   transform: rotate(4.6deg);
 }
+/* 加载态文案：卡片正下方一行，重量与 .cd-link 齐平，不喧宾夺主 */
+.cd-sk-t {
+  margin-top: 40rpx;
+  text-align: center;
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+  color: var(--text2, #8A7B66);
+}
+
 .card-canvas {
   position: relative;
   width: 600rpx;

@@ -31,6 +31,11 @@
 .dc-brand-logo { width: 44rpx; height: 44rpx; border-radius: 12rpx; }
 .dc-brand-name { font-size: 24rpx; font-weight: 700; color: var(--text); letter-spacing: 1rpx; }
 
+/* ═══ ①' 云故障 / 超上限横幅（视觉同 album 的 .tm-net） ═══
+   本类不写 transition：让全局 .pressable 的按压回弹原样生效（页面级同名属性会盖掉它） */
+.dc-net { margin: 16rpx 24rpx 0; padding: 16rpx 24rpx; background: var(--soft, #E9E2D4); border-radius: 18rpx; }
+.dc-net-t { font-size: 23rpx; color: var(--text2, #8A7B66); line-height: 1.5; }
+
 /* ═══ ② 地图卡 ═══ */
 .dc-card {
   margin: 20rpx 24rpx 0;
@@ -152,6 +157,17 @@
 }
 
 /* ═══ ③ 空态 ═══ */
+/* ═══ ③-a 加载态：气泡位置的呼吸骨料 ═══
+   水彩陆地是装饰、立即就绪，所以只给「数据算出来的点」占位。
+   骨料复用全局 .tk-skeleton（含 prefers-reduced-motion 降级），这里只管落位与形状 */
+.dc-sk { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; }
+.dc-sk-b {
+  position: absolute;
+  width: 150rpx; height: 56rpx;
+  border-radius: 999rpx;              /* 盖掉 .tk-skeleton 的 24rpx 方角，气泡是圆的 */
+  transform: translate(-50%, -50%);   /* style 里给的是气泡中心点，与真实气泡同口径 */
+}
+
 .dc-empty {
   display: flex; flex-direction: column; align-items: center;
   margin: 24rpx 24rpx 0; padding: 40rpx 24rpx;
@@ -162,6 +178,20 @@
 .dc-empty-ic { width: 96rpx; height: 96rpx; margin-bottom: 16rpx; }
 .dc-empty-t { font-size: 30rpx; font-weight: 700; color: var(--text); }
 .dc-empty-s { margin-top: 8rpx; font-size: 23rpx; color: var(--text2); }
+/* 重试按钮：比全局 .tk-btn 轻——那是 92rpx 的整屏主 CTA，塞进空态卡里太重
+   （比例照 annual.wxss 的 .nf-btn） */
+.dc-empty-btn {
+  margin-top: 32rpx;
+  width: 300rpx;
+  padding: 18rpx 0;
+  border-radius: 44rpx;
+  background: var(--primary, #F26D8D);
+  color: var(--on-primary, #FFFFFF);
+  font-size: 27rpx;
+  letter-spacing: 2rpx;
+  text-align: center;
+  box-shadow: 0 10rpx 26rpx rgba(var(--text-rgb, 107, 91, 80), 0.3);
+}
 
 /* ═══ ④ 缺坐标提示 ═══ */
 .dc-tip {
@@ -169,34 +199,12 @@
   font-size: 21rpx; color: var(--text2); opacity: 0.8; line-height: 1.5;
 }
 
-/* ═══ ⑤ 城市票根面板 ═══ */
-.dc-mask {
-  position: fixed; left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.34);
-  z-index: 20;
-  animation: dc-fade 0.22s ease both;
-}
-@keyframes dc-fade { from { opacity: 0; } to { opacity: 1; } }
-
-.dc-sheet {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  z-index: 21;
-  max-height: 68vh;
-  display: flex; flex-direction: column;
-  background: var(--card-bg, var(--card));
-  border-radius: 34rpx 34rpx 0 0;
-  box-shadow: 0 -8rpx 32rpx rgba(var(--text-rgb, 107, 91, 80), 0.18);
-  transform: translateY(110%);
-  transition: transform 0.28s cubic-bezier(0.22, 0.9, 0.3, 1);
-}
-.dc-sheet.on { transform: translateY(0); }
-.dc-sheet-bar {
-  width: 68rpx; height: 8rpx; border-radius: 999rpx; margin: 14rpx auto 4rpx;
-  background: var(--border, #E2D9C7);
-}
+/* ═══ ⑤ 城市票根面板 ═══
+   容器（遮罩 / 升起 / 手柄 / 防穿透 / 安全区）全部由 components/bottom-sheet 提供，
+   这里只管 slot 里的内容：左右内边距随面板（32rpx），自己不再加一层 */
 .dc-sheet-head {
   display: flex; align-items: center; gap: 8rpx;
-  padding: 14rpx 28rpx 16rpx;
+  padding: 6rpx 0 16rpx;
   border-bottom: 2rpx solid var(--border, #E2D9C7);
 }
 .dc-sheet-pin { width: 30rpx; height: 30rpx; }
@@ -210,7 +218,8 @@
 }
 .dc-sheet-x-ic { width: 26rpx; height: 26rpx; }
 
-.dc-sheet-body { flex: 1; min-height: 0; padding: 12rpx 24rpx 0; }
+/* scroll-view 必须有高度才滚得动：面板最高 85vh，本列表封在 60vh 内留给头部与安全区 */
+.dc-sheet-body { max-height: 60vh; padding: 12rpx 0 0; }
 .dc-row {
   display: flex; align-items: center; gap: 18rpx;
   padding: 16rpx 16rpx;

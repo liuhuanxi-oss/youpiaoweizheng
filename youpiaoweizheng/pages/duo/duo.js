@@ -19,6 +19,7 @@ const duoData = require('../../utils/duoData.js');
 const themeUtil = require('../../utils/theme.js');
 const sk = require('../../utils/skeleton.js');
 const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
+const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const deco = require('../../utils/deco.js');   // 图形：齿边纸片 / 雏菊 / 邮戳 / 星点
 const { iconSrc } = require('../../utils/icons.js');
 
@@ -51,6 +52,8 @@ function placeText(t) {
 Page({
   data: {
     theme: 'a',
+    // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡
+    sp: share.sp(),
     skeleton: false,   // 加载超 300ms 才显示骨架
     bound: false,
     // —— 下拉弹性 ——
@@ -69,6 +72,7 @@ Page({
 
   onShow() {
     themeUtil.apply(this);
+    if (this.data.sp) return; // 单页模式：不读空数据（wxml 整页换成落地卡）
     this.buildArt();
     this.refresh();
   },
@@ -341,15 +345,17 @@ Page({
 
   // ---------- 转发 ----------
   onShareAppMessage() {
-    const code = this.data.myCode;
     // 4.17.0 M2 时光同谋：发起过邀请就点亮勋章资格 + 埋点
     try { wx.setStorageSync('sp_invite_sent', Date.now()); } catch (e) { /* 忽略 */ }
     track.track('share_click', { from: 'duo' });
-    // v5.1 L2：标题用「我们」钩子 + 结果前置，比功能描述更能唤起绑定（分享卡片直达绑定位）
-    return {
-      title: '我把咱俩看过的时光收成了收藏册，给你留了位置，来一起翻',
-      path: code ? `/pages/bind/bind?code=${code}` : '/pages/duo/duo',
-      imageUrl: '/images/brand-logo.png'
-    };
+    // 7.3.0 S2：文案与落地页走 share.js —— v5.1 那句「我们」钩子保留在场景表里，
+    // 落地位仍是绑定位（code 在时直达），另外自动带上邀请短码（R6 归因）
+    return share.message('duo', { code: this.data.myCode });
+  },
+
+  /** 7.3.0 S1：分享到朋友圈（朋友圈只能带 query、落地就是本页） */
+  onShareTimeline() {
+    track.track('share_timeline', { from: 'duo' });
+    return share.timeline('duo', {});
   }
 });

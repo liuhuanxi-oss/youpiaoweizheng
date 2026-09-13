@@ -1,4 +1,8 @@
-<view class="page theme-{{theme}} fade-up">
+<!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
+<import src="/templates/sp.wxml" />
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这是别人这一年的回忆报告'}}" /></block>
+
+<view class="page theme-{{theme}} fade-up" wx:if="{{!sp}}">
   <!-- 4.10.1 重装饰层：纸面噪点 -->
   <view class="grain"></view>
 
@@ -25,6 +29,13 @@
 
   <!-- 正常态：品牌行 → 大标题 → 两张水彩统计卡 → 年度精选拼贴 → AI 年度结语 → 两枚按钮 -->
   <block wx:else>
+    <!-- ⓪ 云故障 / 超上限横幅（同 album 的 tm-net）——年报里每个数字都来自票根，
+         兜底成演示数据时整页都是编的，必须让用户看见这句 -->
+    <view wx:if="{{netBar}}" class="an-net pressable" hover-class="press-item-hover" bindtap="onNetBarTap"
+          aria-role="button" aria-label="{{netBar.text}}">
+      <text class="an-net-t">{{netBar.text}}</text>
+    </view>
+
     <!-- ① 品牌行：玫瑰票根标 + 有票为证 + No.年份 标签 + 注销波浪 -->
     <view class="an-brand">
       <view class="an-logo">

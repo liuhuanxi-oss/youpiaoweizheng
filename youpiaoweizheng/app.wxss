@@ -335,11 +335,30 @@ page {
   to   { opacity: 1; }
 }
 
-/* —— M4.8 二级页统一进场（上滑淡入，与弹出层同一缓动体系）—— */
+/* —— 自定义下拉头（album / duo / me 三处共用）——
+   配合 scroll-view 的 refresher-default-style="none" 使用：原生转圈关了，这里就是唯一的下拉反馈。
+   ⚠️ 想用它，滚动容器必须是**固定高度**（height:100vh）。用 min-height 的话容器被内容撑高、
+      内部根本不会滚，refresher 就永远触发不了 —— 下拉会毫无反应。
+   只有一行字，不给自己加戏（稿里没有下拉这个动作）。 */
+.refresher { display: flex; align-items: center; justify-content: center; height: 150rpx; }
+.rf-text { font-size: 20rpx; letter-spacing: 3rpx; color: var(--text2, #8A7E6E); }
+
+/* —— M4.8 二级页统一进场（上滑淡入，与弹出层同一缓动体系）——
+   7.2.0 起 tab 页也挂这个类；重播由 utils/enter.js 负责（tab 页常驻内存，动画不会自己重来）。
+   ⚠️ fill 是 both，动画结束后 transform 会留在节点上 —— 它会成为后代 position:fixed 的包含块。
+      目前各页的 fixed 元素要么在根节点之外（discover 的面板、bottom-sheet），
+      要么本来就在屏外（annual 的导出画布），没有可见影响；将来往里塞 fixed 元素时记得先看这条。 */
 .fade-up { animation: page-fadeup 280ms var(--ease-smooth) both; }
 @keyframes page-fadeup {
   from { opacity: 0; transform: translateY(16rpx); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 与 .pressable 同一个口径：只留淡变，去掉位移（位移会让前庭敏感的用户不适） */
+  @keyframes page-fadeup {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
 }
 
 /* ============================================
@@ -1170,3 +1189,45 @@ page {
 
 /* 收藏心（实心/描边，邮政红点缀） */
 .b-heart { width: 34rpx; height: 34rpx; }
+
+/* ===== 朋友圈单页模式落地页（7.3.0 S1，模板见 templates/sp.wxml） =====
+   好友从朋友圈点开分享卡时，页面拿不到用户身份、也不能跳页 —— 各页在
+   单页模式下一律换成这块品牌卡，指路微信自带的「前往小程序」。
+   样式收在全局：6 个页面共用一份，改一次全都跟着变。 */
+.sp-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 180rpx 70rpx 0;
+  text-align: center;
+}
+.sp-logo {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 36rpx;
+  box-shadow: 0 12rpx 32rpx rgba(43, 36, 32, 0.12);
+}
+.sp-brand {
+  margin-top: 32rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+  letter-spacing: 6rpx;
+  color: var(--text, #2B2420);
+}
+.sp-line {
+  margin-top: 28rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: var(--text2, #8A7E6E);
+}
+.sp-go {
+  margin-top: 88rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--accent, #C26B5E);
+}
+.sp-go2 {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: var(--text2, #8A7E6E);
+}

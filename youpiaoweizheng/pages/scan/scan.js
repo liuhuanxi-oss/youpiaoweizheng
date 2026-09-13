@@ -13,6 +13,7 @@ const themeUtil = require("../../utils/theme.js");
 const { iconSrc } = require('../../utils/icons.js');
 const deco = require('../../utils/deco.js');
 const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
+const invite = require('../../utils/invite.js'); // 7.3.0 R6：邀请奖励结算
 const { TYPE_TEXT } = require('../../utils/mock.js');
 
 const TYPE_KEYS = ['show', 'movie', 'traffic'];
@@ -442,9 +443,13 @@ Page({
           track.track('first_save', { type: f.type || '' });
         }
       } catch (e) { /* 埋点失败不阻塞 */ }
+      // 7.3.0 R6：收下第一张票根 → 催一次邀请奖励结算（谁点进来的、发不发奖全在服务端判；
+      // 这里只是触发器，失败静默 —— 下次启动 invite.boot 还会补一次）
+      invite.settle();
       wx.hideLoading();
       wx.vibrateShort({ type: 'medium' }); // M4.5：落章瞬间（关键操作）
       // v6.6.0 动效4：对勾圆环描边+粒子（Canvas 2D，400ms）→ 200ms 驻留 → 浮层上移淡出 200ms → 返回
+      // A2：同期叠「撕票」（存根留在原地、副券撕下飞进册子，见 scan.wxss 的 .tear-*），时间轴不改
       this.setData({ stamped: true, liftOff: false });
       this._playCheckIn();
       setTimeout(() => this.setData({ liftOff: true }), 600); // 400ms 绘制 + 200ms 驻留

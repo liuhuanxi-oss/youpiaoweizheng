@@ -13,6 +13,7 @@
 // ============================================================
 const themeUtil = require('../../utils/theme.js');
 const deco = require('../../utils/deco.js');
+const { iconSrc } = require('../../utils/icons.js');
 
 /** 把主题元数据 + 编译好的图形 data-uri 合成卡片数组（wxml 只认这个） */
 function buildCards() {
@@ -31,13 +32,19 @@ Page({
     theme: 'paper',           // 当前生效主题（已落库）
     preview: 'paper',         // 预览中主题（未落库时与 theme 不同）
     cards: [],
-    typeScale: themeUtil.TYPE_SCALE
+    typeScale: themeUtil.TYPE_SCALE,
+    ic: {}
   },
 
   onLoad() {
     const cur = themeUtil.getTheme();
     // 编译 6 套 ×（1 头像 + 4 装饰）共 30 张 SVG，一次性 setData (~18KB)
-    this.setData({ theme: cur, preview: cur, cards: buildCards() });
+    // 「当前预览」的勾选标记走 icons.js（原先是字符 ✓，真机字形覆盖不可控）：
+    // 它恒为白描线、压在卡片自己的主题色圆底上，故只需编译一次
+    this.setData({
+      theme: cur, preview: cur, cards: buildCards(),
+      ic: { check: iconSrc('check', '#FFF8F2', 0, 2) }
+    });
   },
 
   onShow() {

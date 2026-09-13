@@ -13,6 +13,7 @@ const store = require('../../utils/store.js');
 const themeUtil = require("../../utils/theme.js");
 const pay = require('../../utils/pay.js');     // 署名：昵称 → 报告尾款
 const track = require('../../utils/track.js'); // 埋点
+const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const deco = require('../../utils/deco.js');   // 图形：齿边面板 / 邮戳 / 花枝 / 星点
 const poster = require('./poster.js');         // 分享海报的 1080×1920 版式（Canvas）
 const { iconSrc } = require('../../utils/icons.js'); // 全页无 emoji，图标一律线性 SVG
@@ -63,9 +64,13 @@ function pickTop(ts) {
 Page({
   data: {
     theme: 'a', legacyTheme: 'a',
+    // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡
+    sp: share.sp(),
     loading: true,
     empty: false,
     error: false,
+    // 云故障 / 超上限横幅（{ text, retry }；null = 不显示），同 album 的 netBar
+    netBar: null,
     exporting: false,
     closing: false,      // AI 结语重新生成中
     y: '',               // 年份（取最近一张票根的年份）
@@ -88,14 +93,22 @@ Page({
   },
 
   onLoad() {
+    if (this.data.sp) return; // 单页模式：不读空数据（wxml 整页换成落地卡）
     this.reload();
   },
 
   /** 拉全量票根 → 聚合年度指标（重试/首载同路） */
   async reload() {
-    this.setData({ loading: true, empty: false, error: false });
+    this.setData({ loading: true, empty: false, error: false, netBar: null });
     try {
       const raw = await store.listTickets();
+      // 年报是全网最容易「一本正经胡说八道」的一页：云库读失败时 store 兜底成演示票根，
+      // 于是总张数、去过的城市、花了多少钱全是编的，还配一段 AI 结语。
+      // 不挂横幅，用户会把这份年报当成自己的真实年度。
+      const flags = store.listFlags();
+      const netBar = flags.netFallback
+        ? { text: '网络开小差了，这份年报用的是演示票根 · 点我重试', retry: true }
+        : (flags.truncated ? { text: `票根超过 ${flags.cap} 张，年报只统计了最近的 ${flags.cap} 张`, retry: false } : null);
       const ts = (raw || [])
         .filter((t) => t && t.title && /^\d{4}-\d{2}-\d{2}/.test(String(t.date || '')))
         .slice()
@@ -136,7 +149,7 @@ Page({
 
       this._s = s;
       this.setData({
-        loading: false, s, picks, y: y1,
+        loading: false, s, picks, y: y1, netBar,
         pm: picks.filter((p) => p.pm).map((p) => p.pm),
         no: String(last.id || '').replace(/\D/g, '').slice(-6) || String(last.date).replace(/-/g, '').slice(2)
       });
@@ -145,6 +158,11 @@ Page({
     } catch (e) {
       this.setData({ loading: false, error: true });
     }
+  },
+
+  /** 云故障横幅重试（截断提示不可点，故只认 retry） */
+  onNetBarTap() {
+    if (this.data.netBar && this.data.netBar.retry) this.reload();
   },
 
   /** 写 AI 年度结语；失败/超时都由 ai.js 兜底成本地文案，卡片不会空着 */
@@ -316,16 +334,20 @@ Page({
   onShareAppMessage() {
     const t = this._s;
     track.track('annual_share', { total: t ? t.total : 0 });
-    const payload = {
-      title: t ? `我的年度回忆报告：${t.total} 张票 · ${t.cities} 座城 · 让时光有票为证` : '我的年度回忆报告 · 有票为证',
-      path: '/pages/annual/annual'
-    };
-    if (this._canvas) {
-      payload.promise = wx.canvasToTempFilePath({ canvas: this._canvas })
+    // 7.3.0 S2：报告场景文案（数字前置）与落地页走 share.js
+    const promise = this._canvas
+      ? wx.canvasToTempFilePath({ canvas: this._canvas })
         .then((r) => ({ imageUrl: r.tempFilePath }))
-        .catch(() => ({}));
-    }
-    return payload;
+        .catch(() => ({}))
+      : null;
+    return share.message('annual', { total: t && t.total, cities: t && t.cities }, { promise });
+  },
+
+  /** 7.3.0 S1：分享到朋友圈（朋友圈只能带 query、落地就是本页） */
+  onShareTimeline() {
+    const t = this._s;
+    track.track('share_timeline', { from: 'annual' });
+    return share.timeline('annual', { total: t && t.total, cities: t && t.cities });
   },
 
   /** 4.20.3 署名：昵称 → 报告尾款（晚到只补 setData；与 card 页同源） */

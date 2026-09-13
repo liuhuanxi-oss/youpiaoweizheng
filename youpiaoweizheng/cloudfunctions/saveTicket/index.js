@@ -157,24 +157,31 @@ async function getGroupOrderAction(OPENID) {
 }
 
 // ============================================================
-// 4.17.0 M1 海报带码：生成小程序码（全局一份，云存储 + prefs 缓存 fileID）
+// 4.17.0 M1 海报带码：生成小程序码（云存储 + prefs 缓存 fileID）
 // scene='b=poster'：扫码进入后 app.js 场景埋点可见，可区分海报带来的回流。
 // getUnlimited 不传 envVersion → 默认 release 码：上线后扫码直达；
 // 上线前（体验/开发版）扫 release 码会提示版本不存在——属预期，不处理。
+// 7.3.0 R6：海报上的码升级为**带邀请人短码**的 scene 码（scene='b=poster&r=XXXXXX'，
+//   扫码进入落在 options.query.scene → utils/invite.js 解出 ref 完成归因）。
+//   不传 ref 时仍走原来的全局码（一次生成全员复用）；带 ref 的按码各缓存一份。
 // ============================================================
-async function wxacodeAction() {
+async function wxacodeAction(event) {
+  const ref = String((event && event.ref) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  const scene = ref ? `b=poster&r=${ref}` : 'b=poster';
+  const type = ref ? 'wxacode_ref' : 'wxacode_poster';
   try {
     const db = cloud.database();
-    // 全局缓存：码与用户无关、永久有效，任何人生成过一次即全员复用
+    // 缓存：全局码一份（与用户无关、永久有效，任何人生成过一次即全员复用）；
+    // 带邀请码的按 code 各一份（同一个人反复进卡片页只生成一次）。
     try {
-      const hit = await db.collection('prefs').where({ type: 'wxacode_poster' }).limit(1).get();
+      const hit = await db.collection('prefs').where(ref ? { type, code: ref } : { type }).limit(1).get();
       if (hit.data && hit.data[0] && hit.data[0].fileID) {
         return { ok: true, fileID: hit.data[0].fileID, cached: true };
       }
     } catch (e) { /* 缓存读取失败 → 走生成 */ }
 
     const wxa = await cloud.openapi.wxacode.getUnlimited({
-      scene: 'b=poster',
+      scene,
       width: 430
     });
     // openapi 返回 { buffer } 对象；兜底兼容直接返回 Buffer 的形态
@@ -182,7 +189,7 @@ async function wxacodeAction() {
     if (!buf || !buf.length) return { ok: false, msg: '码生成失败' };
 
     const up = await cloud.uploadFile({
-      cloudPath: `wxacode/poster-${Date.now()}.png`,
+      cloudPath: `wxacode/poster-${ref || 'all'}-${Date.now()}.png`,
       fileContent: buf
     });
     if (!up || !up.fileID) return { ok: false, msg: '码上传失败' };
@@ -190,7 +197,7 @@ async function wxacodeAction() {
     try {
       await ensureCollection(db, 'prefs');
       await db.collection('prefs').add({
-        data: { type: 'wxacode_poster', fileID: up.fileID, createdAt: Date.now() }
+        data: { type, code: ref || '', fileID: up.fileID, createdAt: Date.now() }
       });
     } catch (e) { /* 缓存写失败不阻塞（下次重生成，可接受） */ }
     return { ok: true, fileID: up.fileID };
@@ -962,7 +969,8 @@ async function profileClearAction(OPENID) {
 /** 4.20.4 上线前数据清理（opsCleanup）：清除测试期残留，让库回到「真实、干净」状态。
  *  清理范围：tickets 全部（测试票根）· couples 全部（测试绑定）
  *            prefs 按 type 清：pay_order（测试订单）/ auth_session（测试会话）/
- *            user_profile（测试署名，如「流浪唱片」）/ art_quota（测试额度）/ art_job（生图任务）/ wxacode_poster（码缓存）
+ *            user_profile（测试署名，如「流浪唱片」）/ art_quota（测试额度）/ art_job（生图任务）/
+ *            wxacode_poster（码缓存）/ wxacode_ref、ref_code、ref_link（7.3.0 邀请归因）
  *  保留：config 集合（支付凭证，绝不动）· prefs 其余 type（未知用途不碰）。
  *  防滥用：必须携带 opsToken = config.pay_secret.appKey（MP 后台虚拟支付页可查），比对一致才执行。
  *  触发：开发者工具 → 云开发控制台 → 云函数 saveTicket → 云端测试 → 事件 {"action":"opsCleanup","opsToken":"<appKey>"}
@@ -993,7 +1001,8 @@ async function opsCleanupAction(event) {
   await ensureCollection(db, 'tickets');
   await rm('tickets', {}, 'tickets_测试票根');
   await rm('couples', {}, 'couples_测试绑定');
-  const TYPES = ['pay_order', 'auth_session', 'user_profile', 'art_quota', 'art_job', 'wxacode_poster'];
+  const TYPES = ['pay_order', 'auth_session', 'user_profile', 'art_quota', 'art_job',
+    'wxacode_poster', 'wxacode_ref', 'ref_code', 'ref_link'];
   for (const ty of TYPES) {
     await rm('prefs', { type: ty }, 'prefs_' + ty);
   }
@@ -1032,7 +1041,8 @@ async function opsAuditAction(event) {
       return 'err';
     }
   };
-  const TYPES = ['pay_order', 'auth_session', 'user_profile', 'art_quota', 'art_job', 'wxacode_poster'];
+  const TYPES = ['pay_order', 'auth_session', 'user_profile', 'art_quota', 'art_job',
+    'wxacode_poster', 'wxacode_ref', 'ref_code', 'ref_link'];
   const prefsCounts = {};
   for (const ty of TYPES) prefsCounts[ty] = await count('prefs', { type: ty });
   return {
@@ -1194,6 +1204,137 @@ async function bindAction(event, OPENID) {
     return { ok: false, msg: '未知的绑定操作' };
   } catch (e) {
     return { ok: false, msg: '绑定服务异常：' + (e.message || 'unknown') };
+  }
+}
+
+// ============================================================
+// 7.3.0 R6 邀请有礼（裂变）：短码 → 绑定关系 → 好友首票结算，双方各 +1 次图版
+// 存储仍走 prefs（项目约定：不新增云函数，也不为单点功能新增集合）：
+//   type='ref_code'  { _openid, code }                        我的邀请短码（每人一条，幂等）
+//   type='ref_link'  { _openid, code, inviter, status, ... }  邀请关系（_openid = 被邀请人，
+//                                                             每人一条 → 一个账号最多被邀请一次）
+// 防刷四道闸：
+//   ① 被邀请人唯一 —— 同一个账号反复点同一个码只算一次，奖励不会重复发；
+//   ② 不能邀请自己 —— refBind 里直接挡；
+//   ③ **老用户不发奖** —— 绑定时已有票根的人不算「被邀请来的新用户」，
+//      关系照记（归因/K 因子仍可看），但不入账；
+//   ④ 结算以「被邀请人真的有 ≥1 张票根」为前提 + 条件更新抢占结算权
+//      （并发/重试只有一支能改到 pending → settled）。
+// 入账口径与看视频奖励一致：并入 paid 池 + 同步记 bonus（退款回退上限 = paid - bonus）。
+// ============================================================
+const REF_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 与双人邀请码同表：去掉 0O1IL 等易混字符
+
+function makeRefCode() {
+  let s = '';
+  for (let i = 0; i < 6; i++) s += REF_CODE_CHARS[Math.floor(Math.random() * REF_CODE_CHARS.length)];
+  return s;
+}
+
+/** 我的邀请短码：没有就生成一条（分享 path 与小程序码都读它） */
+async function refCodeAction(OPENID) {
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+    const mine = await col.where({ _openid: OPENID, type: 'ref_code' }).limit(1).get();
+    if (mine.data && mine.data[0]) return { ok: true, code: mine.data[0].code };
+    for (let i = 0; i < 3; i++) {
+      const code = makeRefCode();
+      try {
+        await col.add({ data: { _openid: OPENID, type: 'ref_code', code, createdAt: Date.now() } });
+        return { ok: true, code };
+      } catch (e) { /* 撞码重试 */ }
+    }
+    return { ok: false, msg: '邀请码生成失败' };
+  } catch (e) {
+    return { ok: false, msg: '邀请码服务异常' };
+  }
+}
+
+/** 绑定邀请关系（幂等：我已有关系就直接返回，换码也绑不上） */
+async function refBindAction(event, OPENID) {
+  try {
+    const code = String(event.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    if (code.length < 4) return { ok: false, msg: '邀请码无效' };
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+
+    const mine = await col.where({ _openid: OPENID, type: 'ref_link' }).limit(1).get();
+    if (mine.data && mine.data[0]) return { ok: true, bound: false, dup: true };
+
+    const from = await col.where({ type: 'ref_code', code }).limit(1).get();
+    const inviter = (from.data && from.data[0] && from.data[0]._openid) || '';
+    if (!inviter) return { ok: false, msg: '邀请码不存在' };
+    if (inviter === OPENID) return { ok: false, msg: '不能邀请自己' };
+
+    // 老用户判定：绑定时已有票根 = 不是被邀请来的新用户 → 只记归因，不发奖
+    let had = 0;
+    try {
+      const c = await db.collection('tickets').where({ _openid: OPENID }).count();
+      had = (c && c.total) || 0;
+    } catch (e) { had = 0; }
+
+    await col.add({
+      data: {
+        _openid: OPENID,
+        type: 'ref_link',
+        code,
+        inviter,
+        status: had > 0 ? 'stale' : 'pending',
+        hadTickets: had,
+        createdAt: Date.now()
+      }
+    });
+    return { ok: true, bound: true, stale: had > 0 };
+  } catch (e) {
+    return { ok: false, msg: '邀请绑定失败' };
+  }
+}
+
+/** 邀请奖励入账 +1（并入 paid 池并记 bonus：奖励次数不算付费资产，退款不退还） */
+async function grantRefBonus(db, openid) {
+  const _ = db.command;
+  const q = await pay.loadQuota(db, openid);
+  await db.collection('prefs').doc(q._id).update({
+    data: { paid: _.inc(1), bonus: _.inc(1), updatedAt: Date.now() }
+  });
+}
+
+/** 结算邀请奖励：被邀请人（我）已上传过票根 → 双方各 +1 次图版。幂等，前端可反复催。 */
+async function refRewardAction(OPENID) {
+  try {
+    const db = cloud.database();
+    await ensureCollection(db, 'prefs');
+    const col = db.collection('prefs');
+    const rec = await col.where({ _openid: OPENID, type: 'ref_link', status: 'pending' }).limit(1).get();
+    const link = rec.data && rec.data[0];
+    if (!link) return { ok: true, granted: false };
+
+    // 前提：被邀请人真的收下了自己的第一张票根（前端只是触发器，判定在服务端）
+    let n = 0;
+    try {
+      const c = await db.collection('tickets').where({ _openid: OPENID }).count();
+      n = (c && c.total) || 0;
+    } catch (e) { n = 0; }
+    if (n < 1) return { ok: true, granted: false, wait: true };
+
+    // 抢占结算权：条件更新只有一支能改到 → 并发与重试都不会发第二次奖
+    const claim = await col.where({ _id: link._id, status: 'pending' })
+      .update({ data: { status: 'settled', settledAt: Date.now() } });
+    if (!claim.stats || !claim.stats.updated) return { ok: true, granted: false };
+
+    try {
+      await grantRefBonus(db, OPENID);
+      await grantRefBonus(db, link.inviter);
+    } catch (e) {
+      // 入账失败：把结算权还回去，下次启动自动补发（与掉单自愈同一思路）
+      try { await col.doc(link._id).update({ data: { status: 'pending' } }); } catch (e2) { /* 下次再说 */ }
+      return { ok: false, granted: false, msg: '奖励入账失败，稍后自动补发' };
+    }
+    return { ok: true, granted: true };
+  } catch (e) {
+    return { ok: false, msg: '邀请奖励结算异常' };
   }
 }
 
@@ -1404,6 +1545,16 @@ exports.main = async (event) => {
   }
   if (event.action === 'duoStats') {
     return duoStatsAction(OPENID, !!event.full);
+  }
+  // 7.3.0 R6 邀请有礼：短码 / 绑定 / 结算（见文件上方 R6 段落）
+  if (event.action === 'refCode') {
+    return refCodeAction(OPENID);
+  }
+  if (event.action === 'refBind') {
+    return refBindAction(event, OPENID);
+  }
+  if (event.action === 'refReward') {
+    return refRewardAction(OPENID);
   }
   if (event.action === 'eventStats') {
     return eventStatsAction(event);

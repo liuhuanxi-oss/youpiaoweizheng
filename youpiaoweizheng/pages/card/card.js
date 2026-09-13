@@ -20,6 +20,8 @@ const themeUtil = require("../../utils/theme.js");
 const couple = require('../../utils/couple.js');
 const { USE_CLOUD } = require('../../utils/env.js');       // 4.17.0：演示模式不带码
 const track = require('../../utils/track.js');             // 4.17.0：拉新埋点
+const share = require('../../utils/share.js');             // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
+const invite = require('../../utils/invite.js');           // 7.3.0 R6：海报码带邀请人短码
 const pay = require('../../utils/pay.js');                 // 4.20.3：署名（昵称 → 卡面落款）
 const { iconSrc } = require('../../utils/icons.js');       // 稿屏6：按钮与空态图标（全页无 emoji）
 const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外那几处手绘点缀
@@ -880,12 +882,20 @@ Page({
     art: {},  // 卡外点缀（花枝 / 四角星 / 小粉心，buildArt 编译）
     exporting: false,
     redoing: false,
+    // 7.2.0：取票期间的状态位。此前 t 为 null 且 notFound 为 false 时两个分支都不命中，
+    // 整页只剩一根导航栏——弱网/云函数冷启动时白屏可达数秒
+    loading: true,
     // 4.19.1 空态：票根未命中（过期 id / 云库异常 / 分享落地）——整页内容都挂在
     // wx:if="{{t}}" 下，t=null 时四个风格胶囊、海报、按钮全部消失只剩导航栏白屏
-    notFound: false
+    notFound: false,
+    // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡
+    sp: share.sp()
   },
 
   async onLoad(options) {
+    // 7.3.0 S1：朋友圈单页模式拿不到身份，取票必然落空 → 直接亮品牌落地卡，
+    // 不白跑一趟云库、也不让空态与落地卡同时出现（loading 得关掉）
+    if (this.data.sp) { this.setData({ loading: false }); return; }
     // 4.22.5 修复（BUG审查①）：移除「getTicket 未命中 → 自动 fallback 自己第一张票」。
     // 后果：好友点开分享卡（云库仅创建者可读，读不到他人票）会看到"自己的票"而非空态，
     // 同场角标/海报文案全部错位。现在 id 失效/越权一律落 notFound 空态（明确出路）。
@@ -898,7 +908,7 @@ Page({
     }
     if (!t) {
       console.warn('[card] 票根未命中，落空态：id =', options && options.id);
-      this.setData({ notFound: true });
+      this.setData({ notFound: true, loading: false });
       return;
     }
     // 4.17.0 M1 海报带码 A/B：首次进入随机分组并持久化（20% 不带码做对照，
@@ -917,6 +927,7 @@ Page({
     this._duo = c && c.boundAt ? c : null;
     this.setData({
       t,
+      loading: false,
       quote: t.aiCaption || '有些夜晚值得被留下来，一遍一遍地放。'
     }, () => {
       // 4.22.4：t 到货后 canvas 才真正挂载，此处补初始化再首绘（修 onReady 竞争导致的空白画布）
@@ -1019,10 +1030,19 @@ Page({
     if (this._ab !== 'code' || this._qrFail) return Promise.resolve(null);
     if (this._qrImg) return Promise.resolve(this._qrImg);
     if (this._qrPend) return this._qrPend; // 4.17.1：进行中的请求直接复用（防连点风格重复调云函数）
-    this._qrPend = new Promise((resolve) => {
+    // 7.3.0 R6：先确保「我的邀请短码」就绪 —— 海报上的码带 r=<短码>，
+    // 扫码进来的人才会归因到我（app.js 启动时已在取，通常这里直接命中缓存；
+    // 没命中就多等一次云调用，码本来就是后台加载、不挡首屏）
+    this._qrPend = invite.ensureCode().then(() => this._fetchQR());
+    return this._qrPend;
+  },
+
+  /** 取码图：云函数生成/缓存 fileID → 临时链接 → canvas image（失败静默 null） */
+  _fetchQR() {
+    return new Promise((resolve) => {
       wx.cloud.callFunction({
         name: 'saveTicket',
-        data: { action: 'wxacode' },
+        data: { action: 'wxacode', ref: invite.myCode() },
         success: (res) => {
           const fileID = res.result && res.result.fileID;
           if (!fileID) { this._qrFail = true; this._qrPend = null; return resolve(null); }
@@ -1042,7 +1062,6 @@ Page({
         fail: () => { this._qrFail = true; this._qrPend = null; resolve(null); }
       });
     });
-    return this._qrPend;
   },
 
   /** 切换卡片风格（画布重绘；导出与分享都按当前风格走） */
@@ -1216,17 +1235,20 @@ Page({
   onShareAppMessage() {
     this._incrShare();
     const t = this.data.t || {};
-    const payload = {
-      // 稿屏6 只有一枚「分享给好友」，卡片页不再分语气模板（v5.1 的三套文案已收）
-      title: `${String(t.title || '这张票')} · 让时光有票为证`,
-      path: `/pages/detail/detail?id=${t.id || ''}`
-    };
     // v5.0 S1：分享卡片图用当前画布导出（promise 需 3 秒内返回；失败降级默认截图）
-    if (this._canvas) {
-      payload.promise = wx.canvasToTempFilePath({ canvas: this._canvas })
+    const promise = this._canvas
+      ? wx.canvasToTempFilePath({ canvas: this._canvas })
         .then((r) => ({ imageUrl: r.tempFilePath }))
-        .catch(() => ({}));
-    }
-    return payload;
+        .catch(() => ({}))
+      : null;
+    // 7.3.0 S2：文案与落地页走 share.js（标题带票名与口号，path 带邀请码）
+    return share.message('ticket', { title: t.title, id: t.id }, { promise });
+  },
+
+  /** 7.3.0 S1：分享到朋友圈（朋友圈只能带 query、落地就是本页） */
+  onShareTimeline() {
+    const t = this.data.t || {};
+    track.track('share_timeline', { from: 'card' });
+    return share.timeline('ticket', { title: t.title, id: t.id });
   }
 });

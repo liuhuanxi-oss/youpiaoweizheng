@@ -1,6 +1,7 @@
 // app.js —— 小程序入口
 const { USE_CLOUD, CLOUD_ENV } = require('./utils/env.js');
 const track = require('./utils/track.js'); // 4.17.0：拉新埋点
+const invite = require('./utils/invite.js'); // 7.3.0 R6：邀请归因
 
 // 4.19.2 全局异常节流计数：单次会话上限 5 条，防错误循环刷爆上报通道
 let _errCount = 0;
@@ -9,6 +10,13 @@ App({
   onLaunch(options) {
     // 4.17.0：冷启动来源（场景值）——分入口看拉新质量的地基数据
     if (options && options.scene) track.track('scene_source', { scene: options.scene, cold: 1 });
+
+    // 7.2.0 §3.3：page_view —— 全局路由钩子，一处盖住全部页面（含 tab 切换与返回）。
+    // 逐页加一行也行，但新增页面时必漏；这个钩子是基础库 2.19.4 起的能力，
+    // 遇到了没有它的老基础库就只是没有 page_view，不影响任何业务（下面的 if 是守卫，不是兼容代码）。
+    if (wx.onAppRoute) {
+      wx.onAppRoute((res) => track.track('page_view', { p: (res && res.path) || '' }, { local: false }));
+    }
 
     // ===== 云开发初始化（M2 起） =====
     // 开关在 utils/env.js：演示模式下不初始化云，全部走 mock 数据；
@@ -23,6 +31,10 @@ App({
         traceUser: true
       });
     }
+
+    // 7.3.0 R6：冷启动捞邀请码（分享 path 的 ?ref= / 小程序码 scene 的 r=）。
+    // 放在 wx.cloud.init 之后：invite 要调云函数，init 前调会失败。
+    invite.boot(options);
   },
 
   // ===== 4.19.2 全局异常自动上报 =====
@@ -47,6 +59,9 @@ App({
   onShow(options) {
     // 4.17.0：热启动来源（分享卡进入/下拉直达/搜一搜等），cold:0 区分于冷启动
     if (options && options.scene) track.track('scene_source', { scene: options.scene, cold: 0 });
+    // 7.3.0 R6：热启动也要捞一次邀请码 —— 小程序活着时点别人的分享卡进来只走 onShow，
+    // 只在 onLaunch 捞会把这一类归因整批漏掉（boot 内部：捞码 → 绑定 → 催结算，全静默）
+    invite.boot(options);
   },
 
   globalData: {

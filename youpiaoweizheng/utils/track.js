@@ -15,8 +15,13 @@ const MAX_ROWS = 500; // 环形缓冲上限（超出丢最老的）
  * 记录一个事件
  * @param {string} event 事件名（如 scene_source / first_save / poster_save）
  * @param {object} data  参数（值自动转为 string/number，满足 reportEvent 限制）
+ * @param {object} [opts]
+ * @param {boolean} [opts.local=true] 是否写本地环形缓冲。
+ *   page_view 这类「每次路由变化都发」的事件要关掉：setStorageSync 是同步的，
+ *   每次切页都把 500 条事件整个序列化重写一遍，掉帧掉在页面切换上最明显；
+ *   而它本来就是给后台看板看的，本地对账用不上。
  */
-function track(event, data) {
+function track(event, data, opts) {
   const d = data || {};
   const safe = {};
   Object.keys(d).forEach((k) => {
@@ -26,6 +31,8 @@ function track(event, data) {
 
   // 通道一：官方自定义分析
   try { wx.reportEvent(event, safe); } catch (e) { /* 未配置/基础库不支持，静默 */ }
+
+  if (opts && opts.local === false) return;
 
   // 通道二：本地环形缓冲
   try {

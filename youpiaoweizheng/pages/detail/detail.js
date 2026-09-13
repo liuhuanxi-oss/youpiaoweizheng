@@ -9,6 +9,7 @@ const themeUtil = require("../../utils/theme.js");
 const { weatherText } = require('../../utils/weather.js'); // V1.5：天气记忆 UI
 const { annivYears } = require('../../utils/date.js');     // 4.11.0：周年语气
 const track = require('../../utils/track.js');             // 4.17.0：拉新埋点
+const share = require('../../utils/share.js');             // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const ads = require('../../utils/ads.js');                 // 4.21.0：底部 Banner 广告位（未配置 ID 时整块隐藏）
 const { iconSrc } = require('../../utils/icons.js');       // 7.0.0：线性图标（替换原 emoji）
 
@@ -47,12 +48,46 @@ function buildIcons(themeKey) {
   };
 }
 
+/**
+ * A3 顶栏毛玻璃渐变的底色。
+ * 为什么由 JS 编译：那层遮罩挂在根节点**之外**（根节点带 .fade-up，其 transform
+ * 会让 position:fixed 相对它定位，app.wxss 里记过这个坑），因此吃不到 --bg 变量。
+ * 末端用同色 alpha 0 收尾，而不是 transparent —— 后者在部分渲染器上按「透明黑」插值，
+ * 渐变会脏成灰边。
+ */
+function topFadeOf(themeKey) {
+  const hex = String(themeUtil.getThemeMeta(themeKey).bg || '#F5F0E6').replace('#', '');
+  const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+  const n = parseInt(full, 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `linear-gradient(180deg, rgba(${r}, ${g}, ${b}, 0.94) 45%, rgba(${r}, ${g}, ${b}, 0))`;
+}
+
 Page({
 
   onShow() {
     themeUtil.apply(this);
     // 主题可能在「外观主题」页被改过，回到本页要重编图标实色
-    this.setData({ icons: buildIcons(themeUtil.getTheme()) });
+    const k = themeUtil.getTheme();
+    this.setData({ icons: buildIcons(k), fxTop: topFadeOf(k) });
+  },
+
+  /**
+   * A3 滚动驱动：照片视差 + 顶栏渐变（16ms 节流）。
+   * 两个值合并成一次 setData；位移量化到 2px、透明度量化到 0.1——
+   * 视觉上看不出台阶，但 setData 次数少一大截（滚动里 setData 是性能大头的）。
+   */
+  onPageScroll(e) {
+    const y = e.scrollTop || 0;
+    const now = Date.now();
+    if (now - (this._psT || 0) < 16) return;
+    this._psT = now;
+    // 上限 20px：与 .dtc-par 那 12% 的余量（≈26px）对应，再大就露出框底
+    const dy = Math.min(20, Math.round(y * 0.12 / 2) * 2);
+    const fade = Math.round(Math.min(y, 72) / 72 * 10) / 10;
+    if (dy === this._psDy && fade === this._psFade) return;
+    this._psDy = dy; this._psFade = fade;
+    this.setData({ psDy: dy, psFade: fade });
   },
 
   /** 4.15.0：离开页面清掉彩蛋定时器（v5.1 D2：一并清打字机） */
@@ -63,6 +98,10 @@ Page({
   data: {
     theme: "paper",
     icons: {},        // 7.0.0：按主题编译的线性图标 data-uri（onShow 填充）
+    // A3 滚动视差与顶栏渐变（onPageScroll 填充；初值即「未滚动」的样子）
+    psDy: 0,
+    psFade: 0,
+    fxTop: '',
     t: null,
     typeText: '',
     genLoading: false,
@@ -81,7 +120,9 @@ Page({
     eggShow: false,
     confetti: [],
     // 4.18.0 分享落地空态：票根不存在/不属于你（云库仅创建者可读写）
-    notFound: false
+    notFound: false,
+    // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页 → 空态不摆死按钮）
+    sp: false
   },
 
   /** 4.12.1 照片解码完成 → 淡入；失败 → 落回纸票样式兜底 */
@@ -115,6 +156,13 @@ Page({
 
   async onLoad(options) {
     sk.start(this);
+    // 7.3.0 S1：朋友圈打开 = 单页模式（拿不到身份、不能跳页）→ 直接亮空态并指路微信自带的
+    // 「前往小程序」，不去白跑一趟注定读不到的云库（也给不出点了没反应的按钮）
+    if (share.sp()) {
+      this.setData({ sp: true, notFound: true, adsBannerId: ads.BANNER_DETAIL_ID });
+      sk.end(this);
+      return;
+    }
     // 4.21.0 广告位 ID 透传（未配置为空串 → wxml wx:if 不渲染）
     this.setData({ adsBannerId: ads.BANNER_DETAIL_ID });
     // 风格本地记忆（card 页「换一版」同源）
@@ -316,10 +364,15 @@ Page({
     const t = this.data.t;
     // 4.17.0 share_click：分享是社交拉新的起点，先记下来
     track.track('share_click', { from: 'detail', tid: t ? String(t.id || '').slice(-6) : '' });
-    return {
-      title: t ? `我在有票为证收藏了「${t.title}」` : '有票为证 · 让时光有迹可循',
-      path: t ? `/pages/detail/detail?id=${t.id}` : '/pages/album/album'
-    };
+    // 7.3.0 S2：文案统一走 share.js（带口号 + 带邀请码），不在页面里各写一套
+    return share.message('ticket', { title: t && t.title, id: t && t.id });
+  },
+
+  /** 7.3.0 S1：分享到朋友圈（朋友圈只能带 query、落地就是本页） */
+  onShareTimeline() {
+    const t = this.data.t;
+    track.track('share_timeline', { from: 'detail' });
+    return share.timeline('ticket', { title: t && t.title, id: t && t.id });
   },
 
   /** 4.18.0 notFound 空态动作：去收自己的第一张票（替换当前空页，不回退） */

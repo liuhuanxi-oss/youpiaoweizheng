@@ -3,7 +3,10 @@
    注：本页所有色值一律走主题令牌（app.wxss 的六套 .theme-*）；
    稿内手绘装饰是 <image> 直出的 SVG data-uri，颜色由 me.js 按主题编译成实色。 */
 
-.me-page { min-height: 100vh; }
+/* 固定高（不是 min-height）：内容撑高的话 scroll-view 内部不会滚，
+   下拉刷新永远触发不了 —— 与 album 的 .tm-scroll、duo 的 .page-scroll 同一口径。
+   底部留白靠页面末尾的 .tk-safe-bottom 撑，和那两页一样。 */
+.me-page { height: 100vh; }
 
 /* 本页卡片统一走稿内圆角（--card-r 在 paper 主题只有 4px，直接吃会变直角） */
 .me-page { --me-r: 28rpx; }
@@ -244,4 +247,62 @@
   text-align: center;
   font-size: 22rpx;
   color: var(--text2, #A5968A);
+}
+
+/* ===== 7.2.0 L1：AI 重绘额度（从设置页迁来） ===== */
+.me-quota { margin: 24rpx 44rpx 0; padding: 28rpx 32rpx; }
+.me-quota-head { display: flex; align-items: baseline; justify-content: space-between; }
+.me-quota-t { font-size: 29rpx; font-weight: 600; color: var(--brown, #6B5B50); }
+.me-quota-n { font-size: 23rpx; color: var(--text2, #A5968A); }
+.me-quota-num { font-size: 40rpx; font-weight: 700; color: var(--brown, #6B5B50); }
+.me-quota-bar {
+  margin-top: 18rpx;
+  height: 12rpx; border-radius: 6rpx;
+  background: var(--soft, #F5EDE2);
+  overflow: hidden;
+}
+.me-quota-fill { height: 12rpx; border-radius: 6rpx; background: var(--sage, #A9C3A6); }
+.me-quota-label { margin-top: 12rpx; font-size: 23rpx; color: var(--text2, #A5968A); }
+
+/* ===== 7.2.0 L1：勋章横滑（从设置页搬来） ===== */
+.me-badges { margin-top: 32rpx; }
+.me-badges-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 44rpx; }
+.me-badges-t { font-size: 29rpx; font-weight: 600; color: var(--brown, #6B5B50); }
+.me-badges-c { font-size: 23rpx; color: var(--text2, #A5968A); }
+.me-badges-scroll {
+  margin-top: 20rpx;
+  padding-left: 44rpx;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.me-badge {
+  display: inline-block;
+  width: 128rpx; margin-right: 16rpx;
+  vertical-align: top;
+  text-align: center;
+  white-space: normal;
+}
+.me-badge-ic {
+  width: 72rpx; height: 72rpx;
+  padding: 14rpx;
+  border-radius: 50%;
+  background: var(--soft, #F5EDE2);
+  box-sizing: content-box;
+}
+.me-badge.on .me-badge-ic { background: var(--sage-soft, #E9F0E6); }
+.me-badge-name {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 21rpx; line-height: 1.35;
+  color: var(--text2, #A5968A);
+}
+.me-badge.on .me-badge-name { color: var(--brown, #6B5B50); font-weight: 600; }
+
+/* ===== 4.20.3 清除署名资料（隐私政策承诺的入口） ===== */
+.me-clear {
+  margin: 20rpx 44rpx 0;
+  text-align: right;
+  font-size: 23rpx;
+  color: var(--text2, #A5968A);
+  text-decoration: underline;
 }

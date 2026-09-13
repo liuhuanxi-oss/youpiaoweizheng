@@ -60,27 +60,35 @@
             </view>
           </view>
           <view class="tag" wx:if="{{it.together}}">一起</view>
-          <view class="go">{{it.mine ? '›' : (expandId === it.id ? '﹀' : '﹥')}}</view>
+          <view class="go {{!it.mine && expandId === it.id ? 'dn' : ''}}">
+            <image class="go-ic" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+          </view>
         </view>
       </view>
     </block>
 
-    <!-- 空态（4.12.1：整卡可点直达录入，与 wall 空态同构） -->
+    <!-- 空态（7.2.0 V10 统一规范：图标 + 一句话 + 一个行动按钮；
+         原先是 emoji 当图标且只有整卡可点——按钮是看得见的出路，点击区整块保留） -->
     <view class="empty card pressable" hover-class="press-item-hover" wx:if="{{!months.length}}" bindtap="goScan" aria-role="button" aria-label="去收第一张票根">
-      <view class="e-icon">🗓️</view>
+      <image class="e-ic" src="{{ic.empty}}" mode="aspectFit" aria-hidden="true" />
       <view class="e-t serif">时间线还空着</view>
-      <view class="e-s">收下第一张票根，故事就开始了 →</view>
+      <view class="e-s">收下第一张票根，故事就开始了</view>
+      <view class="tk-empty-cta" aria-hidden="true">收进第一张</view>
     </view>
 
-    <view class="foot-note">TA 的票带「TA收藏的」标记 · 同一场次你们都收了 → 「一起」</view>
+    <view class="foot-note">TA 的票带「TA收藏的」标记 · 同一场次你们都收了，标成「一起」</view>
   </view>
 
-  <!-- 错误态（未绑定 / 云端失败） -->
+  <!-- 错误态（未绑定 / 云端失败）：两种错给两条出路，别都推给「重试」 -->
   <view class="fade-in" wx:else>
     <view class="empty card">
-      <view class="e-icon">🔗</view>
+      <image class="e-ic" src="{{ic.link}}" mode="aspectFit" aria-hidden="true" />
       <view class="e-t serif">{{error}}</view>
       <view class="e-s">绑定后就能看到两个人的时间线</view>
+      <view wx:if="{{bindNeeded}}" class="tk-empty-cta pressable" hover-class="press-hover"
+            bindtap="goDuo" aria-role="button" aria-label="去绑定双人空间">去绑定双人空间</view>
+      <view wx:else class="tk-empty-cta pressable" hover-class="press-hover"
+            bindtap="retry" aria-role="button" aria-label="重试">重试</view>
     </view>
   </view>
 

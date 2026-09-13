@@ -1,0 +1,19 @@
+<!-- components/ticket-menu/index.wxml —— 长按票根的快捷菜单（7.3.0 A6）
+     样式一律写在本组件 wxss 里：自定义组件默认样式隔离，app.wxss 的 .pressable
+     之类对组件内节点无效（只有标签名选择器会穿透）。 -->
+<bottom-sheet show="{{show}}" title="{{title}}" bind:close="close">
+  <view class="tm-list">
+    <view class="tm-row" hover-class="tm-hover" hover-stay-time="80"
+          bindtap="goCard" aria-role="button" aria-label="生成纪念卡片">生成纪念卡片</view>
+
+    <!-- 「分享」必须是 button open-type=share：小程序不允许用代码拉起转发面板（铁律）。
+         带上 data-id / data-title，页面 onShareAppMessage 里读到的才是「被长按的那一张」，
+         而不是转发菜单那条默认文案。 -->
+    <button class="tm-row" open-type="share" hover-class="tm-hover" hover-stay-time="80"
+            data-id="{{id}}" data-title="{{title}}" bindtap="onShare"
+            aria-label="分享这张票根">分享给好友</button>
+
+    <view class="tm-row is-danger" hover-class="tm-hover" hover-stay-time="80"
+          bindtap="onDelete" aria-role="button" aria-label="删除这张票根">删除</view>
+  </view>
+</bottom-sheet>

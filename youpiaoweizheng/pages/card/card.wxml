@@ -5,7 +5,27 @@
      右侧「···」在真机上就是微信胶囊，故页面里不再重复画一个。
      ⚠️ 图形一律走 <image src="data:image/svg+xml,...">：小程序 wxml 不渲染内联 <svg>，
         且 SVG 是独立文档、不认 CSS 变量，颜色由 buildArt() 按主题编译成实色。 -->
-<view class="page theme-{{theme}} cd-page" wx:if="{{t}}">
+<!-- 7.3.0 S1：朋友圈单页模式落地（无身份、不能跳页）→ 换品牌卡，见 templates/sp.wxml -->
+<import src="/templates/sp.wxml" />
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这里是一张收藏在别人册子里的票根'}}" /></block>
+
+<!-- ⓪ 加载态：票根还没取回来（弱网 / 云函数冷启动可达数秒）。
+     此前这一段是整页白屏——只顶着一根导航栏，用户会以为页面坏了。
+     骨架直接复用 .card-canvas 的盒子（同宽高、同圆角、同倾角），卡片落位时不跳。 -->
+<view class="page theme-{{theme}} cd-page" wx:if="{{loading}}">
+  <view class="grain"></view>
+  <view class="cd-stage">
+    <view class="cd-behind"></view>
+    <view class="card-canvas tk-skeleton"></view>
+    <image class="cd-deco is-sprig-l" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+    <image class="cd-deco is-star-t" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+    <image class="cd-deco is-heart-r" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
+    <image class="cd-deco is-sprig-r" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+  </view>
+  <view class="cd-sk-t">正在生成卡片…</view>
+</view>
+
+<view class="page theme-{{theme}} cd-page" wx:elif="{{t}}">
   <view class="grain"></view>
 
   <!-- ① 卡面舞台：后面垫一张玫瑰卡、前面是画布 —— 稿里那叠「手边一摞明信片」的观感 -->

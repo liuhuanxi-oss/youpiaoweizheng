@@ -14,18 +14,7 @@
   box-sizing: border-box;
 }
 
-/* —— 自定义下拉头（只有一行字，稿里没有下拉这个动作，就不给它加戏） —— */
-.refresher {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 150rpx;
-}
-.rf-text {
-  font-size: 20rpx;
-  letter-spacing: 3rpx;
-  color: var(--text2, #8A7E6E);
-}
+/* 自定义下拉头 .refresher / .rf-text 已提到 app.wxss（album / duo / me 三处共用同一套） */
 
 /* ══════════ 撕边纸片邀请卡 ══════════ */
 .duo-hero {

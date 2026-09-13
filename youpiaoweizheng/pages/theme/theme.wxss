@@ -46,7 +46,7 @@
 .th-name { font-weight: 800; }
 .th-check {
   width: 34rpx; height: 34rpx; border-radius: 50%;
-  color: #FFF; font-size: 20rpx; line-height: 34rpx; text-align: center;
+  padding: 7rpx; box-sizing: border-box;
   flex: 0 0 34rpx;
 }
 .th-tagline { margin-top: 8rpx; letter-spacing: 1rpx; }

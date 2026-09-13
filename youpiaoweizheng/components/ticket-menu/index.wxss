@@ -1,0 +1,34 @@
+/* components/ticket-menu/index.wxss —— 长按票根的快捷菜单（7.3.0 A6）
+   面板本体（遮罩 / 圆角 / 滑入滑出动画 / 安全区）由 bottom-sheet 提供，这里只管三行内容。
+   颜色一律 var(--x, 回退)：六套主题各有各的墨色与描边。 */
+.tm-list {
+  padding: 4rpx 0 8rpx;
+}
+
+/* 三行等高、满宽、居中；行间一条细线（首行上方不画） */
+.tm-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 104rpx;
+  padding: 0;
+  margin: 0;
+  /* 原生 button 自带字号 18px、line-height 2.5、圆角与白底，必须逐项压掉 */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-size: 30rpx;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 2rpx;
+  color: var(--text, #2B2420);
+}
+.tm-row::after { border: none; }               /* 原生 button 的 1px 边框走伪元素 */
+.tm-row + .tm-row { border-top: 1rpx solid var(--border, #E2D9C7); }
+
+/* 按下反馈：组件样式隔离，用不了 app.wxss 的 .press-item-hover */
+.tm-hover { background: var(--soft, #E9E2D4); }
+
+/* 删除：品牌警示色（与「清除署名资料」的确认色同一支） */
+.tm-row.is-danger { color: var(--accent, #C26B5E); }

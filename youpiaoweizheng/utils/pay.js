@@ -10,6 +10,7 @@
 // ============================================================
 const { USE_CLOUD } = require('./env.js');
 const auth = require('./auth.js');
+const track = require('./track.js');
 
 const PRODUCT_ID = 'ART_PACK_10';
 const PACK_PRICE_LABEL = '¥6 / 10 幅';
@@ -106,6 +107,9 @@ async function buyArtPack(onStatus) {
   }
 
   // 3) 拉起收银台
+  // 7.2.0 §3.3 埋点：pay_start 记在「真的要拉起收银台」这一刻 ——
+  // 前面还有登录/下单两步，早记会把「登录失败」也算成用户不想买。
+  track.track('pay_start', { productId: PRODUCT_ID });
   const payRes = await new Promise((resolve) => {
     wx.requestVirtualPayment({
       mode: 'short_series_goods',
@@ -118,10 +122,17 @@ async function buyArtPack(onStatus) {
   });
   if (!payRes.done) {
     // 用户主动取消：静默（不弹错），调用方无需提示
-    if (/cancel/i.test(payRes.errMsg)) return { ok: false, cancelled: true };
+    if (/cancel/i.test(payRes.errMsg)) {
+      track.track('pay_cancel', { productId: PRODUCT_ID });
+      return { ok: false, cancelled: true };
+    }
     const hint = humanizePayErr(payRes.errno, payRes.errMsg);
     return { ok: false, errno: payRes.errno, msg: hint || ('支付未完成：' + (payRes.errMsg || '未知错误')) };
   }
+
+  // 支付成功（= 收银台放行）。到账是另一件事：下面 payConfirm 失败还会走轮询兜底，
+  // 所以这里记的是「付了」，不是「拿到了」——拿没拿到看 art_reward_grant / 额度变更。
+  track.track('pay_success', { productId: PRODUCT_ID });
 
   // 4) 4.22.0 主动确认订单（即时到账）：支付 success 后不等微信发货推送，
   //    立即让服务端查微信侧真实状态并发货——秒级到账，无「物流/发货」等待语义。
