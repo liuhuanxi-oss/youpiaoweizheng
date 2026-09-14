@@ -125,9 +125,14 @@
 }
 
 /* 气泡：水彩实底 + 白字，尾巴用旋转方块（background: inherit 直接吃内联色） */
+/* 宽度由 JS 下发（内联 style 的 width，取 mapArt.bubbleWidth）——
+   这里不写 width 的话，气泡在 0 尺寸的 .dc-city 里收缩出的宽度只有 min-width，
+   四字名会折行：横向压到邻居、纵向比避让算法以为的高 26rpx。box-sizing 必须是
+   border-box，算法算的 BUBBLE_W 是含内边距的总额。 */
 .dc-bubble {
   position: absolute; left: 0;
   transform: translateX(-50%);
+  box-sizing: border-box;
   min-width: 96rpx;
   padding: 10rpx 18rpx 12rpx;
   border-radius: 26rpx;
@@ -173,7 +178,7 @@
 .dc-bubble.down::after { top: -6rpx; }
 /* 气泡文字恒为白色（压在水彩实底上）。白色是品牌常量、不是主题色，
    和气泡底色一样由 JS 下发 —— WXSS 里只留字号字重，不出现十六进制。 */
-.dc-bubble-n { font-size: 26rpx; font-weight: 700; line-height: 1.2; }
+.dc-bubble-n { font-size: 26rpx; font-weight: 700; line-height: 1.2; white-space: nowrap; }
 .dc-bubble-c { font-size: 21rpx; opacity: 0.85; line-height: 1.2; }
 
 /* —— 底部署名 —— */

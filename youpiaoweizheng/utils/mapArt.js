@@ -86,19 +86,55 @@ function toStage(lng, lat) {
 // 北缘中段被蒙古咬进去的凹陷、渤海湾、以及南端的尖角。
 // 这三处丢了，颜色再对也不像。
 //
-// 48 个控制点，顺时针：帕米尔 → 阿尔泰 → 漠河 → 抚远 → 辽东 → 山东 → 华南 → 藏南 → 回到帕米尔。
+// 顺时针：帕米尔 → 阿尔泰 → 漠河 → 抚远 → 辽东 → 山东 → 华南 → 藏南 → 回到帕米尔。
 // 精度到「省级尺度」够用，这不是一份测绘数据，是一张插画的骨。
+//
+// 【为什么从 48 个点加到 96 个】（7.4.0 修）
+//   48 个点连出来是一朵**云**，不是中国 —— 圆角平滑会把半岛、海湾、半岛全抹平，
+//   而「一眼认得出是中国」靠的恰恰是这几处转折：
+//     ① 蒙古方向那道**南北落差 12 个纬度**的大凹（阿尔泰 49°N 一路掉到 42°N 再升回漠河 53.5°N）；
+//     ② 渤海湾的深 V 与山东半岛那根伸出去的角；
+//     ③ 辽东半岛与雷州半岛两根朝下的刺。
+//   上一版为了「不像断成两截」把渤海填成浅弧，恰恰丢掉了最容易认的那一处。
+//   海岸与半岛处**点距刻意加密**：卡米尔-罗姆曲线在小步长下才拐得住急弯。
 const BORDER = [
-  [73.6, 39.4], [76.5, 41.0], [80.3, 42.2], [82.5, 45.0], [85.0, 47.0], [87.3, 49.2],
-  [90.5, 47.8], [95.5, 44.0], [100.0, 42.6], [105.0, 41.8], [110.0, 42.5], [111.5, 43.5],
-  [115.0, 45.5], [119.5, 46.8], [120.0, 49.5], [122.5, 53.5], [127.5, 50.2], [130.8, 48.3],
-  [134.8, 48.4], [131.5, 45.0], [131.2, 42.9], [128.0, 42.0], [124.4, 40.0], [121.6, 40.8],
-  // 渤海湾：真实海岸是个深 V，按真深度画会从右侧切进去一大块白、
-  // 看着像陆地断成两截。这里只留一个浅弧 —— 插画优先，不是测绘。
-  [119.6, 39.3], [120.2, 37.8], [122.6, 37.4], [120.4, 35.4], [121.9, 30.9], [120.0, 27.0],
-  [116.5, 23.4], [113.5, 22.2], [110.5, 21.2], [108.0, 21.5], [105.0, 22.9], [101.7, 21.2],
-  [99.2, 22.1], [97.5, 24.0], [98.0, 27.5], [95.5, 29.0], [91.5, 27.8], [88.0, 27.3],
-  [85.0, 28.3], [81.0, 30.4], [78.8, 31.5], [78.0, 35.0], [76.0, 36.5], [74.5, 37.5]
+  // —— 帕米尔 → 阿尔泰（西段，中塔/中吉/中哈） ——
+  [73.5, 39.4], [74.0, 40.5], [75.0, 40.5], [76.5, 41.0], [78.5, 41.4], [80.2, 42.2],
+  [80.3, 43.0], [82.0, 45.0], [82.3, 45.6], [83.0, 47.2], [85.0, 47.0], [85.7, 48.4],
+  [87.3, 49.2],                                                        // 友谊峰 · 西北角
+  // —— 蒙古方向的大凹（北段） ——
+  [90.0, 47.9], [91.0, 45.2], [93.5, 44.9], [95.5, 44.0], [96.4, 42.8], [99.0, 42.7],
+  [100.0, 42.6], [104.0, 41.9], [105.0, 41.8], [109.0, 42.5], [110.0, 42.5], [111.5, 43.5],
+  [112.5, 44.5], [115.0, 45.5], [117.5, 46.5], [119.5, 46.8], [119.9, 47.7], [117.4, 49.6],
+  [120.7, 52.0], [122.5, 53.5],                                        // 漠河 · 最北
+  // —— 东段：黑龙江 → 抚远 → 图们江 ——
+  [124.5, 53.2], [125.7, 53.0], [127.5, 50.2], [130.7, 48.9], [133.0, 48.1], [134.8, 48.4],
+  [134.0, 47.3], [133.0, 45.2], [131.3, 45.0], [131.2, 42.9], [130.5, 42.5], [128.0, 42.0],
+  [126.5, 41.6], [124.4, 40.0],                                        // 丹东 · 鸭绿江口
+  // —— 辽东半岛 → 渤海湾 → 山东半岛（最容易认的一段，点距最密） ——
+  [123.0, 39.8], [121.6, 40.8], [122.1, 39.6], [121.0, 39.0], [118.9, 39.2], [117.7, 38.4],
+  [118.5, 37.8], [119.3, 37.4], [120.7, 37.8], [122.7, 37.4], [121.0, 36.6], [120.3, 36.0],
+  [119.2, 34.5], [121.0, 32.0], [121.9, 30.9], [122.2, 29.9], [121.6, 28.5], [120.0, 27.0],
+  [119.6, 25.4], [118.1, 24.4], [116.5, 23.4], [114.2, 22.5], [113.5, 21.9], [112.0, 21.6],
+  [110.4, 21.2],                                                       // 雷州半岛 · 南端
+  [109.0, 21.4], [108.5, 21.6], [107.0, 21.6], [105.0, 22.9], [103.5, 22.6], [102.0, 22.4],
+  [101.7, 21.2],                                                       // 西双版纳 · 最南
+  [99.9, 22.0], [99.2, 22.1], [97.5, 24.0], [97.8, 25.6], [98.0, 27.5], [96.5, 28.5],
+  [95.5, 29.0], [93.0, 28.3], [91.5, 27.8], [88.0, 27.3], [86.0, 27.9], [85.0, 28.3],
+  [82.0, 30.3], [81.0, 30.4], [79.5, 31.2], [78.8, 31.5], [78.3, 33.0], [78.0, 35.0],
+  [76.5, 36.0], [76.0, 36.5], [74.5, 37.5], [74.0, 38.5]
+];
+
+/** 海南岛：不在上面那条陆界里（它是岛），单独一圈 */
+const HAINAN_RING = [
+  [108.6, 19.5], [109.2, 18.4], [110.0, 18.2], [110.6, 18.7],
+  [111.0, 19.6], [110.6, 20.1], [109.9, 20.1], [109.3, 19.9]
+];
+
+/** 台湾岛：同上，单独一圈。画不画它是「这张图是谁的地图」的问题，不是精度问题 */
+const TAIWAN_RING = [
+  [120.1, 23.0], [120.2, 22.0], [120.9, 21.9], [121.5, 22.5],
+  [122.0, 24.0], [121.9, 25.1], [121.5, 25.3], [120.9, 24.7], [120.3, 23.9]
 ];
 
 /**
@@ -124,15 +160,31 @@ const REGIONS = [
   { lng: 120.0, lat: 30.5, rx: 56, ry: 50, rot: 0, fill: ROSE, op: 0.36, seed: 23 }     // 华东
 ];
 
-/** 海南单独一颗小色块（它是岛，不在上面那条国界里） */
-const HAINAN = { lng: 109.7, lat: 19.3, rx: 24, ry: 16, rot: 12, fill: SAGE, op: 0.3, seed: 47 };
+/** 海南那颗小色块（岛，不在陆界里，故按岛自己的路径裁） */
+const HAINAN = { lng: 109.8, lat: 19.2, rx: 26, ry: 18, rot: 12, fill: SAGE, op: 0.42, seed: 47 };
+/** 台湾那颗（同上）。比海南细长，故 rx/ry 反着给 */
+const TAIWAN = { lng: 121.0, lat: 23.7, rx: 18, ry: 30, rot: -6, fill: SAGE, op: 0.42, seed: 53 };
 
 /** 纸浆色兜底（主题缺 soft 时用）——暖米白 */
 const PULP_FALLBACK = '#F7E9D2';
-/** 洇边：沿国界描几道由粗到细、由淡到浓的边，替代 SVG 滤镜做「水在纸上化开」（滤镜在小程序 image 里不保证支持） */
+/**
+ * 外晕：沿国界往外描几道由粗到细的淡边，做「水在纸上化开」（SVG 滤镜在小程序
+ * image 里不保证支持，只能拿描边冒充）。
+ * ⚠️ 上一版这里给到 30 宽，晕得比国界本身还显眼 —— 形状就是被这圈糊掉的。
+ *    外晕只该是「收边」，交代陆地在哪儿的是下面那道**内沿**。
+ */
 const BLEED = [
-  { w: 30, op: 0.6 },
-  { w: 15, op: 1 }
+  { w: 13, op: 0.5 },
+  { w: 6, op: 1 }
+];
+/**
+ * 内沿：水彩真正画完时，颜料会被水推到边沿积成一道更深的圈（边缘沉积），
+ * 这才是「一眼看出这是块陆地」的东西。所以它必须裁在国界**里面**，
+ * 且用比纸浆更深/更浅的色（深色主题上反过来）。
+ */
+const RIM = [
+  { w: 34, op: 0.18 },
+  { w: 14, op: 0.32 }
 ];
 
 /** mulberry32：确定性伪随机 —— 同一个 seed 永远长出同一朵云 */
@@ -166,11 +218,21 @@ function smoothClosed(pts) {
   return d + 'Z';
 }
 
-/** 中国国界 → 视图坐标路径（带轻微手抖，机械平滑的边不像手绘） */
+/**
+ * 一串经纬度 → 视图坐标的平滑闭合路径。
+ * 手抖只剩 ±0.9：原先的 ±2.2 是画在 48 点上的，那时点稀、抖一点才像手绘；
+ * 现在点密了，同样幅度会把渤海湾、辽东半岛这些小转折抖没 ——
+ * 手绘感该来自**色块的晕染**，不该来自把地图形状抖糊。
+ */
+function ringPath(ring, seed) {
+  const rand = rng(seed);
+  return smoothClosed(ring.map(([lng, lat]) =>
+    [projX(lng) + (rand() * 2 - 1) * 0.9, projY(lat) + (rand() * 2 - 1) * 0.9]));
+}
+
+/** 中国国界 → 视图坐标路径 */
 function borderPath() {
-  const rand = rng(20240907);
-  return smoothClosed(BORDER.map(([lng, lat]) =>
-    [projX(lng) + (rand() * 2 - 1) * 2.2, projY(lat) + (rand() * 2 - 1) * 2.2]));
+  return ringPath(BORDER, 20240907);
 }
 
 /**
@@ -219,19 +281,44 @@ function regionSvg(reg) {
  * 取主题的 soft 当纸浆 —— 浅色主题下是合拍的纸色，深色主题下自然隐没。
  * @param {object} theme utils/theme.js 的 THEME_META 元素（用其 soft）
  */
+/**
+ * 一块陆地的画法：纸浆底 → 色块 → 边沿积色（内沿裁在自己的圈里）。
+ * 大陆与两座岛共用这一段，只是色块清单不同 —— 三者要是各写一遍，
+ * 「调一次对比度要改三处」就是下一轮不一致的来源。
+ */
+function landBody(pathD, clipId, pulp, rimCol, washes) {
+  const clip = "url(#" + clipId + ")";
+  return "<path d='" + pathD + "' fill='" + pulp + "' fill-opacity='0.9'/>" +
+    "<g clip-path='" + clip + "'>" + washes + '</g>' +
+    "<g clip-path='" + clip + "'>" + RIM.map((r) =>
+      "<path d='" + pathD + "' fill='none' stroke='" + rimCol + "' stroke-width='" + r.w +
+      "' stroke-opacity='" + r.op + "' stroke-linejoin='round'/>"
+    ).join('') + '</g>';
+}
+
 function landSrc(theme) {
   const pulp = safeColor(theme && theme.soft, PULP_FALLBACK);
+  // 内沿用「纸浆的反向」：浅底上积深，深底上积浅 —— 同一句代码管六套主题。
+  // 判深浅按纸浆色的亮度，不按主题 key（新增主题时不用回来补一行）。
+  // 必须这样算：minimal 的 soft 是 #F5F5F5、literary 是 #E8F0E6，
+  // 白卡上几乎看不见 —— 只靠底色的陆地在浅色主题下等于没画。
+  const rimCol = shade(pulp, lum(pulp) > 0.55 ? -0.22 : 0.26);
   const d = borderPath();
-  const clip = "<clipPath id='cn'><path d='" + d + "'/></clipPath>";
-  // 先铺纸浆，再把色块裁进国界内，最后沿国界补几道由粗到细的洇边
-  const base = "<path d='" + d + "' fill='" + pulp + "' fill-opacity='0.62'/>";
-  const washes = "<g clip-path='url(#cn)'>" +
-    REGIONS.map(regionSvg).join('') + regionSvg(HAINAN) + '</g>';
+  const base = landBody(d, 'cn', pulp, rimCol, REGIONS.map(regionSvg).join(''));
   const bleed = BLEED.map((b) =>
     "<path d='" + d + "' fill='none' stroke='" + pulp + "' stroke-width='" + b.w +
-    "' stroke-opacity='" + round2(0.16 * b.op) + "' stroke-linejoin='round'/>"
+    "' stroke-opacity='" + round2(0.2 * b.op) + "' stroke-linejoin='round'/>"
   ).join('');
-  return toUri(ART_W, ART_H, clip + base + washes + bleed);
+  // 两座岛必须画在**陆界裁剪之外**：它们的经纬度落在国界路径以外，
+  // 跟着 REGIONS 一起被裁就是「写了但一个字都看不见」（旧版就是这样，
+  // 海南那颗色块一直在代码里、在图上一个像素都没有）。各自带自己的裁剪圈。
+  const isles = [[HAINAN_RING, HAINAN, 'hn'], [TAIWAN_RING, TAIWAN, 'tw']].map(([ring, blk, id]) => {
+    const p = ringPath(ring, blk.seed);
+    return "<clipPath id='" + id + "'><path d='" + p + "'/></clipPath>" +
+      landBody(p, id, pulp, rimCol, regionSvg(blk));
+  }).join('');
+  return toUri(ART_W, ART_H, "<clipPath id='cn'><path d='" + d + "'/></clipPath>" +
+    base + bleed + isles);
 }
 
 /** 保留两位小数（透明度用） */
@@ -267,7 +354,15 @@ function bubbleColor(city) {
   return BUBBLE[h % BUBBLE.length];
 }
 
-/** 城市名 → 气泡实宽。中文按字号近似等宽，两字以内回落到 min-width */
+/**
+ * 城市名 → 气泡实宽（含左右内边距）。中文按字号近似等宽，两字以内回落到 min-width。
+ *
+ * ⚠️ 这个值**必须由 JS 下发到气泡的行内 style 上**，不能只在避让算法里用：
+ *    气泡是绝对定位、父级 .dc-city 又是 0 尺寸，收缩到合适宽度时可用宽度算出来是 0，
+ *    于是实际宽度被 min-width 钉死在 96 —— 四字名「乌鲁木齐」（需要 140）会被**折成两行**：
+ *    横向比算法以为的窄 8rpx（左右会压到邻居），纵向比算法以为的高 26rpx（上下也会压）。
+ *    避让算法再准，量的是个不存在的盒子。WXML 里挂 width，实测宽度才等于这里算的。
+ */
 function bubbleWidth(city) {
   return Math.max(BUBBLE_W, String(city).length * BUBBLE_FS + BUBBLE_PAD);
 }
@@ -287,25 +382,48 @@ function layoutBubbles(list) {
     const top = below ? c.y + PIN_GAP + push : c.y - PIN_GAP - push - BUBBLE_H;
     return { x: c.x, half: bubbleWidth(c.city) / 2, top, bottom: top + BUBBLE_H };
   };
-  const hits = (a, b) =>
-    Math.abs(a.x - b.x) < a.half + b.half && a.top < b.bottom + BUBBLE_GAP && b.top < a.bottom + BUBBLE_GAP;
-  const fits = (c, push, below) => {
+  /**
+   * 这个位置「有多难看」= 压住邻居的面积 + 探出舞台的面积（单位 rpx²，0 = 一点没碍着）。
+   * 纵向两侧各让出 BUBBLE_GAP/2，与「隔开一整格就算不碰」的口径对齐：
+   * 隔着 12rpx 或正好贴着都算 0，真压上了才开始计。
+   *
+   * 为什么不用「压没压住」这个是非题：东部沿海在满图（12 城）时物理上就是塞不下 ——
+   * 105°E 以东挤了 5 座城，而能横排的位置只够 2 颗气泡。是非题对这种图只能回答
+   * 「哪个位置都不行」，于是只能随便选一个，结果就是两颗气泡整块糊在一起。
+   * 改量「糊了多少」，算法就能挑出少糊一半的那个位置。
+   */
+  const pressed = (a, b) => {
+    const dy = BUBBLE_GAP / 2;
+    const wx = Math.min(a.x + a.half, b.x + b.half) - Math.max(a.x - a.half, b.x - b.half);
+    if (wx <= 0) return 0;
+    const wy = Math.min(a.bottom + dy, b.bottom + dy) - Math.max(a.top - dy, b.top - dy);
+    return wy <= 0 ? 0 : wx * wy;
+  };
+  const cost = (c, push, below) => {
     const b = box(c, push, below);
-    if (b.top < EDGE || b.bottom > STAGE_H - EDGE) return false;
-    return !placed.some((p) => hits(b, box(p, p.push, p.below)));
+    const out = (Math.max(0, EDGE - b.top) + Math.max(0, b.bottom - (STAGE_H - EDGE))) * b.half * 2;
+    return placed.reduce((sum, p) => sum + pressed(b, box(p, p.push, p.below)), out);
   };
 
+  // 候选位置按喜好排序：不动 → 往上顶 → 往下压。
+  // 往上顶到 6 档（原先 4 档）：东部沿海那几个城市挨得太近，4 档不够用。
+  // 往上优先于往下，是因为连接杆朝下伸更像气球（往下压时杆从头顶往下扎，本来就怪）。
+  const CANDS = [{ push: 0, below: false }];
+  for (let i = 1; i <= 6; i++) CANDS.push({ push: i * step, below: false });
+  for (let i = 1; i <= 3; i++) CANDS.push({ push: i * step, below: true });
+
   list.slice().sort((a, b) => a.y - b.y).forEach((c) => {
-    let pick = { push: 0, below: false };
-    if (!fits(c, 0, false)) {
-      pick = null;
-      for (let i = 1; i <= 4 && !pick; i++) if (fits(c, i * step, false)) pick = { push: i * step, below: false };
-      for (let i = 1; i <= 2 && !pick; i++) if (fits(c, i * step, true)) pick = { push: i * step, below: true };
-      // 实在放不下就按初始位置画：宁可略微压边，也不能让一座城从图上消失
-      if (!pick) pick = { push: 0, below: false };
-    }
-    c.push = pick.push;
-    c.below = pick.below;
+    let pick = null;            // 一格都没碍着的位置，取喜好顺序里最靠前的那个
+    let fallback = CANDS[0];    // 全都有碍时：碍得最轻的那个（压 1 颗总比压 3 颗强）
+    let least = Infinity;
+    CANDS.forEach((o) => {
+      const n = cost(c, o.push, o.below);
+      if (!n && !pick) pick = o;
+      if (n < least) { least = n; fallback = o; }
+    });
+    const sel = pick || fallback;
+    c.push = sel.push;
+    c.below = sel.below;
     placed.push(c);
   });
   return list;
@@ -389,6 +507,24 @@ function round1(n) {
 function safeColor(v, fallback) {
   const s = String(v == null ? '' : v).trim();
   return /^#[0-9a-fA-F]{6}$/.test(s) ? s : fallback;
+}
+
+/** #RRGGBB → 0..1 的相对亮度（够用的近似，不需要 gamma 校正） */
+function lum(hex) {
+  const n = parseInt(safeColor(hex, '#000000').slice(1), 16);
+  return (((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255;
+}
+
+/**
+ * 调深/调浅：amt 为负往黑走、为正往白走。用于从纸浆色推出「边沿积色」，
+ * 免得把六个主题的内沿色一个个写死。入参必须是 safeColor 放行过的色值。
+ */
+function shade(hex, amt) {
+  const n = parseInt(safeColor(hex, '#000000').slice(1), 16);
+  const t = amt < 0 ? 0 : 255;
+  const k = Math.abs(amt);
+  const ch = (v) => Math.round(v + (t - v) * k).toString(16).padStart(2, '0');
+  return '#' + ch((n >> 16) & 255) + ch((n >> 8) & 255) + ch(n & 255);
 }
 
 /**

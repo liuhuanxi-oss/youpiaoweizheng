@@ -93,16 +93,18 @@
                前面还夹着图层与骨架层，:nth-child 的下标靠不住。 -->
           <view class="dc-bubble {{item.below ? 'down' : 'up'}} pressable {{enter ? 'dc-rise' : ''}}"
                 hover-class="dc-bubble-hover"
-                style="background:{{item.color}}; color:{{item.fg}}; {{item.bubblePos}}; animation-delay:{{item.d}}ms;"
+                style="background:{{item.color}}; color:{{item.fg}}; {{item.bubblePos}}; width:{{item.w}}rpx; animation-delay:{{item.d}}ms;"
                 data-city="{{item.city}}" bindtap="onCityTap"
                 aria-role="button" aria-label="{{item.city}}，{{item.count}} 张票根">
             <text class="dc-bubble-n">{{item.city}}</text>
             <text class="dc-bubble-c">{{item.count}}</text>
           </view>
 
-          <!-- 落点：白芯 + 主题色圆环，严格压在真实经纬度上 -->
+          <!-- 落点：白芯 + 主题色圆环，严格压在真实经纬度上。
+               旁边的小字只在城市不多时才画（见 discover.js 的 PIN_LABEL_MAX）——
+               气泡上已经写着城市名了，城市一多，这行小字就是压住气泡的碎字 -->
           <view class="dc-pin" style="border-color:{{item.color}};"></view>
-          <text class="dc-pin-name">{{item.city}}</text>
+          <text wx:if="{{pinLabels}}" class="dc-pin-name">{{item.city}}</text>
         </view>
       </view>
 
@@ -146,8 +148,8 @@
           aria-role="button" aria-label="重新拉取">重试</view>
   </view>
 
-  <!-- ④ 缺坐标提示：旧数据没有经纬度就落不了点，说清楚，别让票根凭空消失 -->
-  <view wx:if="{{noGeo}}" class="dc-tip">有 {{noGeo}} 张票根没有城市或坐标，暂未落点</view>
+  <!-- ④ 图下方的实话（缺坐标 / 城太多画不下）：说清楚，别让票根凭空消失 -->
+  <view wx:if="{{mapTip}}" class="dc-tip">{{mapTip}}</view>
 
   <view class="tk-safe-bottom"></view>
 </scroll-view>

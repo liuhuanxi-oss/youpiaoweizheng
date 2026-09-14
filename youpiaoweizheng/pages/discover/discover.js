@@ -21,6 +21,8 @@ const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别
 
 /** 地图上最多画几座城（超出的仍计入统计，只是不落点，否则气泡会糊成一片） */
 const MAX_CITIES = 12;
+/** 超过这么多城，落点旁的小字标签就不画了（气泡已经写着城市名，拥挤时它只是碎字） */
+const PIN_LABEL_MAX = 6;
 
 /** 票根行左侧色块：品牌固定色，不随主题走（与「我的」页入口卡同一套） */
 const ROW_TINT = { show: '#D98C8A', movie: '#C4A9B8', traffic: '#E2B45E', other: '#93AE8F' };
@@ -45,10 +47,11 @@ Page({
     stampR: '',      // 右下装饰邮票
     ic: {},          // 图标：星点 / 花枝 / 小粉心 / 定位 / 关闭 / 右箭头
     deco: {},        // 装饰：sparkle 星点两种尺寸
-    cities: [],      // 落在图上的城市 [{city,count,x,y,push,below,color,tail}]
+    cities: [],      // 落在图上的城市 [{city,count,x,y,push,below,color,w}]
+    pinLabels: true, // 落点旁的小字标签要不要画（城市多了就不画，见 PIN_LABEL_MAX）
     total: 0,        // 票根总数
     cityCount: 0,    // 有坐标的城市数（气泡数）
-    noGeo: 0,        // 缺坐标的票根数（旧数据，页面底部给一句提示）
+    mapTip: '',      // 图下方那句「有 N 张没落点 / 有 M 座城没画上来」的实话
     // 三态：loading 立即为真（骨架要等 300ms，见 utils/skeleton.js），
     // error 必须与「空态」分开——拉取失败时若长得像空态，等于告诉用户「你没有票根」
     loading: true,
@@ -183,6 +186,13 @@ Page({
           });
         });
 
+      // 图底下那句实话：哪些票根没落点、哪几座城没画上来。两句都只在真的发生时出现 ——
+      // 「还有 0 座城没画上来」是句废话，而少画了不说，用户会以为自己没去过。
+      const mapTip = [
+        noGeo ? `有 ${noGeo} 张票根没有城市或坐标，暂未落点` : '',
+        byCity.size > MAX_CITIES ? `另有 ${byCity.size - MAX_CITIES} 座城没画上来（图上最多放 ${MAX_CITIES} 座）` : ''
+      ].filter(Boolean).join(' · ');
+
       mapArt.layoutBubbles(cities);
       // 点气泡时才取该城的票根，不必把它们塞进 data（setData 有 1MB 上限，且大多用不上）。
       // 用 Map 不用普通对象：城市名叫 "constructor" 之类会在原型链上撞出脏值。
@@ -206,6 +216,9 @@ Page({
           const stem = Math.max(0, gap - 11); // 11 = 落点圆环半径，杆从环外起画
           return {
             city: c.city, count: c.count, x: c.x, y: c.y, color: c.color, below: c.below, fg: ON_TINT,
+            // 宽度必须下发：避让算法量的是这个数，而气泡在 0 尺寸父级里收缩出的实际宽度不等于它
+            // （四字名会被 min-width 折成两行，横竖都对不上）——见 mapArt.bubbleWidth 的注释
+            w: mapArt.bubbleWidth(c.city),
             // 气泡贴哪个边、隔多远：在上的贴 bottom、在下的贴 top（见 WXSS 的 .dc-bubble）
             bubblePos: (c.below ? 'top:' : 'bottom:') + gap + 'rpx',
             stemPos: (c.below ? 'top:11rpx;' : 'bottom:11rpx;') + 'height:' + stem + 'rpx',
@@ -215,8 +228,14 @@ Page({
           };
         }),
         total: all.length,
-        cityCount: cities.length,
-        noGeo: noGeo,
+        // 必须是**全部**有坐标的城市数，不是落点的那几个：
+        // 底部写的是「已走过 N 座城市」—— 一句关于用户的断言。
+        // 画不下就不画（MAX_CITIES），但这句话不能跟着变小，那是替用户少算了几座城。
+        cityCount: byCity.size,
+        // 落点旁边的小字标签：城市少的时候是地图上的一点讲究，多了就是一层压着气泡的碎字
+        // （气泡本来就写着城市名，它是重复信息，拥挤时先让位给气泡）
+        pinLabels: cities.length <= PIN_LABEL_MAX,
+        mapTip: mapTip,
         netBar
       });
     } catch (e) {
@@ -225,7 +244,7 @@ Page({
       // netBar 一并清掉：失败态自己已经带一个「重试」按钮，两条重试入口叠着显示只会让人犯迷糊
       this.setData({
         cities: [], markers: [], mapPts: [], route: '',
-        total: 0, cityCount: 0, noGeo: 0, error: true, netBar: null
+        total: 0, cityCount: 0, mapTip: '', error: true, netBar: null
       });
     } finally {
       this.setData({ loading: false });

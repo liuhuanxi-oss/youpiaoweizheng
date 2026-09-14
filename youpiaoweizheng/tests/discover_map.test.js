@@ -384,6 +384,61 @@ t('「已走过 N 座城市」在加载中/失败时不显示（那是一句数�
   ok(/wx:if="\{\{!loading && !error\}\}"/.test(f[1]), '底部署名会在加载中或失败时报「已走过 0 座城市」');
 });
 
+console.log('\n【十一、三处「看着对、其实错」的伏笔】');
+t('气泡宽度必须由 JS 下发（否则四字名会被折行，避让量的是个不存在的盒子）', () => {
+  ok(/width:\{\{item\.w\}\}rpx;/.test(wxmlClean), 'wxml 的气泡样式里没有 width:{{item.w}}');
+  ok(/w:\s*mapArt\.bubbleWidth\(/.test(js), 'js 没把 bubbleWidth 下发到 w');
+  // box-sizing 必须是 border-box：算法算的 BUBBLE_W 是含左右内边距的总额
+  ok(/\.dc-bubble\s*\{[^}]*box-sizing:\s*border-box/.test(wxss), '.dc-bubble 不是 border-box');
+  // 宽度下发之后还必须压住不折行，否则照样两行
+  ok(/\.dc-bubble-n\s*\{[^}]*white-space:\s*nowrap/.test(wxss), '.dc-bubble-n 会被折行');
+});
+t('落点旁的小字只在城市不多时画（气泡已经写着城市名）', () => {
+  ok(/wx:if="\{\{pinLabels\}\}"[\s\S]{0,80}?dc-pin-name/.test(wxmlClean), '小字没受 pinLabels 门控');
+  ok(/pinLabels:\s*cities\.length\s*<=\s*PIN_LABEL_MAX/.test(js), 'pinLabels 的判断没接 PIN_LABEL_MAX');
+  ok(/const PIN_LABEL_MAX\s*=/.test(js), '没有 PIN_LABEL_MAX 常量');
+});
+t('「已走过 N 座城市」数的是全部城市，不是画得下的那几座', () => {
+  ok(/cityCount:\s*byCity\.size/.test(js),
+    'cityCount 用了落点数组的长度——超上限的城会被算漏，等于替用户少走几座城');
+  ok(/mapTip/.test(js) && /wx:if="\{\{mapTip\}\}"/.test(wxmlClean), '少画了城没告诉用户');
+});
+t('满图（12 城）时气泡不许整块糊住 —— 塞不下也得挑糊得最轻的位置', () => {
+  // 东部沿海 12 城物理上就是塞不下：这里不要求「零重叠」（那是不可能达成的），
+  // 只要求最惨的一处也别糊掉半颗气泡。改前（落回原位）是 4304rpx²，占整颗 53%。
+  const RAW = [
+    ['乌鲁木齐', 43.83, 87.62], ['哈尔滨', 45.80, 126.53], ['北京', 39.90, 116.41],
+    ['西安', 34.34, 108.94], ['成都', 30.57, 104.07], ['昆明', 25.04, 102.71],
+    ['拉萨', 29.65, 91.14], ['广州', 23.13, 113.26], ['厦门', 24.48, 118.09],
+    ['杭州', 30.27, 120.16], ['武汉', 30.51, 114.42], ['长沙', 28.20, 112.97]
+  ];
+  const list = map.layoutBubbles(RAW.map(([city, lat, lng]) => {
+    const p = map.toStage(lng, lat);
+    return { city, x: p.x, y: p.y, push: 0, below: false };
+  }));
+  let worst = 0, who = '';
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = boxOf(list[i]), b = boxOf(list[j]);
+      const dx = Math.min(a.x + a.half, b.x + b.half) - Math.max(a.x - a.half, b.x - b.half);
+      const dy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (dx > 0 && dy > 0 && dx * dy > worst) { worst = dx * dy; who = list[i].city + '×' + list[j].city; }
+    }
+  }
+  const one = map.BUBBLE_W * map.BUBBLE_H; // 一颗两字气泡的面积
+  ok(worst < one * 0.3, '糊得最狠的一处：' + who + ' 重叠 ' + Math.round(worst) + 'rpx²（' +
+    Math.round(worst / one * 100) + '%，上限 30%）');
+});
+t('塞不下时被顶开的城仍连回自己的落点（连接杆长度算得出来）', () => {
+  const list = map.layoutBubbles(build(['北京', '上海', '成都', '广州', '武汉', '长沙']));
+  list.forEach((c) => {
+    ok(Number.isFinite(c.push) && c.push >= 0, c.city + ' 的 push 不是非负数：' + c.push);
+    ok(typeof c.below === 'boolean', c.city + ' 的 below 不是布尔：' + typeof c.below);
+    const b = boxOf(c);
+    ok(b.top >= 0 && b.bottom <= map.STAGE_H, c.city + ' 的气泡被顶出了舞台：' + b.top + '~' + b.bottom);
+  });
+});
+
 console.log('\n──────────────────────────────');
 console.log('结果：' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
