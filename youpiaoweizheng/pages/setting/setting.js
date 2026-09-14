@@ -4,6 +4,7 @@
 // 荣誉与余额放在需要翻一层才能看到的地方，等于没有。
 const themeUtil = require('../../utils/theme.js');
 const track = require('../../utils/track.js');
+const store = require('../../utils/store.js'); // 同场印记开关（P2-26）
 const { iconSrc } = require('../../utils/icons.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
@@ -11,6 +12,8 @@ const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别
  * 只清本地记录，不动云端。
  * 不含 sp_theme：主题是用户当面选的外观，清「本地数据」把外观也换掉会像故障。
  * 也不含票根：票根在云库，详情页「···」里有它自己的删除入口。
+ * 也不含 sp_same_optout（同场印记的退出开关）：那是一次隐私选择，
+ * 清「本地数据」把用户说过的「退出」改回「参与」，等于替他同意。
  */
 const LS_CLEAR = [
   'fav_ids',        // 收藏心（本地标记）
@@ -36,7 +39,11 @@ Page({
     ic: {},
     curTheme: themeUtil.getThemeMeta('paper'),
     themeDots: themeUtil.THEME_META.map((t) => ({ key: t.key, primary: t.primary })),
-    rows: ROWS
+    rows: ROWS,
+    // 同场印记：存的是「退出」（sameOptOut），开关展示的是「参与」。
+    // 两个方向相反，只在这里取反一次 —— WXML 里 checked="{{!sameOptOut}}"
+    sameOptOut: false,
+    primary: '#2B2420'
   },
 
   onShow() {
@@ -45,7 +52,27 @@ Page({
     this.setData({
       ic: { chevron: iconSrc('chevron', m.text, 0.45) },
       curTheme: m,
-      rows: ROWS.map((r) => Object.assign({}, r, { ico: iconSrc(r.icon, m.text, 0.6) }))
+      rows: ROWS.map((r) => Object.assign({}, r, { ico: iconSrc(r.icon, m.text, 0.6) })),
+      primary: m.primary,
+      // 每次进页面都回读：清除本地数据、换机恢复都可能改过它
+      sameOptOut: store.getSameOptOut()
+    });
+  },
+
+  /**
+   * 同场印记开关。开关说的是「参与」，存的是「退出」—— 这里取反一次，
+   * 别让方向在页面和存储之间来回翻（翻错一次，用户以为退出了其实还在参与）。
+   * 只影响之后入库的票根，所以不调云端、不需要二次确认。
+   */
+  onSameMark(e) {
+    const participate = !!e.detail.value;
+    store.setSameOptOut(!participate);
+    haptics.tap();
+    track.track('setting_same_mark', { on: participate });
+    this.setData({ sameOptOut: !participate });
+    wx.showToast({
+      title: participate ? '之后的票根会计入同场' : '已退出，之后的票根不再计入',
+      icon: 'none'
     });
   },
 

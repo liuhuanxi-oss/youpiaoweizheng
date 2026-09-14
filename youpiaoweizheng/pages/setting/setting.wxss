@@ -46,6 +46,24 @@
 .st-theme-dot { width: 20rpx; height: 20rpx; border-radius: 50%; }
 .st-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; opacity: 0.5; }
 
+/* ===== 同场印记开关 ===== */
+.st-switch-row {
+  display: flex; align-items: center; gap: 24rpx;
+  margin-top: 16rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--border, #EFE5D8);
+}
+.st-switch-body { flex: 1; min-width: 0; }
+.st-switch-name { font-size: 29rpx; color: var(--brown, #6B5B50); }
+.st-switch-desc {
+  margin-top: 8rpx;
+  font-size: 22rpx; line-height: 1.5;
+  color: var(--text2, #A5968A);
+}
+/* 原生 switch 只有 transform 缩放这一种改尺寸的办法（width/height 对它无效），
+   0.85 是「不显得比旁边文字重、又别小到不好点」的那一档 */
+.st-switch { flex: 0 0 auto; transform: scale(0.85); }
+
 /* ===== 协议 / 关于 / 清除 ===== */
 .st-list { margin-top: 10rpx; }
 .st-row {

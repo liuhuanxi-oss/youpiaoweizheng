@@ -29,7 +29,24 @@
     </view>
   </view>
 
-  <!-- ② 协议 / 关于 / 清除 -->
+  <!-- ② 同场印记（隐私选项）
+       这一条是协议里对外承诺过的「可随时退出参与」（protocol.js 的「信息的使用」），
+       而入口从 me→setting 改版后就没了 —— 承诺了却做不到，比不写更糟。
+       开关说的是「参与」、存的是「退出」（同场印记存的是 opt-out），取反只在
+       setting.js 的 onSameMark 里做一次。 -->
+  <view class="st-card">
+    <view class="st-title">同场印记</view>
+    <view class="st-switch-row">
+      <view class="st-switch-body">
+        <view class="st-switch-name">参与同场计数</view>
+        <view class="st-switch-desc">按「场馆 + 日期」匿名统计这场演出被收藏了几次，只在详情页与卡片上显示一个数字，不含任何身份信息。关掉后，之后收藏的票根不再计入。</view>
+      </view>
+      <switch class="st-switch" checked="{{!sameOptOut}}" color="{{primary}}"
+              bindchange="onSameMark" aria-label="参与同场印记" />
+    </view>
+  </view>
+
+  <!-- ③ 协议 / 关于 / 清除 -->
   <view class="st-card">
     <view class="st-list">
       <view class="st-row pressable" hover-class="press-item-hover" wx:for="{{rows}}" wx:key="key"

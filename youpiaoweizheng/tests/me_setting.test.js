@@ -185,6 +185,55 @@ t('设置页只剩真正的设置：协议 / 关于 / 清除', () => {
   ok(!/回收站/.test(stJs), '回收站入口仍在（功能没做，只留一句「开发中」）');
 });
 
+console.log('\n【六·补、同场印记开关：协议承诺过的「可随时退出参与」】');
+// P2-26：这一条对外承诺在协议里，入口却随 me→setting 改版丢了两年。
+// 承诺了做不到，比不写更糟 —— 所以这里既钉开关本身，也钉「承诺 ↔ 入口」对得上。
+t('真跑一遍：写得进、读得出，落的还是老键 sp_same_optout', () => {
+  const mem = {};
+  const prev = global.wx;
+  global.wx = {
+    getStorageSync: (k) => mem[k],
+    setStorageSync: (k, v) => { mem[k] = v; }
+  };
+  try {
+    const s = require('../utils/store.js');
+    ok(typeof s.setSameOptOut === 'function',
+      'store 只有读没有写 —— 开关做出来也只能读，等于还是退不出去');
+    s.setSameOptOut(true);
+    ok(s.getSameOptOut() === true, '写进去 true 读出来不是 true');
+    ok(mem.sp_same_optout === true, '落的键不是 sp_same_optout：老用户存过的值会读不到，退出状态凭空复位');
+    s.setSameOptOut(false);
+    ok(s.getSameOptOut() === false, '关回去没生效');
+    s.setSameOptOut('随便一个真值');
+    ok(s.getSameOptOut() === true, '非布尔值没归一：存了个字符串，读出来该是 true');
+  } finally {
+    if (prev === undefined) delete global.wx; else global.wx = prev;
+  }
+});
+t('开关说的是「参与」、存的是「退出」，取反只在 handler 里做一次', () => {
+  ok(/checked="\{\{!sameOptOut\}\}"/.test(stWxml), '开关没有取反：打开开关等于「退出同场」，方向是反的');
+  ok(!/checked="\{\{sameOptOut\}\}"/.test(stWxml), 'wxml 直接拿 sameOptOut 当开关状态 —— 用户打开它，实际是退出');
+  ok(/setSameOptOut\(!participate\)/.test(stJs), 'handler 里没把「参与」翻成「退出」');
+  ok(/sameOptOut: store\.getSameOptOut\(\)/.test(stJs), 'onShow 没回读：别处改过它，页面显示的还是旧的');
+});
+t('「清除本地数据」不得把用户说过的「退出」清回「参与」', () => {
+  const list = /const LS_CLEAR = \[([\s\S]*?)\n\];/.exec(stJs);
+  ok(list, '找不到 LS_CLEAR（改了写法就把这条断言一起改）');
+  ok(!/sp_same_optout/.test(list[1]),
+    'sp_same_optout 进了清除清单：一次清缓存就把用户的隐私选择撤销了，而且是悄悄的');
+});
+t('协议写的退出路径真的点得到，且整条链子接得上', () => {
+  const protocol = read('pages/protocol/protocol.js');
+  const m = /你可以在「([^」]*同场印记)」中随时退出参与/.exec(protocol);
+  ok(m, '协议里这句承诺没了（这条断言要跟着改）');
+  ok(m[1] === '我的-设置-同场印记', '协议写的路径是「' + m[1] + '」，与实际入口对不上');
+  ok(/bindchange="onSameMark"/.test(stWxml), '设置页没有这个开关 —— 协议又变成承诺了做不到的事');
+  ok(/onSameMark\s*\(/.test(stJs), '开关绑了不存在的处理器（点了没反应）');
+  // 端上存偏好 → 入库带上 → 云端据此清空场次键，三段缺一段就等于没退出
+  ok(/sameOptOut/.test(read('utils/store.js')), '入库时没把偏好带给云端');
+  ok(/sameOptOut/.test(read('cloudfunctions/saveTicket/index.js')), '云端不再认这个开关：退出后新票根照样计入');
+});
+
 console.log('\n【七、全仓库：JS 里引用的图标名必须都存在】');
 t('扫描全部 pages/ 的 iconSrc/icon: 调用', () => {
   const files = [];

@@ -102,13 +102,21 @@ function isMockTicket(id) {
 }
 
 // —— 4.11.0 同场印记 opt-out ——
-// 4.11 的「设置页开关」随 me→setting 改版下线，开关入口暂无 UI；
-// 但历史用户已存的 true 仍要认（否则等于悄悄替他们改回参与聚合）。
+// 4.11 的「设置页开关」随 me→setting 改版下线过一段时间：协议里对外承诺了
+// 「可随时退出参与」，而退出入口没了。7.4.0 把开关补回设置页（P2-26）。
 const LS_SAME_OPTOUT = 'sp_same_optout';
 
 /** 是否退出同场印记（true = 我的票不参与「同场 N 人」匿名聚合） */
 function getSameOptOut() {
   try { return !!wx.getStorageSync(LS_SAME_OPTOUT); } catch (e) { return false; }
+}
+
+/** 退出 / 参与同场印记（设置页那颗开关；传 true = 退出）。
+ *  只影响**之后**入库的票根 —— 协议里就是这么承诺的（「退出后新收藏的票根
+ *  不再计入该统计」）。已入库的场次键不回头清：那是一次没告知用户的历史改写，
+ *  而且会让「同场 N 人」的数字在别人那里凭空变小。 */
+function setSameOptOut(v) {
+  try { wx.setStorageSync(LS_SAME_OPTOUT, !!v); } catch (e) { /* 存储失败按「仍参与」处理，与 get 的兜底一致 */ }
 }
 
 // —— 4.14.0 组内排序 ——
@@ -308,4 +316,4 @@ async function removeTicket(id) {
   }
 }
 
-module.exports = { USE_CLOUD, listTickets, getTicket, addTicket, setCaption, removeTicket, isMockTicket, getSameOptOut, listFlags };
+module.exports = { USE_CLOUD, listTickets, getTicket, addTicket, setCaption, removeTicket, isMockTicket, getSameOptOut, setSameOptOut, listFlags };
