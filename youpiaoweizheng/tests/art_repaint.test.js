@@ -223,5 +223,52 @@ t('画布仍在滚动容器里也点得到（canvas 不能被 wx:if 包住）', 
   ok(/<canvas type="2d" id="art-canvas"/.test(wxmlClean), '取不到 canvas 节点');
 });
 
+console.log('\n【六、画布倍率回夹：iOS 单边 4096 上限（开发者工具里永远看不见）】');
+// 工具里 dpr=2、永远到不了那条线，所以这类问题只在真机上表现为「保存失败」甚至闪退。
+const cvs = require('../utils/canvas-deco.js');
+const CANVASES = [['art 纪念插画', 1080, 1440], ['annual 年报长图', 1080, 1920], ['card 明信片', 600, 960]];
+t('safeDpr 真跑：任何尺寸 × 任何 dpr，最长边都不越 4096，且倍率是整数', () => {
+  CANVASES.forEach(([name, w, h]) => {
+    [1, 2, 2.5, 3, 4].forEach((d) => {
+      const out = cvs.safeDpr(w, h, d);
+      ok(Number.isInteger(out), name + ' dpr=' + d + ' 回夹出非整数倍率 ' + out + '：导出图落在半像素上，边缘发虚');
+      ok(out >= 1, name + ' dpr=' + d + ' 回夹到 ' + out + '：画布都建不起来');
+      ok(Math.max(w, h) * out <= cvs.MAX_CANVAS_SIDE,
+        name + ' dpr=' + d + ' → 最长边 ' + Math.max(w, h) * out + '，越线了');
+    });
+  });
+});
+t('够得着的倍率原样保留（回夹不能顺手降清晰度）', () => {
+  ok(cvs.safeDpr(1080, 1920, 2) === 2, '1080×1920 @2 = 3840，没越线，不该被降');
+  ok(cvs.safeDpr(600, 960, 3) === 3, '600×960 @3 = 2880，没越线，不该被降');
+  ok(cvs.safeDpr(1080, 1920, 3) === 2, '1080×1920 @3 = 5760，越线了，必须降到 2');
+});
+t('脏输入不炸（拿不到窗口信息时给的是 undefined）', () => {
+  ok(cvs.safeDpr(1080, 1920, undefined) === 2, 'undefined 倍率没兜住');
+  ok(cvs.safeDpr(0, 0, 0) >= 1, '全 0 时没兜到最小倍率 1');
+});
+t('三个画布页都走 safeDpr，没有裸 pixelRatio', () => {
+  ['pages/art/art.js', 'pages/annual/annual.js', 'pages/card/card.js'].forEach((p) => {
+    const src = read(p).replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    const lines = [...src.matchAll(/const dpr\s*=\s*([^;]+);/g)].map((m) => m[1]);
+    ok(lines.length > 0, p + ' 里找不到 dpr 赋值（改了写法就把这条断言一起改）');
+    const raw = lines.filter((s) => !/safeDpr\(/.test(s));
+    ok(raw.length === 0, p + ' 有 dpr 没走 safeDpr：' + raw.join(' | '));
+  });
+});
+
+console.log('\n【七、退出页面后不再轮询（P2-18）】');
+t('onUnload 立 _dead 并停表', () => {
+  const un = /onUnload\(\)\s*\{([^}]*)\}/.exec(jsClean);
+  ok(un, '找不到 onUnload（改了写法就把这条断言一起改）');
+  ok(/_dead\s*=\s*true/.test(un[1]), 'onUnload 没立 _dead');
+  ok(/_stopPoll\(\)/.test(un[1]), 'onUnload 没停轮询表');
+});
+t('在途那一发回包时先看 _dead（停表管不了已经发出去的）', () => {
+  const m = /const r = await this\._call\('artQuery'[\s\S]{0,200}?if \(this\._dead\) return;/.exec(jsClean);
+  ok(m, 'await 回包后没有 _dead 判断：用户退出后仍会 setData，还会 setTimeout 续下一轮，'
+    + '轮询最长 160s 空转（控制台一串「setData 在已销毁页面上调用」）');
+});
+
 console.log('\n测试套件：art_repaint —— ' + pass + ' 通过 / ' + fail + ' 失败\n');
 process.exit(fail ? 1 : 0);

@@ -137,18 +137,18 @@
 |---|---|---|
 | P2-12 ✅ | `pages/map/map.js:35, 64, 71` | 坐标**只校验 `lat` 不校验 `lng`**，脏数据时 haversine 累加得 NaN → 页面显示「NaN 足迹 km」。（`utils/geo.js` 的 `totalKmOf` 两个都校验了，此处是手写降级版） |
 | P2-13 ✅ | `pages/timeline/timeline.wxml:39` | `{{item.mine ? '' : 'partner'}}` 里 `item` **在该作用域不存在**（内层 `wx:for-item="it"`，外层是 `mo`）→ 所有行恒加 `partner` 类。当前 wxss 未定义 `.partner` 所以看不出，**一旦补样式全部票会被错标成「TA 的」** |
-| P2-14 ⚠️ | `pages/home/home.js:55` / `pages/discover/discover.js:29` | 下拉刷新用 `wx.stopPullDownRefresh` 去关 `scroll-view` 的 refresher（**对组件无效**），且未绑 `refresher-triggered` → 下拉无反馈、状态无法收口。对照 `album.js` 的 `refreshing` 写法修正 |
-| P2-15 | `pages/art/art.js:392-397, 480`；`pages/annual/annual.js:185-187` | 画布按 dpr 放大：art 页 dpr=3 时达 3240×4320（14MP）；annual 页达 3240×5760（位图约 75MB），**超出 iOS 常用 4096 画布上限且是全局最大内存单点**，低端机可能导出失败或崩溃 |
-| P2-16 | `pages/card/card.wxml:1, 50` | 取票返回前 `t=null` 且 `notFound=false`，两个分支都不渲染 → **弱网进卡片页整页白屏**（无骨架/加载态） |
-| P2-17 | `pages/card/card.js:837-846` | 只校验 `_ctx` 存在就导出，未等绘制/照片就绪，首帧前点保存会导出空白图；`_canvas` 初始化失败时静默 return（用户点了没反应） |
-| P2-18 | `pages/art/art.js:83, 335-344`；`scan.js:54-56, 223-228, 391-392`；`detail.js:80` | 多处 `setTimeout`/在途异步回包未做「页面存活」判断或清理，页面已销毁仍 `setData`（控制台告警），`scan` 的 900ms `navigateBack` 还会**多退一层** |
-| P2-19 | `pages/scan/scan.js:103-118, 176-187` | 快门/相册无并发锁，连点会并起两条识别链路（重复上传、结果互相覆盖）；识别中也无取消入口与超时兜底 |
-| P2-20 | `pages/scan/scan.js:72, 396` + `scan.wxml:124` | `saveErr` 无任何 WXML 落地（`scan.wxss:521` 的 `.shake-err` 从未被绑定）→ **保存失败的红抖动效静默失效** |
-| P2-21 | `pages/duo/duo.js:189-191` | 「生成双人纪念卡片」取双方最近一张票，未筛「我的」→ 若最近一条是 TA 的票，卡片页落 notFound 空态 |
-| P2-22 | `pages/report/report.js:72` | 空数据时显示 3 条 0% 空条；未知类型不计入导致占比和 < 100% |
-| P2-23 | `pages/theme/theme.wxml:65` | `wx:key="hex"` 存在重复值（paper 的主色/正文同为 `#2B2420`）→ key 重复告警、列表可能漏渲染 |
-| P2-24 ⚠️ | `pages/theme/theme.wxml:31-176` | 内联 18 个 `<svg>` 标签，与项目 CHANGELOG 4.10.x「微信不能内联 svg」的既有结论冲突 → 需真机验证，可能是 24 个装饰元素全空白 |
-| P2-25 | `pages/annual/annual.js:136, 266-268` | 年报同样消费兜底演示数据且无提示；只有 1 张票时「最早/最近/最贵」三张卡重复展示同一张 |
+| P2-14 ⚠️ | `pages/home/home.js:55` / `pages/discover/discover.js:29` | 下拉刷新用 `wx.stopPullDownRefresh` 去关 `scroll-view` 的 refresher（**对组件无效**），且未绑 `refresher-triggered` → 下拉无反馈、状态无法收口。对照 `album.js` 的 `refreshing` 写法修正 。（**已修 2026-09-14**：discover 的 `.dc-page` 补 `height:100vh` + 绑 `refresher-triggered="{{refreshing}}"`，收口改走 setData。**home 那半是误判**——它是页面级下拉（home.json 开了 enablePullDownRefresh），`wx.stopPullDownRefresh` 正是它的标准收口。守卫：`pull_refresh` 第二·补 / 三节）
+| P2-15 | `pages/art/art.js:392-397, 480`；`pages/annual/annual.js:185-187` | 画布按 dpr 放大：art 页 dpr=3 时达 3240×4320（14MP）；annual 页达 3240×5760（位图约 75MB），**超出 iOS 常用 4096 画布上限且是全局最大内存单点**，低端机可能导出失败或崩溃 。（**已修 2026-09-14**：`utils/canvas-deco.js` 新增 `safeDpr(w,h,dpr)` 统一回夹，art / annual / card 三页同源，倍数先取整再回夹。守卫：`art_repaint` 第六节真跑 + 三页源码断言）
+| P2-16 | `pages/card/card.wxml:1, 50` | 取票返回前 `t=null` 且 `notFound=false`，两个分支都不渲染 → **弱网进卡片页整页白屏**（无骨架/加载态） 。（**复核即已修**：card.wxml 三分支 loading → t → notFound 齐全，`card_postcard` 第七节钉着）
+| P2-17 | `pages/card/card.js:837-846` | 只校验 `_ctx` 存在就导出，未等绘制/照片就绪，首帧前点保存会导出空白图；`_canvas` 初始化失败时静默 return（用户点了没反应） 。（**已修 2026-09-14**：新增 `_waitFirstFrame()`，save 与 saveXHS 都在 `canvasToTempFilePath` 之前 await，带 3s 超时兜底。守卫：`card_postcard` 第八节）
+| P2-18 | `pages/art/art.js:83, 335-344`；`scan.js:54-56, 223-228, 391-392`；`detail.js:80` | 多处 `setTimeout`/在途异步回包未做「页面存活」判断或清理，页面已销毁仍 `setData`（控制台告警），`scan` 的 900ms `navigateBack` 还会**多退一层** 。（**已修 2026-09-14**：scan 的定时器走 `_later()` 登记 + `onUnload` 统一清，在途回包由 `_scanSeq` 序号作废；detail 的退场定时器同理；art 的 `_poll` 加 `_dead` 判断（停表管不了已经发出去的那一发）。守卫：`scan_frame` 第十一节、`art_repaint` 第七节）
+| P2-19 | `pages/scan/scan.js:103-118, 176-187` | 快门/相册无并发锁，连点会并起两条识别链路（重复上传、结果互相覆盖）；识别中也无取消入口与超时兜底 。（**已修 2026-09-14**：`_acquirePick()` 连点锁（快门 / 相册共用一个）；25s 没回包弹「识别有点慢」给两条出路，扫描中也有「等太久？先手动录入」。守卫：`scan_frame` 第十一节）
+| P2-20 | `pages/scan/scan.js:72, 396` + `scan.wxml:124` | `saveErr` 无任何 WXML 落地（`scan.wxss:521` 的 `.shake-err` 从未被绑定）→ **保存失败的红抖动效静默失效** 。（**已修 2026-09-14**：保存按钮绑上 `shake-err`，`.shake-err` 不再是无主样式。守卫：`scan_frame` 第十一节）
+| P2-21 | `pages/duo/duo.js:189-191` | 「生成双人纪念卡片」取双方最近一张票，未筛「我的」→ 若最近一条是 TA 的票，卡片页落 notFound 空态 。（**已修 2026-09-14**：`recent` 只从 `mineItems`（`t.mine`）里取；一张我的票都没有时退回时间线。守卫：`duo_bind` 第五节）
+| P2-22 | `pages/report/report.js:72` | 空数据时显示 3 条 0% 空条；未知类型不计入导致占比和 < 100% 。（**已修 2026-09-14**：分母改「认得出的类型之和」，0 条的类型不占空条、known 为 0 时 `bars` 直接空数组。守卫：`report_stats` 全套）
+| P2-23 | `pages/theme/theme.wxml:65` | `wx:key="hex"` 存在重复值（paper 的主色/正文同为 `#2B2420`）→ key 重复告警、列表可能漏渲染 。（**已修 2026-09-14**：`wx:key` 改 `name`。守卫：`page_refs` 第二节）
+| P2-24 ⚠️ | `pages/theme/theme.wxml:31-176` | 内联 18 个 `<svg>` 标签，与项目 CHANGELOG 4.10.x「微信不能内联 svg」的既有结论冲突 → 需真机验证，可能是 24 个装饰元素全空白 。（**复核即已修**：theme 的图形早改走 `utils/deco.js` 编译的 base64 data-uri，全文件只剩注释里那一处 `<svg>` 字样）
+| P2-25 | `pages/annual/annual.js:136, 266-268` | 年报同样消费兜底演示数据且无提示；只有 1 张票时「最早/最近/最贵」三张卡重复展示同一张 。（**复核即已修**：annual 已把 `flags.netFallback` 接回视图——`an-net` 横幅「这份年报用的是演示票根 · 点我重试」）
 | P2-26 | `pages/me/me.js:86`；`me.js:241`；`me.js:150` | 三处**只写不渲染的死状态**：`sameOptOut`（PRD 要求的「关闭同场印记」开关不可达）、`burstId`（新勋章爆闪动效不存在）、`nickHint`（首次设昵称引导永不出现） |
 
 ---
@@ -279,3 +279,27 @@
 其中 **P0-3 尚有一项需到微信后台确认**：`saveTicket` 是否配了 HTTP 触发/云接入。
 
 **P1 / P2 / P3 各条本轮未处理**，本文其余部分保持审查当时的原貌。
+
+---
+
+## 附二：P2 端上问题修复进度（2026-09-14 补记）
+
+提交：见 `CHANGELOG.md` 7.4.0 的「发布前体检 · 端上修复」一节。**只动端上，没碰额度与支付**（铁律 2）。
+
+| # | 问题 | 修复状态 | 改法 | 守卫（测试） |
+|---|---|---|---|---|
+| P2-14 | 下拉无反馈 / 收不回来 | ✅ 已修 | discover：`.dc-page` 补 `height:100vh` + 绑 `refresher-triggered`。**home 那条是误判**：页面级下拉本来就该用 `wx.stopPullDownRefresh` | `pull_refresh` 二·补 / 三节 |
+| P2-15 | 画布越 iOS 4096 上限 | ✅ 已修 | `canvas-deco.safeDpr()` 三页同源，倍数先取整再回夹 | `art_repaint` 六节（真跑） |
+| P2-17 | 空白卡存进相册 | ✅ 已修 | `_waitFirstFrame()`：截图前 await 首帧，3s 超时兜底 | `card_postcard` 八节 |
+| P2-18 | 退了页面还在跑 | ✅ 已修 | scan 定时器登记 + `onUnload` 清 + 序号作废在途回包；detail 退场定时器；art `_poll` 加 `_dead` | `scan_frame` 十一节 / `art_repaint` 七节 |
+| P2-19 | 连点并起两条识别 | ✅ 已修 | `_acquirePick()` 连点锁 + 25s 超时弹窗给出路 | `scan_frame` 十一节 |
+| P2-20 | 保存失败的红抖静默失效 | ✅ 已修 | 按钮绑上 `shake-err` | `scan_frame` 十一节 |
+| P2-21 | 双人卡片落到 TA 的票 | ✅ 已修 | `recent` 只从 `mineItems` 取；一张我的票都没有时退回时间线 | `duo_bind` 五节 |
+| P2-22 | 空数据画 0% 空条 | ✅ 已修 | 分母改「认得出的类型之和」+ 0 条不占位 | `report_stats` 全套 |
+| P2-23 | `wx:key` 重复 | ✅ 已修 | theme 色板改 `wx:key="name"` | `page_refs` 二节 |
+| P2-16 / P2-24 / P2-25 | 白屏 / 内联 svg / 年报演示数据无提示 | 复核即已修 | 报告写得早，这三条在 7.2–7.4 期间已各自修掉 | 各自套里原有断言 |
+
+**仍未动（要先拍板或另开批次）**：
+- **P1-11**（生图卡死后退额度）、**P2-9 / P2-10**（绑定并发、token 无缓存）——**涉及额度，按铁律 2 先出设计再动手**；
+- **P2-26**（`sameOptOut` 等三处只写不渲染的死状态）——「关闭同场印记」开关是 `protocol.js` 对外承诺过的可退出项，**要么补 UI 要么改协议文本**，属产品决定，等确认；
+- P2-1 / P2-4 / P2-5 / P2-6 / P2-8 / P2-11 与其余 P3——云端加固，随下次云函数改动一起做。

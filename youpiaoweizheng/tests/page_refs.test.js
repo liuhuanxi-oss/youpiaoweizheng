@@ -74,6 +74,17 @@ t('跳转写法与目标匹配：tab 页只许 switchTab，二级页只许 navig
   ok(bad.length === 0, bad.join('; '));
 });
 
+console.log('\n【二、wx:key 必须是那一层循环里唯一的字段】');
+// key 撞车的后果同样没有报错：控制台刷告警，列表还可能漏渲染一格 ——
+// 漏的那一格看不出规律，用户只会说「这里有时候少一个」。
+t('theme 色板用 name 当 key（hex 在纸感 / 深色两套里各重复一次）', () => {
+  const m = /wx:for="\{\{item\.swatches\}\}"[^>]*wx:key="(\w+)"/.exec(read('pages/theme/theme.wxml').replace(/\s+/g, ' '));
+  ok(m, '找不到色板那一层循环（改了结构就把这条断言一起改）');
+  ok(m[1] === 'name',
+    'wx:key 又写成 ' + m[1] + ' 了：主色=正文、卡片=背景，同一套主题里 hex 会重复，'
+    + 'key 重复要刷告警、还可能漏渲染某一格');
+});
+
 console.log('\n──────────────────────────────');
 console.log('结果：' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

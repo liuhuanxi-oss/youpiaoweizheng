@@ -229,5 +229,32 @@ t('骨架复用 .card-canvas 的盒子（几何与真卡一致，卡片落位时
   ok(/class="card-canvas tk-skeleton"/.test(sk[0]), '骨架没有复用 .card-canvas，落位时会跳一下');
 });
 
+console.log('\n【八、保存前等首帧（7.4.0：别把空白画布存进相册）】');
+t('_waitFirstFrame：_render 真跑过才放行', () => {
+  ok(/_waitFirstFrame\s*\(\)\s*\{/.test(jsClean), '_waitFirstFrame 没了');
+  ok(/_rendered\s*=\s*true[\s\S]{0,160}?_firstFrame\(true\)/.test(jsClean),
+    '_render 里没有兑现 _firstFrame —— 那么等的只是超时，等于白等');
+  ok(/_waitFirstFrame\s*\(\)\s*\{[\s\S]{0,400}?setTimeout\(/.test(jsClean),
+    '没有超时兜底：手绘一旦抛错，保存按钮会一直转下去');
+});
+t('save 与 saveXHS 都在 canvasToTempFilePath 之前 await 首帧', () => {
+  [['save', /async save\(\)\s*\{([\s\S]*?)\n  \},/],
+   ['saveXHS', /async saveXHS\(\)\s*\{([\s\S]*?)\n  \},/]].forEach(([name, re]) => {
+    const m = re.exec(jsClean);
+    ok(m, name + ' 没找到（改了写法就把这条断言一起改）');
+    const wait = m[1].indexOf('await this._waitFirstFrame()');
+    const shot = m[1].indexOf('canvasToTempFilePath');
+    ok(shot >= 0, name + ' 里没有导出调用，取错函数了吧');
+    ok(wait >= 0, name + ' 没等首帧：用户点保存可能存下一张空白卡');
+    ok(wait < shot, name + ' 先截图再等首帧，等于没等');
+  });
+});
+t('画布倍率走 safeDpr（裸 pixelRatio 在 iOS 上单边越 4096 就建不起来）', () => {
+  const lines = [...jsClean.matchAll(/const dpr\s*=\s*([^;]+);/g)].map((m) => m[1]);
+  ok(lines.length > 0, '找不到 dpr 赋值（改了写法就把这条断言一起改）');
+  const raw = lines.filter((s) => !/safeDpr\(/.test(s));
+  ok(raw.length === 0, '这些 dpr 没走 safeDpr：' + raw.join(' | '));
+});
+
 console.log('\n测试套件：card_postcard —— ' + pass + ' 通过 / ' + fail + ' 失败\n');
 process.exit(fail ? 1 : 0);

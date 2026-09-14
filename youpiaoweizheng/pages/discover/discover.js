@@ -41,6 +41,7 @@ Page({
     theme: 'paper',
     // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
     enter: true,
+    refreshing: false, // 下拉刷新收口（scroll-view 的 refresher-triggered 读它）
     land: '',        // 水彩陆地 data-uri
     route: '',       // 时光路线 data-uri
     stampL: '',      // 左上装饰邮票
@@ -100,8 +101,13 @@ Page({
     this.refresh();
   },
 
+  /** 下拉刷新（scroll-view 的 refresher，不是页面级下拉）。
+   *  收口只能靠 refresher-triggered：wx.stopPullDownRefresh 是页面级 API，对组件里的下拉头无效 ——
+   *  少了 refreshing 这一路，下拉后转圈永远收不回来，看着像卡死（tests/pull_refresh.test.js 钉着）。 */
   onPullDownRefresh() {
-    this.refresh().finally(() => wx.stopPullDownRefresh());
+    if (this.data.refreshing) return;
+    this.setData({ refreshing: true });
+    this.refresh().finally(() => this.setData({ refreshing: false }));
   },
 
   /** 编译本页全部图形（主题一变就要重来：SVG 不认 CSS 变量，颜色是写死的） */

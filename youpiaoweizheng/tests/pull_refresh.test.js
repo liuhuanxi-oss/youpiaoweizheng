@@ -103,14 +103,33 @@ RP.forEach((r) => {
   });
 });
 
+console.log('\n【二·补、收口只能靠 refresher-triggered（stopPullDownRefresh 对组件无效）】');
+RP.forEach((r) => {
+  const js = read(`pages/${r.page}/${r.page}.js`);
+  const handler = /bindrefresherrefresh="(\w+)"/.exec(r.tag);
+  // 绑定的变量名只能从**原始**文本里取：clean() 把 {{...}} 整段剥了，
+  // 拿 r.tag 去看值等于永远看不到（本节第一版就是这么假红的）
+  const trig = /refresher-triggered\s*=\s*"\{\{\s*(\w+)/.exec(r.raw);
+  t(r.page + '：绑了 refresher-triggered（否则下拉头转一圈收不回来）', () => {
+    ok(/refresher-triggered\s*=/.test(r.tag),
+      'scroll-view 的下拉头由 refresher-triggered 收口；wx.stopPullDownRefresh 是页面级 API，对它无效');
+    ok(trig, 'refresher-triggered 没绑变量（写死 true 就是转圈永不消失）');
+  });
+  t(r.page + '：' + (handler ? handler[1] : '下拉处理器') + ' 用的是同一个变量 ' + (trig ? trig[1] : ''), () => {
+    const body = new RegExp((handler ? handler[1] : 'onRefresh') + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\n  \\},').exec(js);
+    ok(body, '找不到下拉处理器');
+    ok(!/wx\.stopPullDownRefresh/.test(body[1]),
+      '在 scroll-view 的下拉处理器里调了 wx.stopPullDownRefresh —— 无效，转圈收不回来（discover 就是这么卡住的）');
+    ok(new RegExp('\\b' + (trig ? trig[1] : 'refreshing') + '\\b').test(body[1]),
+      '处理器没动 wxml 上绑的那个变量，下拉头收不了口');
+    ok(/setData/.test(body[1]), '处理器没有 setData，绑的变量不会变');
+  });
+});
+
 console.log('\n【三、滚动容器必须固定高（min-height 会让 refresher 永不触发）】');
 // 已知缺口：登记原因，不是「静默放过」。条目自带防霉检查（见本节最后一条）。
-const KNOWN_GAPS = {
-  discover: '根节点 .dc-page 是 min-height:100vh，容器被内容撑高、内部不滚 → 下拉够不到；' +
-            '且它没绑 refresher-triggered，就算够得到也是拉完即弹回、零反馈。' +
-            '（另：本页走的是原生下拉头，不是 album/duo/me 那套自绘的。）' +
-            '修法要连拉动反馈一起设计，且页面里有 JS 算高的 .dc-stage 和底部面板，需真机验证 —— 未做。'
-};
+// （discover 的 min-height 条目 2026-09-14 已修：.dc-page 补 height:100vh + refresher-triggered）
+const KNOWN_GAPS = {};
 RP.forEach((r) => {
   if (KNOWN_GAPS[r.page]) return;
   t(r.page + '：滚动容器有固定高（height:100vh）', () => {

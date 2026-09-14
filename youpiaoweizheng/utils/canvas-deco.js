@@ -10,6 +10,26 @@
 //   颜色一律由调用方传入（画布读不到 CSS 变量，也读不到主题变量）。
 // ============================================================
 
+/** 画布单边像素上限。iOS 上单边超过 4096 画布直接建不起来（表现为「保存失败」甚至闪退）；
+ *  而微信开发者工具的 dpr 是 2，永远到不了这条线 —— 又是一类「工具里看着好、真机出事」。 */
+const MAX_CANVAS_SIDE = 4096;
+
+/**
+ * 本机该用的画布倍率：取设备 dpr，但放大后的**最长边**不许超过 MAX_CANVAS_SIDE。
+ * 取整数倍：非整数倍率会让导出图落在半像素上，边缘发虚。
+ * 例：1080×1920 的海报，dpr 3 会得到 3240×5760（越线）→ 回夹到 2（2160×3840，仍然清晰）。
+ * @param {number} w 逻辑宽 @param {number} h 逻辑高
+ * @param {number} dpr 设备倍率（由调用方传入 —— 本模块不碰 wx，保证 Node 里能跑）
+ */
+function safeDpr(w, h, dpr) {
+  // 倍数**先取整再回夹**：安卓上 dpr 常见 2.5 / 2.75，不取整的话
+  // 导出图会落在半像素上（边缘发虚）—— 这正是上面「取整数倍率」那句话的意思
+  const d = Math.floor(Number(dpr) || 2) || 1;
+  const longest = Math.max(Number(w) || 1, Number(h) || 1);
+  const cap = Math.max(1, Math.floor(MAX_CANVAS_SIDE / longest));
+  return Math.max(1, Math.min(d, cap));
+}
+
 /** 按最大宽度与最大行数折行（CJK 逐字断行；返回的数组至少有一个元素） */
 function wrapText(ctx, text, maxWidth, maxLines) {
   const lines = [];
@@ -170,5 +190,6 @@ function drawSprig(ctx, x, y, len, angle, flip, pal) {
 
 module.exports = {
   wrapText, roundRect, pinkedRect, watercolorBlob,
-  drawStar4, drawHeart, drawSprig, drawTape
+  drawStar4, drawHeart, drawSprig, drawTape,
+  safeDpr, MAX_CANVAS_SIDE
 };

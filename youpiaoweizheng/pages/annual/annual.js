@@ -19,6 +19,7 @@ const poster = require('./poster.js');         // 分享海报的 1080×1920 版
 const { iconSrc } = require('../../utils/icons.js'); // 全页无 emoji，图标一律线性 SVG
 const ai = require('../../utils/ai.js');       // AI 年度结语（失败有本地兜底，不空着）
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
+const { safeDpr } = require('../../utils/canvas-deco.js'); // 画布倍率回夹（iOS 单边 4096 上限）
 
 // 海报画布尺寸
 const RW = poster.RW, RH = poster.RH;
@@ -228,7 +229,9 @@ Page({
         .exec((res) => {
           const node = res && res[0] && res[0].node;
           if (!node) return resolve(false);
-          const dpr = Math.min((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2, 3);
+          // 1080×1920 × dpr 3 = 3240×5760，早越过了 iOS 单边 4096 的画布上限 → 回夹到 2。
+          // 这一屏是全局最大内存单点，导出失败/闪退都出在这里（规则见 canvas-deco.safeDpr）
+          const dpr = safeDpr(RW, RH, ((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2));
           node.width = RW * dpr;
           node.height = RH * dpr;
           const ctx = node.getContext('2d');

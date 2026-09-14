@@ -40,6 +40,10 @@ const ON_TINT = '#FFFFFF';
 /** 「票面已入档」这一拍停多久（ms）。见 _settle：太短用户看不见，太长就是白等 */
 const SETTLE_MS = 420;
 
+/** 识别最长等多久（ms）。超过就摆一条能走的路（手动填），不让「处理中」永远转下去。
+ *  上限比云函数自身的超时宽裕些——云函数先超时会走 catch，那才是更准的报错。 */
+const SCAN_TIMEOUT_MS = 25000;
+
 // 演示模式回填的示例草稿（与云函数 parser 输出同结构，实际数据以用户修改为准）
 const DEMO_DRAFT = {
   title: '回春丹巡演 · 武汉站',
@@ -117,6 +121,39 @@ Page({
 
   onUnload() {
     if (this._mqo) { try { this._mqo.disconnect(); } catch (e) { /* 忽略 */ } }
+    this._clearTimers();
+    this._scanSeq = (this._scanSeq || 0) + 1; // 页面已走：在途识别结果一律丢弃
+  },
+
+  /** 登记本页定时器（onUnload 统一清掉）。
+   *  为什么必须统一清：保存成功后有 600ms / 900ms 两个定时器，后一个负责 navigateBack ——
+   *  用户在这 900ms 内自己按了返回，定时器还在，于是**再退一层**（一下退回两层）。 */
+  _later(fn, ms) {
+    this._timers = this._timers || [];
+    const id = setTimeout(() => {
+      this._timers = (this._timers || []).filter((x) => x !== id);
+      fn();
+    }, ms);
+    this._timers.push(id);
+    return id;
+  },
+
+  _clearTimers() {
+    (this._timers || []).forEach(clearTimeout);
+    this._timers = [];
+  },
+
+  /** 这次识别还算数吗（页面走了 / 用户取消 / 又开了一次都不是了）。
+   *  不复核的话：用户已经手动填好表单，两秒后姗姗来迟的识别结果会把他的输入整个盖掉。 */
+  _stale(seq) { return seq !== this._scanSeq; },
+
+  /** 一次只放一条取图链路进来。
+   *  真机上连点两下快门，两次 takePhoto 的回调都会回（回调是异步的，mode 还没变成 scanning），
+   *  于是并起两条识别：重复上传同一个文件、两次结果互相覆盖，用户看到的是「越点越乱」。 */
+  _acquirePick() {
+    if (this._picking) return false;
+    this._picking = true;
+    return true;
   },
   data: {
     theme: "a",
@@ -175,15 +212,18 @@ Page({
   /** 快门（灰玫粉大圆）：takePhoto → 与 chooseMedia 同一条识别链路 */
   takeShutter() {
     if (this.data.mode !== 'camera' || this.data.camErr) return;
+    if (!this._acquirePick()) return; // 连点快门：只认第一次（见 _acquirePick）
     haptics.tap();
     const ctx = wx.createCameraContext();
     ctx.takePhoto({
       quality: 'high',
       success: (res) => {
+        this._picking = false;
         if (res && res.tempImagePath) this.enterScan(res.tempImagePath);
       },
       fail: () => {
         // 快门失败（模拟器无画面/权限波动）→ 相册兜底，不让用户卡死
+        this._picking = false;
         wx.showToast({ title: '相机暂不可用，试试相册', icon: 'none' });
         this.pickAlbum();
       }
@@ -223,8 +263,11 @@ Page({
   /** 降级视图：去开权限 */
   goSetting() { wx.openSetting(); },
 
-  /** 手动录入（稿外保留的最小入口）：跳过识别，直接进入空表单 */
+  /** 手动录入（稿外保留的最小出口）：跳过识别，直接进入空表单。
+   *  它同时是**取消**：seq 一推，在途的识别结果回来时会被丢弃，不会再盖掉用户填的东西。 */
   goManualInput() {
+    this._scanSeq = (this._scanSeq || 0) + 1;
+    this._clearTimers();
     this.setData({
       mode: 'done',
       imgPath: '',
@@ -237,29 +280,51 @@ Page({
 
   /** 识别链路统一入口：拍照 / 相册都汇到这里（photo tempImagePath 同链路） */
   enterScan(tempFilePath) {
+    const seq = (this._scanSeq = (this._scanSeq || 0) + 1);
+    this._clearTimers();
     this.setData({
       mode: 'scanning',
       imgPath: tempFilePath
     });
     this._setStatus(USE_CLOUD ? 'AI 正在读取票面信息…' : '演示模式 · 模拟识别中…', 8, '照片已就绪');
-    USE_CLOUD ? this.cloudRecognize(tempFilePath) : this.demoRecognize();
+    // 兜底：识别一直不回来（弱网 / 云函数卡住）时给一条能走的路，别让「处理中」永远转
+    this._later(() => {
+      if (!this._stale(seq) && this.data.mode === 'scanning') this._timeoutScan();
+    }, SCAN_TIMEOUT_MS);
+    USE_CLOUD ? this.cloudRecognize(tempFilePath, seq) : this.demoRecognize(seq);
+  },
+
+  /** 识别超时：说清「可以先用」，出路是手动填。
+   *  「再等等」不清 seq —— 在途那次请求若稍后真的回来了，照常回填，用户没白等。 */
+  _timeoutScan() {
+    haptics.warn();
+    wx.showModal({
+      title: '识别有点慢',
+      content: '网络像是卡住了。可以先把票收下、手动补填票面信息，之后随时能改。',
+      confirmText: '手动填',
+      cancelText: '再等等',
+      success: (r) => { if (r.confirm) this.goManualInput(); }
+    });
   },
 
   // —— 第一步：选图（拍照 / 相册）——
   pick(e) {
     const source = e.currentTarget.dataset.source; // 'camera' | 'album'
+    if (!this._acquirePick()) return; // 连点相册钮：只认第一次（见 _acquirePick）
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
       sourceType: [source],
       sizeType: ['compressed'],
       success: (res) => {
+        this._picking = false;
         const file = res.tempFiles && res.tempFiles[0];
         if (!file) return;
         this.enterScan(file.tempFilePath);
       },
       // 4.9.4：fail 人话指引——not declared 指向后台隐私指引，其余透出原文
       fail: (err) => {
+        this._picking = false;
         const m = String((err && err.errMsg) || '');
         if (/cancel/i.test(m)) return; // 用户主动取消，静默
         if (/not declared in the privacy/i.test(m)) {
@@ -293,15 +358,22 @@ Page({
   },
 
   /** 演示模式：给扫描动画 2.2s 舞台时间，然后回填示例草稿（进度条分段推进） */
-  demoRecognize() {
+  demoRecognize(seq) {
     this._setStatus('演示模式 · 模拟识别中…', 20, '正在上传照片');
-    setTimeout(() => this._setStatus('演示模式 · 模拟识别中…', 55, 'OCR 认字中'), 650);
-    setTimeout(() => this._setStatus('演示模式 · 模拟识别中…', 85, 'AI 理解票面信息'), 1350);
-    setTimeout(async () => { await this._settle(); this.applyDraft({ ...DEMO_DRAFT }, true); }, 2200);
+    this._later(() => { if (!this._stale(seq)) this._setStatus('演示模式 · 模拟识别中…', 55, 'OCR 认字中'); }, 650);
+    this._later(() => { if (!this._stale(seq)) this._setStatus('演示模式 · 模拟识别中…', 85, 'AI 理解票面信息'); }, 1350);
+    this._later(async () => {
+      if (this._stale(seq)) return;
+      await this._settle();
+      if (this._stale(seq)) return;
+      this.applyDraft({ ...DEMO_DRAFT }, true);
+    }, 2200);
   },
 
-  /** 云模式：上传云存储 → 调识别云函数 */
-  async cloudRecognize(tempPath) {
+  /** 云模式：上传云存储 → 调识别云函数。
+   *  seq 是「这次识别算不算数」的凭号：中途用户取消 / 重新拍了一张 / 页面走了，
+   *  回来的一律丢弃 —— 否则迟到的结果会盖掉用户刚填好的表单。 */
+  async cloudRecognize(tempPath, seq) {
     try {
       this._setStatus('上传照片中…', 20, '照片压缩上传中');
       // 4.9.5：OCR 要求图片 <2M——chooseMedia 的 compressed 在高分相机上仍可能超，再压一层
@@ -312,10 +384,12 @@ Page({
         });
         if (c && c.tempFilePath) filePath = c.tempFilePath;
       } catch (e) { /* 压缩失败用原图，不阻塞 */ }
+      if (this._stale(seq)) return;
       const up = await wx.cloud.uploadFile({
         cloudPath: `tickets/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`,
         filePath: filePath
       });
+      if (this._stale(seq)) return;
 
       this._setStatus('AI 识别中…', 55, 'OCR 认字中');
       const res = await wx.cloud.callFunction({
@@ -324,15 +398,19 @@ Page({
       });
       const r = res.result || {};
       if (!r.ok) throw new Error(r.msg || '识别失败');
+      if (this._stale(seq)) return;
 
       this.setData({ imgFileID: up.fileID });
       this._setStatus('大模型理解票面中…', 85, 'AI 正在理解票面');
       // M3 升级：OCR 认字 → 大模型理解成结构化草稿（失败自动兜底规则引擎）
       const { draft, byAI } = await ai.parseDraftByAI(r.lines || [], r.draft || {});
+      if (this._stale(seq)) return;
       this.setData({ imgFileID: up.fileID });
       await this._settle();
+      if (this._stale(seq)) return;
       this.applyDraft(draft, false, byAI);
     } catch (e) {
+      if (this._stale(seq)) return; // 已经手动填 / 已经重拍：这条报错与用户当前看到的无关
       // 识别失败 → 空表单手填兜底，不让用户白拍一趟
       wx.showModal({
         title: '没认出来',
@@ -466,13 +544,13 @@ Page({
       // A2：同期叠「撕票」（存根留在原地、副券撕下飞进册子，见 scan.wxss 的 .tear-*），时间轴不改
       this.setData({ stamped: true, liftOff: false });
       this._playCheckIn();
-      setTimeout(() => this.setData({ liftOff: true }), 600); // 400ms 绘制 + 200ms 驻留
-      setTimeout(() => wx.navigateBack(), 900);               // lift-off 200ms 完成后回首页（onShow 自动刷新）
+      this._later(() => this.setData({ liftOff: true }), 600); // 400ms 绘制 + 200ms 驻留
+      this._later(() => wx.navigateBack(), 900);               // lift-off 200ms 完成后回首页（onShow 自动刷新）
     } catch (e) {
       wx.hideLoading();
       // v6.6.0 动效4：失败不播成功动画——保存按钮红色抖动一次（保留原弹窗说明原因）
       this.setData({ saveErr: true });
-      setTimeout(() => this.setData({ saveErr: false }), 380);
+      this._later(() => this.setData({ saveErr: false }), 380);
       haptics.warn();
       wx.showModal({
         title: '保存失败',
@@ -604,6 +682,8 @@ Page({
 
   retake() {
     // 6.4.0：回到品牌稿取景态（相机重新取景）
+    this._scanSeq = (this._scanSeq || 0) + 1; // 重拍 = 上一次识别作废
+    this._clearTimers();
     this.setData({ mode: 'camera', imgPath: '', imgFileID: '', statusText: '', step: 0 });
   },
 

@@ -101,6 +101,9 @@ Page({
   onUnload() {
     if (this._eggTimer) clearTimeout(this._eggTimer);
     if (this._capTimer) { clearInterval(this._capTimer); this._capTimer = null; }
+    // 删除后的「收拢淡出 → 退回」定时器：用户在这 700ms 内自己按了返回，定时器还在，
+    // 于是**再退一层**（一下退回两层）——与 scan 保存后那个是同一类问题。
+    if (this._leaveTimer) { clearTimeout(this._leaveTimer); this._leaveTimer = null; }
   },
   data: {
     theme: "paper",
@@ -336,7 +339,7 @@ Page({
           // 先让这张票根当着用户的面收拢淡出，再退回上一页 ——
           // 干等 700ms 什么都不发生，用户会怀疑到底删没删掉（期间还容易再点一次）
           this.setData({ leaving: true });
-          setTimeout(() => this.goBack(), LEAVE_MS);
+          this._leaveTimer = setTimeout(() => this.goBack(), LEAVE_MS);
         } catch (e) {
           wx.hideLoading();
           this._removing = false;

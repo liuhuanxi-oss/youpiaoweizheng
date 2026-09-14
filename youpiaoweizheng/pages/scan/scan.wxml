@@ -142,10 +142,12 @@
       <view class="sc-ai-cap" wx:if="{{progText}}">{{statusText}}</view>
       <view class="sc-demo" wx:if="{{isDemo}}">演示模式：识别结果为示例数据，开通云开发后自动变成真实识别</view>
 
-      <!-- 稿外保留的最小出口：识别不出来的票根总得有地方手填 -->
-      <view class="sc-manual pressable" wx:if="{{mode === 'camera'}}" hover-class="press-item-hover"
+      <!-- 稿外保留的最小出口：识别不出来的票根总得有地方手填。
+           处理中（scanning）也留着 —— 识别卡住时这是唯一的退路，
+           藏起来的话用户只能退出重来一遍（见 scan.js 的 _timeoutScan）。 -->
+      <view class="sc-manual pressable" wx:if="{{mode === 'camera' || mode === 'scanning'}}" hover-class="press-item-hover"
             bindtap="goManualInput" aria-role="button" aria-label="跳过识别直接手填">
-        <text class="sc-manual-t">认不出来？手动录入</text>
+        <text class="sc-manual-t">{{mode === 'scanning' ? '等太久？先手动录入' : '认不出来？手动录入'}}</text>
         <image class="sc-manual-ic" src="{{ic.sep}}" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
@@ -188,7 +190,8 @@
       <view class="f-row pressable" hover-class="press-item-hover" bindtap="editField" data-key="source"><text class="k">来源</text><text class="v {{form.source ? '' : 'blank'}}">{{form.source || '可不填'}}</text></view>
     </view>
 
-    <view class="btn-main pressable" hover-class="press-hover" bindtap="save">保存到时光档案</view>
+    <!-- saveErr：保存失败 → 按钮红一下 + 抖一次（.btn-main.shake-err，reduced-motion 下只变色） -->
+    <view class="btn-main pressable {{saveErr ? 'shake-err' : ''}}" hover-class="press-hover" bindtap="save">保存到时光档案</view>
     <view class="btn-ghost pressable" hover-class="press-hover" bindtap="retake">重新拍摄 / 换一张</view>
   </block>
 

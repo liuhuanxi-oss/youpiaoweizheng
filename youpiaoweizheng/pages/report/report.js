@@ -79,12 +79,15 @@ Page({
       // 类型分布（按占比画横条）
       const counts = { show: 0, movie: 0, traffic: 0 };
       items.forEach((t) => { if (counts[t.type] !== undefined) counts[t.type]++; });
-      const bars = ['show', 'movie', 'traffic'].map((k) => ({
-        key: k,
-        name: TYPE_TEXT[k],
-        n: counts[k],
-        pct: m.total ? Math.round((counts[k] / m.total) * 100) : 0
-      })).filter((b) => b.n > 0 || m.total === 0);
+      // 分母用「认得出的那几类」之和，不用总数：库里要是混进别的 type，
+      // 按总数当分母会让三条加起来不到 100%（用户看着像丢票）。
+      const known = counts.show + counts.movie + counts.traffic;
+      // 一张票都没有就不画：三根 0% 的空条比空态更像「数据丢了」（外层 wx:if 会整块收起）
+      const bars = known > 0
+        ? ['show', 'movie', 'traffic']
+          .filter((k) => counts[k] > 0)
+          .map((k) => ({ key: k, name: TYPE_TEXT[k], n: counts[k], pct: Math.round((counts[k] / known) * 100) }))
+        : [];
 
       // 城市 Top3
       const cityMap = {};

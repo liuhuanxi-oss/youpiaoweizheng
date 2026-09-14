@@ -140,7 +140,12 @@ Page({
     const rank = (t) => (showKeys.has(duoData.eventKeyOf(t)) ? 2 : (citySet.has(t.city) ? 1 : 0));
     // 有共同关系的排前面：稿里那 6 张也是「挂胶囊的夹着没胶囊的」
     const items = (merged.items || []).slice().sort((a, b) => rank(b) - rank(a));
-    const recent = (merged.items || [])[0];
+    // 带进卡片页的那张必须是**我自己的**票：卡片页读的是我自己的票册，
+    // 拿 TA 的 id 过去只会落 notFound 空态（「这张时光券不在你的册子里」）。
+    // 优先共同票根（同场/同城），其次任意我自己的票；一张都没有就留空 ——
+    // 卡片页会退回「我最近的一张」，比空态强。
+    const mineItems = (merged.items || []).filter((t) => t.mine);
+    const recent = mineItems.filter((t) => showKeys.has(duoData.eventKeyOf(t)))[0] || mineItems[0] || null;
     this.setData({
       stat: {
         together: (merged.items || []).filter((t) => showKeys.has(duoData.eventKeyOf(t))).length,

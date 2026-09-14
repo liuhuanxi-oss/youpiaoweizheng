@@ -281,5 +281,21 @@ t('json 只挂真正用到的组件', () => {
   ok(/<bottom-sheet/.test(wxmlClean), 'WXML 里根本没有 bottom-sheet 节点');
 });
 
+console.log('\n【五、双人卡片只认我自己的票（P2-21）】');
+t('recent 从「我的票」里挑，不从合并列表里挑', () => {
+  ok(/const mineItems = \(merged\.items \|\| \[\]\)\.filter\(\(t\) => t\.mine\)/.test(jsClean),
+    '没有按 mine 过滤出我的票');
+  ok(/recent = mineItems\.filter\(/.test(jsClean), 'recent 不是从 mineItems 里挑的');
+  ok(!/recent\s*=\s*\(?merged\.items/.test(jsClean),
+    'recent 又从合并列表取首张了 —— 合并列表按时间倒序，首张可能是 TA 的票：'
+    + '点「生成双人卡片」会跳进别人的票根，用户以为自己的数据串了');
+});
+t('一张我的票都没有时退回时间线，不跳一个空 id', () => {
+  const go = /goCard\(\)\s*\{([\s\S]*?)\n  \},/.exec(jsClean);
+  ok(go, '找不到 goCard（改了写法就把这条断言一起改）');
+  ok(/if \(id\)/.test(go[1]), 'goCard 没有按 id 分流：recentId 为空时会跳到 /pages/card/card?id= 的空页面');
+  ok(/timeline/.test(go[1]), 'goCard 的兜底不是时间线');
+});
+
 console.log('\n测试套件：duo_bind —— ' + pass + ' 通过 / ' + fail + ' 失败\n');
 process.exit(fail ? 1 : 0);

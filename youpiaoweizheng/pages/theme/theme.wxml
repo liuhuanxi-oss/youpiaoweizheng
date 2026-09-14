@@ -49,7 +49,9 @@
       <!-- ③ 6 色色板（含 hex） -->
       <view class="th-swatch-title tk-cap">色板</view>
       <view class="th-swatches">
-        <view class="th-sw" wx:for="{{item.swatches}}" wx:for-item="sw" wx:key="hex">
+        <!-- wx:key 用 name 不能用 hex：纸感与深色两套里各有两条色值相同（主色=正文、卡片=背景），
+             key 重复会告警并可能漏渲染某一格 -->
+        <view class="th-sw" wx:for="{{item.swatches}}" wx:for-item="sw" wx:key="name">
           <view class="th-sw-dot" style="background: {{sw.hex}};"></view>
           <text class="th-sw-name">{{sw.name}}</text>
           <text class="th-sw-hex">{{sw.hex}}</text>

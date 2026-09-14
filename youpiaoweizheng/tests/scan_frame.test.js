@@ -204,8 +204,12 @@ t('入库前仍然校验票名与日期格式', () => {
 });
 t('入档成功后仍走「盖章 → 抬起 → 返回」的时序', () => {
   ok(/stamped: true, liftOff: false/.test(js), '缺盖章起点');
-  ok(/setTimeout\(\(\) => this\.setData\(\{ liftOff: true \}\), 600\)/.test(js), '缺抬起时机');
-  ok(/setTimeout\(\(\) => wx\.navigateBack\(\), 900\)/.test(js), '缺返回时机');
+  // 两个时机都走 this._later（登记在册、onUnload 统一清掉）：
+  // 用户在这 900ms 内自己按了返回，裸 setTimeout 会**再退一层**
+  ok(/this\._later\(\(\) => this\.setData\(\{ liftOff: true \}\), 600\)/.test(js), '缺抬起时机');
+  ok(/this\._later\(\(\) => wx\.navigateBack\(\), 900\)/.test(js), '缺返回时机');
+  ok(!/setTimeout\(\(\) => wx\.navigateBack/.test(js),
+    '返回时机又写回裸 setTimeout —— onUnload 清不掉，用户自己返回时会多退一层');
 });
 
 console.log('\n【八、类型选择：白图标压在 --soft 底上会看不见，故底色随主题】');
@@ -262,12 +266,70 @@ t('推满进度后停一拍再交表单（推满就切页 = 那一拍用户根�
   ok(/setTimeout|Promise/.test(settle[1]), '推满之后没有停一拍就交出去了');
   const n = (js.match(/await this\._settle\(\)/g) || []).length;
   ok(n >= 2, '只有 ' + n + ' 条识别路径做了收尾（演示模式与云模式各一条）');
-  ok(/await this\._settle\(\);\s*this\.applyDraft/.test(js),
+  // 中间允许夹一行「这次识别还算数吗」的复核（见 _stale），但不许反过来：
+  // 先 applyDraft 再推满，那一拍用户根本看不见
+  ok(/await this\._settle\(\);(\s*if \(this\._stale\(seq\)\) return;)?\s*this\.applyDraft/.test(js),
     '收尾没有排在 applyDraft 之前 —— 先切页再推满，等于没推');
 });
 
 t('进度条真的画出来了（prog 一直在算，之前从不渲染）', () => {
   ok(/\{\{prog\}\}/.test(wxmlClean), 'prog 没有绑定到任何节点上');
+});
+
+console.log('\n【十一、连点、在途与超时：三条静默失灵的链路】');
+
+t('连点快门 / 相册只放一条取图链路进来', () => {
+  ok(/_acquirePick\(\)/.test(js), '缺取图锁');
+  // 两个入口都要先取锁（takePhoto 的回调是异步的，mode 拦不住第二次点击）
+  const shutter = /takeShutter\(\)\s*\{([\s\S]*?)\n  \},/.exec(js);
+  ok(shutter && /_acquirePick\(\)/.test(shutter[1]), '快门没上锁');
+  const pick = /pick\(e\)\s*\{([\s\S]*?)\n  \},/.exec(js);
+  ok(pick && /_acquirePick\(\)/.test(pick[1]), '相册没上锁');
+  // 成功与失败两条路都要放锁，不然一次失败之后快门就永久哑了
+  ok((js.match(/this\._picking = false/g) || []).length >= 4,
+    '放锁的地方少于 4 处（快门成功/失败、相册成功/失败各一处）—— 漏一处就有入口被永久锁死');
+});
+
+t('识别超时给得出一条路（手动填），而不是永远转圈', () => {
+  ok(/SCAN_TIMEOUT_MS/.test(js), '缺超时阈值');
+  ok(/_timeoutScan\(\)\s*\{/.test(js) && /手动填/.test(js), '超时后没有可走的出路');
+  const enter = /enterScan\(tempFilePath\)\s*\{([\s\S]*?)\n  \},/.exec(js);
+  ok(enter && /_later\(/.test(enter[1]), '进识别时没挂超时兜底');
+});
+
+t('处理中也能手动录入（识别卡住时唯一的退路）', () => {
+  ok(/mode === 'camera' \|\| mode === 'scanning'/.test(wxmlClean),
+    '手动录入只在取景态露脸 —— 识别卡住时用户只能退出重来');
+});
+
+t('在途识别结果一律复核「还算不算数」', () => {
+  ok(/this\._scanSeq/g.test(js), '缺序号');
+  const stale = (js.match(/this\._stale\(seq\)/g) || []).length;
+  ok(stale >= 5, '复核点只有 ' + stale + ' 处：云模式每个 await 后面都得复查一次，否则迟到的结果会盖掉用户刚填好的表单');
+  ok(/_stale\(seq\)\) return;/.test(js), '复核了却不返回，等于没复核');
+  // 取消 / 重拍 / 页面销毁都要把序号推掉
+  ok(/goManualInput\(\)\s*\{[\s\S]{0,120}_scanSeq/.test(js), '手动录入没有作废在途识别');
+  ok(/retake\(\)\s*\{[\s\S]{0,120}_scanSeq/.test(js), '重拍没有作废在途识别');
+  ok(/onUnload\(\)\s*\{[\s\S]{0,200}_scanSeq/.test(js), '页面销毁没有作废在途识别');
+});
+
+t('本页定时器统一登记、onUnload 一次清掉', () => {
+  ok(/_later\(fn, ms\)\s*\{/.test(js) && /_clearTimers\(\)\s*\{/.test(js), '缺定时器登记/清理');
+  ok(/onUnload\(\)\s*\{[\s\S]{0,200}_clearTimers\(\)/.test(js), 'onUnload 没清定时器');
+  // 允许裸 setTimeout 的只有两处：_later 自己（它就是登记器）与 _settle 里那个 await 用的延时。
+  // 其余一律走 _later —— 不在册的定时器 onUnload 清不掉。
+  const body = (name) => {
+    const m = new RegExp(name + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\n  \\},').exec(js);
+    return m ? m[0] : '';
+  };
+  const rest = [body('_later'), body('_settle')].reduce((s, b) => (b ? s.replace(b, '') : s), js);
+  ok(!/setTimeout\(/.test(rest), '页面里还有裸 setTimeout —— 登记不进 _timers 就清不掉');
+});
+
+t('保存失败的红抖动真的接上了（此前只有样式与 setData，wxml 里没有它）', () => {
+  ok(/saveErr/.test(wxmlClean), 'saveErr 没有出现在任何节点上 —— 抖动永远不播');
+  ok(/shake-err/.test(wxmlClean), 'wxss 里的 .shake-err 没被绑定');
+  ok(/\.btn-main\.shake-err\s*\{/.test(wxss), '样式名对不上（wxml 里绑的类在 wxss 里找不到）');
 });
 
 console.log('\n──────────────────────────────');

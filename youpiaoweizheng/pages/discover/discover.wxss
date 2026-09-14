@@ -2,7 +2,9 @@
    六主题变量化：颜色一律读 --*，写死的只有「品牌固定色」——
    那些色在六套主题下都不变（气泡五色 / 票根行四色 / 陆地三色），
    且都从 JS 下发（见 discover.js 的 BUBBLE、ROW_TINT），WXSS 里不该出现十六进制。 */
-.dc-page { min-height: 100vh; }
+/* 固定高（照 album 的 .tm-scroll 写法）：min-height 会被内容撑高、容器内部永远不滚，
+   下拉够不到 refresher —— 这一页的下拉刷新此前就是这么静默失效的（tests/pull_refresh.test.js） */
+.dc-page { min-height: 100vh; height: 100vh; }
 
 /* ═══ ① 标题行 ═══ */
 .dc-head {

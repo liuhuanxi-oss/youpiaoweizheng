@@ -17,6 +17,7 @@ const ads = require('../../utils/ads.js'); // 4.21.0：激励视频（流量主�
 const { iconSrc } = require('../../utils/icons.js');
 const deco = require('../../utils/deco.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
+const { safeDpr } = require('../../utils/canvas-deco.js'); // 画布倍率回夹（iOS 单边 4096 上限）
 
 const LS_QUOTA = 'sp_art_quota'; // { ym: 'YYYY-MM', used: n }
 const LS_TOTAL = 'sp_art_total'; // 藏品编号（全局第几幅，跳号不回收）
@@ -159,7 +160,7 @@ Page({
     } catch (e) { /* 查询失败停在 idle，用户可手动开始 */ }
   },
 
-  onUnload() { this._stopPoll(); },
+  onUnload() { this._dead = true; this._stopPoll(); },
 
   // ===== 基础设施 =====
 
@@ -415,6 +416,9 @@ Page({
     const tick = async () => {
       n += 1;
       const r = await this._call('artQuery', { ticketId });
+      // 页面已退出：这一发是退出前发出去的，回包后既不许 setData，也不许续下一轮
+      // （_stopPoll 只能清掉「还没发出去」的那一发，管不了在途的）
+      if (this._dead) return;
       if (r && r.ok && r.status === 'done' && r.fileID) {
         await this._showDone(r.fileID);
         return;
@@ -488,7 +492,9 @@ Page({
     });
     if (!node) throw new Error('canvas 不可用');
     const W = 1080, H = 1440;
-    const dpr = Math.min((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2, 3);
+    // dpr 写死 3 会让画布到 3240×4320 —— 越过 iOS 单边 4096 的上限，低端机上直接建不起来，
+    // 而开发者工具（dpr 2）永远看不见。回夹规则见 utils/canvas-deco.js 的 safeDpr
+    const dpr = safeDpr(W, H, ((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2));
     node.width = W * dpr;
     node.height = H * dpr;
     const ctx = node.getContext('2d');

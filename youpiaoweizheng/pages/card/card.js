@@ -29,7 +29,7 @@ const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外�
 // 与年报长图共用的画笔（齿边 / 圆角 / 折行 / 花枝 / 星点 / 水彩晕）。
 // ⚠️ 必须写成一整行：scripts/dev/preview-card.js 靠「行首 const … require(…);」整行删掉
 //    再自行注入这几支笔，拆行会剩下半截声明与注入的同名变量撞车。
-const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape } = require('../../utils/canvas-deco.js');
+const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape, safeDpr } = require('../../utils/canvas-deco.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const W = 600, H = 960;
@@ -970,7 +970,9 @@ Page({
         this._canvas = node;
         this._ctx = node.getContext('2d');
         if (this.data.canvasFail) this.setData({ canvasFail: false }); // 起死回生：提示自己收掉
-        const dpr = Math.min((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2, 3);
+        // 卡面 600×960 目前怎么放都到不了上限，走同一条回夹规则是为了**尺寸改大时不再出事**
+        // （年报表就是 1080×1920 × 3 = 5760，早越线了，见 utils/canvas-deco.js 的 safeDpr）
+        const dpr = safeDpr(W, H, ((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2));
         this._canvas.width = W * dpr;
         this._canvas.height = H * dpr;
         this._ctx.scale(dpr, dpr);
@@ -1042,8 +1044,26 @@ Page({
     });
   },
 
+  /**
+   * 等第一帧画出来（最多 3 秒）。
+   * 为什么必须有：进页面就秒点「保存到相册」时，照片还在 load，画布上什么都没有 ——
+   * 导出的是一张空白卡，而且用户拿到的是一张看着「成功」的废图。
+   * 已经有帧了就直接过（正常路径零等待）。
+   */
+  _waitFirstFrame() {
+    if (this._rendered) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      this._firstFrame = resolve;
+      setTimeout(() => { // 兜底：一直没画出来也放行，画布失败另有 canvasFail 提示兜着
+        if (this._firstFrame) { this._firstFrame(false); this._firstFrame = null; }
+      }, 3000);
+    });
+  },
+
   /** 用已就绪的素材渲染当前风格海报（img/qr 任一可为 null：落照片占位/不带码） */
   _render(img, qr) {
+    this._rendered = true;
+    if (this._firstFrame) { this._firstFrame(true); this._firstFrame = null; }
     this._qrDrawn = !!qr; // 本次实际是否带码（poster_save 埋点口径）
     (DRAWERS[this.data.style] || drawClassic)(this._ctx, this.data.t, this.data.quote, img, this._duo || null, this._same || 0, qr || null, this.data.signature || '');
   },
@@ -1154,6 +1174,7 @@ Page({
     this.setData({ exporting: true });
     wx.showLoading({ title: '生成图片中…', mask: true });
     try {
+      await this._waitFirstFrame(); // 别把还没画出来的空画布存进相册（见 _waitFirstFrame）
       const res = await wx.canvasToTempFilePath({ canvas: this._canvas });
       await new Promise((resolve, reject) => {
         wx.saveImageToPhotosAlbum({
@@ -1206,6 +1227,7 @@ Page({
     this.setData({ exporting: true });
     wx.showLoading({ title: '生成小红书竖图…', mask: true });
     try {
+      await this._waitFirstFrame(); // 同上：截图前先确认画布上真有东西
       const shot = await wx.canvasToTempFilePath({ canvas: this._canvas });
       const off = wx.createOffscreenCanvas({ type: '2d', width: XHS_W, height: XHS_H });
       const ctx = off.getContext('2d');
