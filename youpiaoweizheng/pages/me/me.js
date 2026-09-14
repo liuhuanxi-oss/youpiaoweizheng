@@ -350,6 +350,7 @@ Page({
       lifetime: pt && pt.lifetime
     })
       .map((b) => Object.assign(b, { src: iconSrc(b.icon, b.unlocked ? m.accent : m.text, b.unlocked ? 1 : 0.25) }));
+    this._trackBadgeUnlock(badges);
     this.setData({
       stats: {
         total: ts.length,
@@ -359,6 +360,24 @@ Page({
       badges,
       unlocked: badges.filter((b) => b.unlocked).length
     });
+  },
+
+  /**
+   * 7.4.0 C1 遗留：勋章点亮埋点（走 track 双通道，未在后台登记时本地缓冲区仍可对账）。
+   * 只报**这次新亮的**：本地存着上次见到的名单，与之相减就是要报的那几枚。
+   * 首次进页面（本地没有基准）只记基准、不上报 —— 否则老用户第一次打开会一次性
+   * 上报十几条「解锁」，看板上那一天凭空多出一堆假事件。
+   */
+  _trackBadgeUnlock(badges) {
+    try {
+      const ids = badges.filter((b) => b.unlocked).map((b) => b.id);
+      const prev = wx.getStorageSync('sp_badge_seen');
+      if (Array.isArray(prev)) {
+        ids.filter((id) => prev.indexOf(id) < 0)
+          .forEach((id) => track.track('badge_unlock', { id: id, total: ids.length }));
+      }
+      wx.setStorageSync('sp_badge_seen', ids);
+    } catch (e) { /* 埋点失败不影响页面 */ }
   },
 
   /** 服务端权威额度（云失败静默，保持本地默认；演示模式取不到 → 整块不渲染） */

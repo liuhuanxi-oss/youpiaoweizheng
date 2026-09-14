@@ -11,6 +11,7 @@ const { lookupCity } = require('./citydict.js'); // 4.18.0 P0：城市静态坐�
 const { geocodeVenue } = require('./geocode.js'); // 4.18.1：场馆级精化（配 LBS key 启用）
 const { generateArt } = require('./artRestyle.js'); // 4.19.0：票根博物志 AI 重绘（GCJ-02 城市中心）
 const pay = require('./pay.js'); // 4.20.0：虚拟支付（签名/code2Session/额度/错误码）
+const recall = require('./recall.js'); // 7.4.0 C2：订阅消息召回（次日提醒来收时光签）
 
 /** 规范化场次键：同一场演出 = 同一场馆 + 同一日期（同场偶遇的聚合键） */
 function makeEventKey(venue, date) {
@@ -970,6 +971,26 @@ async function profileClearAction(OPENID) {
   }
 }
 
+/**
+ * ops 密令校验：opsToken 必须等于 config.pay_secret.appKey（MP 后台虚拟支付页可查）。
+ * 四个运维入口（opsCleanup / opsAudit / goodsImgSetup / opsRecall）共用这一份 ——
+ * 同样的五句话抄四遍，迟早有一处被改错，而这是个**门禁**。
+ * @returns {Promise<{ok:true}|{ok:false,msg:string}>} —— 不 ok 时把 msg 原样返回给调用方
+ */
+async function checkOpsToken(db, event) {
+  let appKey = '';
+  try {
+    const res = await db.collection('config').doc('pay_secret').get();
+    appKey = String((res && res.data && res.data.appKey) || '');
+  } catch (e) {
+    return { ok: false, msg: 'config.pay_secret 读取失败（支付凭证未配置？）' };
+  }
+  if (!appKey || String(event.opsToken || '') !== appKey) {
+    return { ok: false, msg: 'opsToken 校验失败：需传 config.pay_secret 的 appKey 字段值' };
+  }
+  return { ok: true };
+}
+
 /** 4.20.4 上线前数据清理（opsCleanup）：清除测试期残留，让库回到「真实、干净」状态。
  *  清理范围：tickets 全部（测试票根）· couples 全部（测试绑定）
  *            prefs 按 type 清：pay_order（测试订单）/ auth_session（测试会话）/
@@ -982,16 +1003,8 @@ async function profileClearAction(OPENID) {
 async function opsCleanupAction(event) {
   const db = cloud.database();
   // 1. opsToken 校验（复用 pay_secret 的 appKey，不引入新凭据）
-  let appKey = '';
-  try {
-    const res = await db.collection('config').doc('pay_secret').get();
-    appKey = String((res && res.data && res.data.appKey) || '');
-  } catch (e) {
-    return { ok: false, msg: 'config.pay_secret 读取失败（支付凭证未配置？）' };
-  }
-  if (!appKey || String(event.opsToken || '') !== appKey) {
-    return { ok: false, msg: 'opsToken 校验失败：需传 config.pay_secret 的 appKey 字段值' };
-  }
+  const gate = await checkOpsToken(db, event);
+  if (!gate.ok) return gate;
   // 2. 逐范围清理（服务端 where().remove() 为批量删除）
   const report = {};
   const rm = async (name, where, label) => {
@@ -1024,18 +1037,15 @@ async function opsCleanupAction(event) {
  *  防滥用：同 opsCleanup（opsToken = config.pay_secret.appKey）。 */
 async function opsAuditAction(event) {
   const db = cloud.database();
-  let appKey = '';
   let offerIdMasked = '(空)';
+  const gate = await checkOpsToken(db, event);
+  if (!gate.ok) return gate;
   try {
     const res = await db.collection('config').doc('pay_secret').get();
-    appKey = String((res && res.data && res.data.appKey) || '');
     const oid = String((res && res.data && res.data.offerId) || '');
     if (oid) offerIdMasked = oid.slice(0, 4) + '****' + (oid.length > 8 ? oid.slice(-4) : '');
   } catch (e) {
-    return { ok: false, msg: 'config.pay_secret 读取失败（支付凭证未配置？）' };
-  }
-  if (!appKey || String(event.opsToken || '') !== appKey) {
-    return { ok: false, msg: 'opsToken 校验失败：需传 config.pay_secret 的 appKey 字段值' };
+    offerIdMasked = '(读取失败)';
   }
   const count = async (name, where) => {
     try {
@@ -1062,6 +1072,21 @@ async function opsAuditAction(event) {
   };
 }
 
+/** 7.4.0 C2 订阅消息召回（R5）：手动发一轮（opsToken 门禁，同 opsCleanup）。
+ *  两个用途：
+ *   ① **验收定时器到底建没建**——定时触发器是部署时由 config.json 生成的，
+ *      它没生成的话不会报错、不会留痕，只是永远不发。跑一次这个就能看出来。
+ *   ② 定时器哪天没跑起来（或要补发），不用等下一跳，手动跑一次即可。
+ *  触发：云开发控制台 → 云函数 saveTicket → 云端测试 → 事件
+ *        {"action":"opsRecall","opsToken":"<appKey>","dryRun":true}  ← dryRun 只列名单不发
+ *  幂等：发过的会置 status='sent'，重复执行不会重发。 */
+async function recallOpsAction(event) {
+  const db = cloud.database();
+  const gate = await checkOpsToken(db, event);
+  if (!gate.ok) return gate;
+  return recall.run(db, cloud, { dryRun: !!event.dryRun });
+}
+
 /**
  * 4.20.0 一次性管理 action：把虚拟支付道具图上传到云存储并返回公网下载直链。
  * 用途：/xpay/start_upload_goods 的 item_url（必填道具图片公网地址）。
@@ -1075,11 +1100,8 @@ async function goodsImgSetupAction(event) {
   try {
     // opsToken 校验（防滥用：该 action 不面向前端，只有持 appKey 的服务器侧调用应通过）
     const db = cloud.database();
-    const cfgRes = await db.collection('config').doc('pay_secret').get();
-    const appKey = String((cfgRes && cfgRes.data && cfgRes.data.appKey) || '');
-    if (!appKey || String(event.opsToken || '') !== appKey) {
-      return { ok: false, msg: 'opsToken 校验失败' };
-    }
+    const gate = await checkOpsToken(db, event);
+    if (!gate.ok) return gate;
     let fileID = FIXED_FILEID;
     if (event.imgBase64) {
       const up = await cloud.uploadFile({
@@ -1802,6 +1824,18 @@ async function eventStatsAction(event) {
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  // —— 7.4.0 C2 定时触发器（召回）——
+  // 腾讯云定时触发器的入参是 {Type:'Timer', TriggerName, Time}，没有用户上下文。
+  // 必须在这里拦下：掉进下面的入库主流程会真去写 tickets，凭空多一条脏数据（而且云函数
+  // 不会报错，只是每天早上多一张空票根）。与 xpay 同一道门禁：能取到 OPENID
+  // 就说明是小程序端伪造的调用，回 ok:false 拒掉。
+  if (String(event.Type) === 'Timer') {
+    if (OPENID) {
+      console.warn('[recall] 拒绝客户端直调定时事件');
+      return { ok: false, msg: 'rejected(client-origin)' };
+    }
+    return recall.run(cloud.database(), cloud, {});
+  }
   // —— 4.20.0 虚拟支付消息推送（Event 分发，无 action 字段）——
   // 所有 xpay_* 事件必须在此消化（回 {ErrCode:0} 或 iOS 问询应答体）：
   // 掉进入库主流程会返回 {ok:false,...}，微信视为应答失败 → 最多重推 15 次
@@ -1936,6 +1970,16 @@ exports.main = async (event) => {
   // 7.4.0 B 段 R2 兑换（花分）：100 分 = 1 次 AI 重绘，一天 1 次，幂等
   if (event.action === 'pointsRedeem') {
     return pointsRedeemAction(event, OPENID);
+  }
+  // 7.4.0 C2 订阅消息召回：端上签到授权成功后挂一条次日提醒（真正发送在定时触发器里）
+  if (event.action === 'recallSave') {
+    const rdb = cloud.database();
+    await ensureCollection(rdb, 'prefs');
+    return recall.save(rdb, OPENID, event);
+  }
+  // 7.4.0 C2：手动发一轮召回（运维入口，opsToken 门禁，前端不调用）
+  if (event.action === 'opsRecall') {
+    return recallOpsAction(event);
   }
   if (event.action === 'eventStats') {
     return eventStatsAction(event);

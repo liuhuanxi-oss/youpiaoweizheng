@@ -7,6 +7,7 @@
 // 演示模式（USE_CLOUD=false）：一律返回 null，页面整块不渲染，不留点了没反应的假入口。
 // ============================================================
 const { USE_CLOUD } = require('./env.js');
+const subscribe = require('./subscribe.js'); // 7.4.0 C2：签到时顺带换一条次日召回（一次性订阅）
 
 const POINTS_PER_SIGN = 5; // 与云函数 SIGN_BASE_POINTS 同源：这里只用于「说」，账在服务端
 
@@ -33,11 +34,18 @@ async function status() {
  */
 async function checkIn() {
   if (!USE_CLOUD) return { ok: false, msg: '演示模式不支持签到' };
+  // 订阅授权必须在这**一次点击**里同步发起，所以它是本函数的第一句（此刻手势还没过期）。
+  // 挪到 await 之后就会被微信判为「非用户点击」而静默失败 —— 弹窗永不出现，还查不出原因。
+  const subP = subscribe.askIfDue();
+  let r;
   try {
-    return await call({ action: 'dailySign' });
+    r = await call({ action: 'dailySign' });
   } catch (e) {
     return { ok: false, msg: '签到失败，请再点一次' };
   }
+  // 不 await：签到结果该立刻显示，多等一次云函数只会让提示晚一步
+  subscribe.afterSign(subP, r);
+  return r;
 }
 
 /**

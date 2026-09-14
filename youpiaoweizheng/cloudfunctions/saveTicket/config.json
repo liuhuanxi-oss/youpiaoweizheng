@@ -2,7 +2,15 @@
   "permissions": {
     "openapi": [
       "security.msgSecCheck",
-      "wxacode.getUnlimited"
+      "wxacode.getUnlimited",
+      "subscribeMessage.send"
     ]
-  }
+  },
+  "triggers": [
+    {
+      "name": "recallTick",
+      "type": "timer",
+      "config": "0 0 * * * * *"
+    }
+  ]
 }

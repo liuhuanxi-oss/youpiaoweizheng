@@ -71,11 +71,11 @@
 
 ### 2.3 `prefs`（账本集合：一个 `type` 一类文档）
 
-全项目引用最多的集合，新人最容易漏看。8 种文档：
+全项目引用最多的集合，新人最容易漏看。14 种文档：
 
 | `type` | 存什么 | 关键字段 |
 |---|---|---|
-| `art_quota` | 重绘额度（每人一份，服务端权威） | `ym`（当月）、`freeUsed`、`paid` |
+| `art_quota` | 重绘额度（每人一份，服务端权威） | `ym`（当月）、`freeUsed`、`paid`、`bonus`（连签/兑换送的那部分，只加不减） |
 | `pay_order` | 订单与对账记录 | `outTradeNo`、`productId`、`priceFen`、`status`、`deliveredAt` |
 | `art_job` | 重绘任务 | `ticketId`、`status`、`fileID`、`msg` |
 | `auth_session` | 登录会话（支付签名需要 session_key） | `sessionKey`、`updatedAt`（7 天新鲜度） |
@@ -83,6 +83,12 @@
 | `ad_reward` | 激励视频当日计数 | `ymd`、`count`（每日上限 3） |
 | `groupOrder` | 分组排序序 | `labels` |
 | `wxacode_poster` | 海报小程序码缓存 | `fileID`（全局一份，不带 `_openid`） |
+| `wxacode_ref` | 带邀请短码的码缓存 | `ref`、`fileID` |
+| `ref_code` | 我的邀请短码 | `code` |
+| `ref_link` | 邀请归因（谁邀请了谁） | `ref`、`invitee`、`settled` |
+| `daily_sign` | 每日时光签（7.4.0 A 段） | `ymd`、`streak`、`best`、`total` —— 判定与发奖在服务端，按北京时间换天 |
+| `points` | 积分账本（7.4.0 B 段） | `balance`、`lifetime`（累计获得，勋章看它）、`earn{ymd,n}`（日上限计数器） |
+| `recall` | 订阅消息召回（7.4.0 C2） | `tmplId`、`streak`、`sendAt`、`status`（`pending`/`sent`/`dead`）、`tries`、`err` |
 
 ### 2.4 `config`（支付凭证）
 
@@ -97,7 +103,7 @@
 
 ---
 
-## 三、客户端模块契约（`utils/`，20 个）
+## 三、客户端模块契约（`utils/`，下表 21 个模块）
 
 按「被页面直接 require 的次数」排序，括号内为引用页数：
 
@@ -121,7 +127,8 @@
 | `ads.js` (2) | `REWARDED_ID`、`BANNER_DETAIL_ID`、`hasRewarded`、`hasBanner`、`showRewarded` | 广告位 ID 为空时 UI 整体隐藏；`showRewarded` 不 throw | — |
 | `weather.js` (1) | `weatherText(w)`、`weatherHint(w)` | WMO 码表约 28 项；体感分界 5 / 14 / 30 ℃；`w` 为空一律返回空串（不造假） | — |
 | `geo.js` (1) | `haversine(a,b)`、`totalKmOf(sortedTickets)` | 地球半径 6371 km | — |
-| `badges.js` (1) | `computeBadges(ts, coupleInfo, shareCount, mapVisited, inviteSent)` | 13 枚勋章阈值见 §6.5 | mock |
+| `badges.js` (1) | `computeBadges(ts, coupleInfo, shareCount, mapVisited, inviteSent, server)` | 16 枚勋章阈值见 §6.5；后三枚读服务端，取不到时只说门槛、不编进度 | mock |
+| `subscribe.js` (经 sign) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` | 一次性订阅：授权→次日一条，没有「开关」；模板 ID 为空则**一次都不请求**；`askIfDue` 必须在点击回调里同步发起 | env |
 | `auth.js` (经 pay) | `ensureSession(force)`、`isFresh`、`LS_AUTH_TIME`、`FRESH_MS` | key `sp_auth_time`；24h 新鲜度；模块内并发去重 | env |
 
 ### 页面 → 数据层的最小约定
@@ -141,8 +148,11 @@
 ### 4.1 `saveTicket` 的入口分发顺序
 
 ```
+0) event.Type === 'Timer'          → 定时触发器：订阅消息召回（7.4.0 C2）。**必须排在入库之前**——
+                                     掉进主流程会真去写 tickets（每天早上一张空票根，且不报错）；
+                                     带 OPENID 的调用一律拒（小程序端可伪造 Type:Timer）
 1) event.Event 以 xpay_ 开头        → 支付推送分支（见 4.3）
-2) event.action === 'xxx'          → 27 个 action 分支
+2) event.action === 'xxx'          → 34 个 action 分支
 3) 其余                            → 票根入库主流程
 ```
 
@@ -171,7 +181,8 @@
 | `bind` | `mode: query\|create\|join\|unbind`，`name`（截 12 字），`code` | 双人绑定；`create` 复用未绑定的旧码 |
 | `duoStats` | `full`（bool） | 双人统计（合并票数 / 城市 / 一起场次） |
 | `eventStats` | `eventKey` | 同场收藏人数（匿名聚合；opt-out 用户不入列） |
-| `goodsImgSetup` / `opsCleanup` / `opsAudit` | `opsToken`（= AppKey 校验），`imgBase64` | 运维专用：道具图上传 / 上线前清理 / 只读巡检 |
+| `recallSave` | `tmplId`, `streak`（截断夹紧） | 写 `prefs.recall`（一人一条，`status='pending'`、`sendAt`=次日 09:00 北京） |
+| `goodsImgSetup` / `opsCleanup` / `opsAudit` / `opsRecall` | `opsToken`（= AppKey 校验，四个入口共用 `checkOpsToken`），`imgBase64` / `dryRun` | 运维专用：道具图上传 / 上线前清理 / 只读巡检 / 手动发一轮召回（`dryRun:true` 只列名单不发） |
 
 ### 4.3 支付推送分支（微信服务端 → 云函数）
 
@@ -284,9 +295,26 @@ eventKey = md5(venue + '|' + date)      // 服务端 makeEventKey
 
 `haversine` 大圆距离（R=6371 km），按时间排序后相邻两点累加；仅双人报告页使用。
 
-### 6.5 勋章判定阈值（`utils/badges.js`，13 枚）
+### 6.5 勋章判定阈值（`utils/badges.js`，16 枚）
 
-演出 10 场 / 电影 100 部 / 城市 10 座 / 交通 10 次 / 同乐队 3 场 / 观演 5 城 / 分享 10 张 / **进过地图且点亮 3 城**（`sp_map_visited`，v7.0 起由 `pages/discover` 打标）/ 跨年（12-31 或 01-01）/ 深夜场（23:00–05:59）等。
+演出 10 场 / 电影 100 部 / 城市 10 座 / 交通 10 次 / 同乐队 3 场 / 观演 5 城 / 分享 10 张（**只认真分享**，保存到相册不算）/ **进过地图且点亮 3 城**（`sp_map_visited`，v7.0 起由 `pages/discover` 打标）/ 跨年（12-31 或 01-01）/ 深夜场（23:00–05:59）等。
+
+后三枚（连签 3 天 / 连签 7 天 / 累计积分 500）判定读**服务端**（`dailySign` + `pointsGet`）：
+签到与积分本就由云函数结算，端上算等于「改一下手机时间就能点亮」。两个口径容易写反：
+① 取不到服务端数据时**只说门槛、不编进度数字**（假的进度比没有进度更伤人）；
+② 积分看**累计获得**（`lifetime`）而不是余额——攒够 500 换掉 5 次重绘后余额归零，按余额判定
+勋章会当场熄灭，已经得到的东西不该因为消费而失去。
+
+### 6.5.1 订阅消息召回（`utils/subscribe.js` + `saveTicket/recall.js`）
+
+一次性订阅：**一次授权只能发一条**，所以没有「每日提醒」开关可做。真实闭环是
+「签到时授权 → 次日 09:00 发一条 → 用户回来再授权」。三处细节错了就是静默失效：
+
+- `askIfDue()` 必须在**点击回调里同步发起**（`utils/sign.js` 的 `checkIn` 第一句）——
+  放到 `await` 之后会被判为非用户点击而 fail，且用户看不到任何报错；
+- 端上被拒后 30 天内不再问，同一天只问一次；
+- 云端只在北京时间 07:00–22:00 发送（定时器半夜跑起来也不能吵人），窗口外**留着**不是丢弃；
+  43101（无授权额度）/ 47003（模板字段对不上）是终局错误，直接结案不重试。
 
 ### 6.6 骨架屏时序（`utils/skeleton.js`）
 
@@ -313,6 +341,9 @@ eventKey = md5(venue + '|' + date)      // 服务端 makeEventKey
 | 卡片取票失败 | 空态 + 出路（去扫描 / 返回） | 不复用第一张票冒充 |
 | 图片加载失败 | 占位图 / 跳过该张 | 不出现破图 |
 | 广告位未配置 | 相关 UI 整体隐藏 | 不出现空按钮 |
+| 订阅模板 ID 未配置 | 授权弹窗与召回整条链不启动（云端也无记录） | 无感，签到照常 |
+| 订阅授权被拒 / 弹窗失败 | 不挂提醒；被拒后 30 天不再问（环境失败不进静默期） | 无感（签到奖励照发） |
+| 召回消息发送失败 | 网络类留到下一整点重试（≤3 次）；43101/47003 结案留痕 | 无感（最多少一条提醒，不发第二个错） |
 
 ---
 
@@ -326,7 +357,8 @@ eventKey = md5(venue + '|' + date)      // 服务端 makeEventKey
 | 额度 | 服务端权威记账，客户端只读视图；客户端上报的数量、价格一律不采信 |
 | 密钥 | 小程序 AppSecret、支付 appKey/appSecret、上传私钥均在 `.env` / `config` 集合，**不入仓库**；`config` 集合权限「仅管理端可读写」 |
 | 隐私 | 不申请定位权限（城市来自票面识别）；`__usePrivacyCheck__` 开启；摄像头 / 相册按需触发 + 官方隐私弹窗 |
-| 运维接口 | `opsCleanup` / `opsAudit` / `goodsImgSetup` 需 `opsToken`（与服务端 AppKey 比对） |
+| 运维接口 | `opsCleanup` / `opsAudit` / `goodsImgSetup` / `opsRecall` 需 `opsToken`（与服务端 AppKey 比对，四个入口共用 `checkOpsToken`） |
+| 订阅消息 | **只在用户主动签到时请求一次授权**，不在启动/进页面时弹（合规红线）；模板 ID 未配置时一次都不请求；发送只在服务端（端上不能指定发给谁） |
 
 ---
 
@@ -352,6 +384,7 @@ eventKey = md5(venue + '|' + date)      // 服务端 makeEventKey
 |---|---|
 | 票根字段 | §2.1 表 + `saveTicket` 入库段 + `store.js` 归一逻辑 + 页面读字段处（`_id` / `id` 别写反） |
 | 新增云能力 | 加 action（不新建函数目录）+ `scripts/ci/deploy-fns.js` 部署 + §4.2 表 |
+| 订阅消息 | 端上模板 ID（`utils/subscribe.js`）+ 云端字段名（`recall.js` 的 `dataOf`，**必须与 MP 后台模板逐字一致**，否则 47003）+ `config.json` 的 `subscribeMessage.send` 权限与 timer 触发器 + §6.5.1 |
 | 额度 / 价格 / 订单 | `pay.js` 四件套 + §5.1 状态机 + §4.3 三道闸（**动钱，先人工确认**） |
 | 坐标 / 地图 | §6.2 三级来源 + `mapArt.js`（水彩与真地图同源，两处都要动）+ `tests/discover_map.test.js` |
 | 主题令牌 | `app.wxss` 的 `.theme-*` 段 + `theme.js` 元数据 + `custom-tab-bar` **自己的 wxss**（组件是独立渲染树） |
