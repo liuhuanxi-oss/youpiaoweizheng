@@ -227,7 +227,12 @@ t('切换按钮两个选项都接了 setView，且点击会真的换 view', () =
   ['art', 'real'].forEach((v) => {
     ok(new RegExp('data-view="' + v + '"[^>]*bindtap="setView"').test(wxmlClean), '缺选项：' + v);
   });
-  ok(/setView\(e\)[\s\S]{0,220}setData\(\{\s*view/.test(js), 'setView 没写回 view');
+  // 7.4.0：setView 改成两段式（淡出 → 换 → 淡回），函数里多了一段讲原生组件的注释。
+  // 「往后 220 个字符内必须有 setData({view」这种写法一遇注释变长就误报，
+  // 改成先把函数体切出来再找 —— 断言的意思没变，只是不再数字符。
+  const body = /setView\(e\)\s*\{([\s\S]*?)\n  \},/.exec(js);
+  ok(body, '找不到 setView 函数体');
+  ok(/setData\(\{\s*view/.test(body[1]), 'setView 没写回 view');
 });
 t('点图钉走的是 cities[markerId]，与气泡共用同一个面板', () => {
   ok(/onMarkerTap\(e\)[\s\S]{0,200}cities\[e\.detail\.markerId\]/.test(js), '没按 markerId 找回城市');

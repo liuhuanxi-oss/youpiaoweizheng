@@ -246,6 +246,30 @@ t('主题切换后会重编图形', () => {
   ok(/buildArt\(\)\s*\{/.test(js), 'buildArt 不见了');
 });
 
+console.log('\n【十、AI 四步的进度：第四步「入档」必须亮得起来】');
+t('进度真的有 90 以上的取值（阈值是 90，够不到就永远只亮三步）', () => {
+  const vals = [...js.matchAll(/_setStatus\([^)]*?,\s*(\d+)/g)].map((m) => Number(m[1]));
+  ok(vals.length >= 4, '只扫到 ' + vals.length + ' 处进度值，正则是不是失效了');
+  const max = Math.max.apply(null, vals);
+  ok(max >= 90, '所有 _setStatus 的进度最大只有 ' + max + '，而第四步的门槛是 90 —— ' +
+    '「入档」一次也点不亮，用户看到的是「四步流程只走三步」，像卡住了');
+});
+
+t('推满进度后停一拍再交表单（推满就切页 = 那一拍用户根本看不见）', () => {
+  const settle = /_settle\(\)\s*\{([\s\S]*?)\n  \},/.exec(js);
+  ok(settle, '找不到 _settle');
+  ok(/_setStatus\([^,]+,\s*100\b/.test(settle[1]), '收尾没有把进度推满');
+  ok(/setTimeout|Promise/.test(settle[1]), '推满之后没有停一拍就交出去了');
+  const n = (js.match(/await this\._settle\(\)/g) || []).length;
+  ok(n >= 2, '只有 ' + n + ' 条识别路径做了收尾（演示模式与云模式各一条）');
+  ok(/await this\._settle\(\);\s*this\.applyDraft/.test(js),
+    '收尾没有排在 applyDraft 之前 —— 先切页再推满，等于没推');
+});
+
+t('进度条真的画出来了（prog 一直在算，之前从不渲染）', () => {
+  ok(/\{\{prog\}\}/.test(wxmlClean), 'prog 没有绑定到任何节点上');
+});
+
 console.log('\n──────────────────────────────');
 console.log('结果：' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

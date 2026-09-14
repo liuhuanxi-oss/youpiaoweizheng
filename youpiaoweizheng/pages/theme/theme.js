@@ -14,6 +14,7 @@
 const themeUtil = require('../../utils/theme.js');
 const deco = require('../../utils/deco.js');
 const { iconSrc } = require('../../utils/icons.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 /** 把主题元数据 + 编译好的图形 data-uri 合成卡片数组（wxml 只认这个） */
 function buildCards() {
@@ -56,7 +57,7 @@ Page({
   onPick(e) {
     const k = e.currentTarget.dataset.key;
     if (!k || k === this.data.preview) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({ preview: k });
   },
 
@@ -67,7 +68,7 @@ Page({
       wx.showToast({ title: '主题切换失败', icon: 'none' });
       return;
     }
-    wx.vibrateShort({ type: 'medium' });
+    haptics.confirm();
     themeUtil.apply(this);
     const meta = themeUtil.getThemeMeta(k);
     wx.showToast({ title: `已应用「${meta.name}」`, icon: 'none', duration: 1200 });
@@ -81,7 +82,7 @@ Page({
   /** 还原为已落库主题（放弃本次预览） */
   onReset() {
     const cur = themeUtil.getTheme();
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({ preview: cur });
   }
 });

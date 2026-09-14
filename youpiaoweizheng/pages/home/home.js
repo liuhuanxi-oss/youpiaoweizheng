@@ -20,6 +20,7 @@ const { iconSrc } = require('../../utils/icons.js');
 const share = require('../../utils/share.js'); // 7.3.0 A6：长按菜单里的「分享」要转发这一张
 const sign = require('../../utils/sign.js');   // 7.4.0 R1：今日时光签（端上只读，判定在服务端）
 const memory = require('../../utils/memory.js'); // 7.4.0 R4：那年今天（没命中就不显示，不造假）
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 // —— 尺寸（rpx）：WXSS 里写死的宽高必须与这里一致 ——
 const CARD_W = 310, CARD_H = 240;   // 一张票根卡（(750 - 48×2 - 34) / 2 的列宽）
@@ -46,6 +47,8 @@ const GUIDE = [
 const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const FAV_KEY = 'fav_ids';
 const WHITE = '#FFF8F2';   // 压在玫瑰实底上的白
+/** 滚过这么多（px）就认为品牌行已经吸顶。给一点点余量，免得上下一抖就闪边框 */
+const HEAD_STICK_AT = 8;
 
 /** 邮戳两行：城市 / MON YYYY（稿样「PARIS · 14 · JUN 1956」，这里只留城市与年月，见文件头） */
 function stampParts(t) {
@@ -64,6 +67,10 @@ Page({
     theme: 'paper',
     // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
     enter: true,
+    // 品牌行吸顶态：滚过一点才浮出实底与描边（.is-stuck）。滚回顶部就收回去
+    stuck: false,
+    // 列表淡入开关：骨架替成真数据、切分类时重播一次（节点没重建，动画不会自己重来）
+    listIn: true,
     loading: true,
     filters: [],
     // 空 = 不过滤（「全部」，四个胶囊都不亮）。原为 'show'（默认亮着「演出」）：
@@ -90,6 +97,10 @@ Page({
 
   _all: [],
   _ink: '',            // 上次编译图形用的正文色，主题没变就不重编
+  // 已经「就位」的照片（id → true）。挂在页面上而不是挂在每条数据里：
+  // 列表每次重建（换分类 / 下拉刷新）都会造一批新对象，而节点是按 id 复用的 ——
+  // src 没变的那张图不会再触发 bindload，标记一丢，照片就永久停在透明态。
+  _ready: {},
 
   onShow() {
     themeUtil.apply(this);
@@ -102,6 +113,14 @@ Page({
 
   onPullDownRefresh() {
     this.refresh().finally(() => wx.stopPullDownRefresh());
+  },
+
+  /** 品牌行吸顶：只在「跨过阈值」那一次 setData。
+   *  每帧都推会让滚动掉帧；这里绝大多数帧只是一次数字比较，开销可以忽略。 */
+  onPageScroll(e) {
+    const stuck = (e.scrollTop || 0) > HEAD_STICK_AT;
+    if (stuck === this.data.stuck) return;
+    this.setData({ stuck });
   },
 
   /** 拉全量票根 → 逐卡预处理（日期 / 邮戳 / 收藏态） → 按当前分类分两列 */
@@ -124,7 +143,8 @@ Page({
         // 旧版这里读写的是 t._id，演示数据里根本没有这个字段 —— 收藏心点了不会亮。
         dateText: String(t.date || '').replace(/-/g, '.'),
         ico: iconSrc(TYPE_ICONS[t.type] || 'ticket', this._ink || '#6B5B50', 0.4, 1.5),
-        fav: favIds.indexOf(t.id) >= 0
+        fav: favIds.indexOf(t.id) >= 0,
+        loaded: !!this._ready[t.id]
       }, stampParts(t)));
       // 每次都写（含 null）：上一次亮过横幅、这次恢复正常时必须能收回去
       // 那年今天跟着列表一起算（没命中就是 null，整行不显示 —— 不编一句假的回忆）
@@ -155,7 +175,7 @@ Page({
     if (this.data.signing) return;
     if (this.data.sign && this.data.sign.signed) return; // 已经收过就别再发一次请求
     this.setData({ signing: true });
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     const r = await sign.checkIn();
     this.setData({ signing: false });
     if (!r || !r.ok) {
@@ -173,7 +193,7 @@ Page({
   goMemory() {
     const m = this.data.mem;
     if (!m || !m.id) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     track.track('memory_open', { years: m.years || 0 });
     wx.navigateTo({ url: `/pages/detail/detail?id=${m.id}` });
   },
@@ -199,10 +219,19 @@ Page({
     // 否则点进一个空分类就再也回不到全部票根了
     const next = key === this.data.active ? '' : key;
     if (next === this.data.active) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     track.track('home_filter', { key: next });
     this.setData({ active: next });
     this.applyFilter();
+    this._replayListIn();
+  },
+
+  /** 重播列表淡入：节点还在（只是换了数据），动画不会自己重来 ——
+   *  先摘类名、隔一次渲染再挂回（与 utils/enter.js 同一套路），否则这里是「唰」地一下换掉。 */
+  _replayListIn() {
+    clearTimeout(this._tIn);
+    this.setData({ listIn: false });
+    this._tIn = setTimeout(() => this.setData({ listIn: true }), 30);
   },
 
   /** 收藏心：本地 storage（fav_ids），云端字段后续接入 */
@@ -216,10 +245,32 @@ Page({
     const i = favIds.indexOf(id);
     if (i >= 0) favIds.splice(i, 1); else favIds.push(id);
     try { wx.setStorageSync(FAV_KEY, favIds); } catch (e) { /* storage 异常静默 */ }
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     const on = favIds.indexOf(id) >= 0;
-    const upd = (col) => col.map((t) => (t.id === id ? Object.assign({}, t, { fav: on }) : t));
-    this.setData({ colA: upd(this.data.colA), colB: upd(this.data.colB) });
+    // 只把变的那一张推过去。整列重传一次等于把几十张卡（连 data-uri 底图）全量过一遍，
+    // 票多的用户每点一次心都卡一下 —— 而这只值一个布尔值。
+    const patch = {};
+    const ia = this.data.colA.findIndex((t) => t.id === id);
+    const ib = this.data.colB.findIndex((t) => t.id === id);
+    if (ia >= 0) patch['colA[' + ia + '].fav'] = on;
+    if (ib >= 0) patch['colB[' + ib + '].fav'] = on;
+    if (ia < 0 && ib < 0) return;   // 两列都没这张（列表刚被筛掉）：不推空数据
+    this.setData(patch);
+  },
+
+  /** 照片就位（解码完成 / 加载失败都算）：淡入落位。失败也放行，
+   *  否则那张卡的照片会永远停在透明态 —— 比加载失败本身更像坏了 */
+  onShotReady(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    this._ready[id] = true;
+    const patch = {};
+    const ia = this.data.colA.findIndex((t) => t.id === id);
+    const ib = this.data.colB.findIndex((t) => t.id === id);
+    if (ia >= 0 && !this.data.colA[ia].loaded) patch['colA[' + ia + '].loaded'] = true;
+    if (ib >= 0 && !this.data.colB[ib].loaded) patch['colB[' + ib + '].loaded'] = true;
+    if (!Object.keys(patch).length) return;
+    this.setData(patch);
   },
 
   /** 主题切换 / 换页回来都要重编一遍图形（data-uri 里的颜色是编译时写死的） */
@@ -280,7 +331,7 @@ Page({
     wx.switchTab({ url: '/pages/me/me' });
   },
   goScan() {
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     track.track('home_cta_scan', {});
     wx.navigateTo({ url: '/pages/scan/scan' });
   },
@@ -314,7 +365,7 @@ Page({
   onCardLong(e) {
     const d = e.currentTarget.dataset;
     if (!d.id) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     track.track('menu_long', { from: 'home' });
     this.setData({ menu: true, menuId: d.id, menuTitle: d.title || '' });
   },
@@ -369,7 +420,7 @@ Page({
       track.track('guide_scan', {});
       return this.goScan();                            // 最后一步就是去拍那张
     }
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this._guideSet(this.data.guide + 1);
   },
 

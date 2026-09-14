@@ -15,6 +15,7 @@ const deco = require('../../utils/deco.js');
 const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
 const invite = require('../../utils/invite.js'); // 7.3.0 R6：邀请奖励结算
 const { TYPE_TEXT } = require('../../utils/mock.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const TYPE_KEYS = ['show', 'movie', 'traffic'];
 const TYPE_LABELS = TYPE_KEYS.map((k) => TYPE_TEXT[k]);
@@ -35,6 +36,9 @@ const STEPS = [
 
 /** 压在水彩实底上的字/图标色：恒白，品牌常量，故不走主题变量 */
 const ON_TINT = '#FFFFFF';
+
+/** 「票面已入档」这一拍停多久（ms）。见 _settle：太短用户看不见，太长就是白等 */
+const SETTLE_MS = 420;
 
 // 演示模式回填的示例草稿（与云函数 parser 输出同结构，实际数据以用户修改为准）
 const DEMO_DRAFT = {
@@ -155,6 +159,15 @@ Page({
     this.setData({ statusText: text, prog: p, progText: cap || '', step });
   },
 
+  /** 收尾一拍：进度推满、第四步「入档」点亮，停一下再交给表单。
+   *  为什么非要有这一拍：识别流程的最后一个状态是「AI 正在理解票面」85%，
+   *  而第四步的门槛是 90 —— 没有它，四步永远只亮三步，用户看到的是「卡住了」。
+   *  推满之后也不能立刻切页：那样进度条刚到头界面就没了，这一拍同样白给。 */
+  _settle() {
+    this._setStatus('票面已入档', 100, '解析完成');
+    return new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
+  },
+
   // ============================================================
   // 6.4.0 品牌稿第三屏：相机取景（快门/相册/翻转/闪光/帮助/降级）
   // ============================================================
@@ -162,7 +175,7 @@ Page({
   /** 快门（灰玫粉大圆）：takePhoto → 与 chooseMedia 同一条识别链路 */
   takeShutter() {
     if (this.data.mode !== 'camera' || this.data.camErr) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     const ctx = wx.createCameraContext();
     ctx.takePhoto({
       quality: 'high',
@@ -182,13 +195,13 @@ Page({
 
   /** 翻转摄像头 */
   flipCamera() {
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({ devicePos: this.data.devicePos === 'back' ? 'front' : 'back' });
   },
 
   /** 闪光灯开关（稿内 ⚡） */
   toggleFlash() {
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({ flash: this.data.flash === 'on' ? 'off' : 'on' });
   },
 
@@ -284,7 +297,7 @@ Page({
     this._setStatus('演示模式 · 模拟识别中…', 20, '正在上传照片');
     setTimeout(() => this._setStatus('演示模式 · 模拟识别中…', 55, 'OCR 认字中'), 650);
     setTimeout(() => this._setStatus('演示模式 · 模拟识别中…', 85, 'AI 理解票面信息'), 1350);
-    setTimeout(() => this.applyDraft({ ...DEMO_DRAFT }, true), 2200);
+    setTimeout(async () => { await this._settle(); this.applyDraft({ ...DEMO_DRAFT }, true); }, 2200);
   },
 
   /** 云模式：上传云存储 → 调识别云函数 */
@@ -317,6 +330,7 @@ Page({
       // M3 升级：OCR 认字 → 大模型理解成结构化草稿（失败自动兜底规则引擎）
       const { draft, byAI } = await ai.parseDraftByAI(r.lines || [], r.draft || {});
       this.setData({ imgFileID: up.fileID });
+      await this._settle();
       this.applyDraft(draft, false, byAI);
     } catch (e) {
       // 识别失败 → 空表单手填兜底，不让用户白拍一趟
@@ -421,7 +435,7 @@ Page({
     const key = e.currentTarget.dataset.key;
     if (!TYPE_KEYS.includes(key)) return;
     this.setData({ 'form.type': key, typeText: TYPE_TEXT[key], typeSheet: false });
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
   },
 
   // —— 第三步：保存入库 ——
@@ -447,7 +461,7 @@ Page({
       // 这里只是触发器，失败静默 —— 下次启动 invite.boot 还会补一次）
       invite.settle();
       wx.hideLoading();
-      wx.vibrateShort({ type: 'medium' }); // M4.5：落章瞬间（关键操作）
+      haptics.confirm(); // M4.5：落章瞬间（关键操作）
       // v6.6.0 动效4：对勾圆环描边+粒子（Canvas 2D，400ms）→ 200ms 驻留 → 浮层上移淡出 200ms → 返回
       // A2：同期叠「撕票」（存根留在原地、副券撕下飞进册子，见 scan.wxss 的 .tear-*），时间轴不改
       this.setData({ stamped: true, liftOff: false });
@@ -459,7 +473,7 @@ Page({
       // v6.6.0 动效4：失败不播成功动画——保存按钮红色抖动一次（保留原弹窗说明原因）
       this.setData({ saveErr: true });
       setTimeout(() => this.setData({ saveErr: false }), 380);
-      wx.vibrateShort({ type: 'heavy' });
+      haptics.warn();
       wx.showModal({
         title: '保存失败',
         content: String(e.message || e),

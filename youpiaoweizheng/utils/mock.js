@@ -174,7 +174,13 @@ const badges = [
   { id: 'b11', icon: 'share', name: '时光信使', desc: '分享 10 张卡片', unlocked: false },
   { id: 'b12', icon: 'compass', name: '足迹地图', desc: '点亮 3 座城市', unlocked: false },
   // 4.17.0 M2 拉新勋章：邀请是双人情谊的自然延伸，不诱导（分享本身已是行为门槛）
-  { id: 'b13', icon: 'heart', name: '时光同谋', desc: '把双人空间分享给 TA', unlocked: false }
+  { id: 'b13', icon: 'heart', name: '时光同谋', desc: '把双人空间分享给 TA', unlocked: false },
+  // 7.4.0 C 段 R3：连签与积分三枚。判定数据来自**服务端**（签到与积分都由服务端结算，
+  // 端上算等于「改一下手机时间就能点亮」），所以这三枚的 desc 在云拿不到时会换成
+  // 只说门槛、不说进度的写法（见 utils/badges.js）。
+  { id: 'b14', icon: 'calendar', name: '三日之约', desc: '连续签到 3 天', unlocked: false },
+  { id: 'b15', icon: 'clock', name: '七日不辍', desc: '连续签到 7 天', unlocked: false },
+  { id: 'b16', icon: 'wallet', name: '聚沙成塔', desc: '累计获得 500 积分', unlocked: false }
 ];
 
 // M4.9.6：演示票 id 集合（云模式下兜底展示的是这批票，

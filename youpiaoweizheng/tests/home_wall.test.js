@@ -271,7 +271,11 @@ t('收藏心的主键是 id，不是 _id（旧版读写 _id，演示数据上心
   // \b 是必要的：'fav_ids' 这个 storage 键里也含 _id 三个字母
   ok(!/\b_id\b/.test(jsClean), 'JS 里还有 _id，store 已经把云库主键归一成 id 了');
   ok(/favIds\.indexOf\(t\.id\)/.test(jsClean), '读收藏态用的不是 id');
-  ok(/col\.map\(\(t\) => \(t\.id === id/.test(jsClean), '写收藏态用的不是 id');
+  // 7.4.0：写收藏态从「整列 map 后重传」改成「按 id 定位 → 只推那一条路径」。
+  // 整列重传会把几十张卡（连 data-uri 底图）全量过一遍，票多的用户每点一次心都卡一下。
+  ok(/findIndex\(\(t\) => t\.id === id\)/.test(jsClean), '写收藏态不是按 id 定位的');
+  ok(/'colA\[' \+ ia \+ '\]\.fav'/.test(jsClean) && /'colB\[' \+ ib \+ '\]\.fav'/.test(jsClean),
+    '收藏态没有走定点路径更新 —— 又在整列重传');
   ok(/catchtap="toggleFav"[\s\S]{0,80}data-id="\{\{item\.id\}\}"/.test(wxmlClean), '心上传的 id 不对');
   ok(/return \{ \.\.\.t, id: t\.id \|\| t\._id \}/.test(store), 'store 的归一约定变了 —— 上面几条要重看');
 });

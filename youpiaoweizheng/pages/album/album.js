@@ -20,6 +20,7 @@ const enter = require('../../utils/enter.js');
 const { todayMD, todaySign } = require('../../utils/date.js');
 const track = require('../../utils/track.js');   // 7.3.0 A6：长按菜单 + 分享埋点
 const share = require('../../utils/share.js');   // 7.3.0 A6：长按菜单里的「分享」要转发这一张
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const PEEK_AFTER = 3;      // 每个年份默认露出 3 张，其余折叠（点「还有 N 张」展开）
 const PM_R = 51;           // 邮戳城市名的弧半径（rpx），落在双圈之间的环带上（见 album.wxss）
@@ -343,7 +344,7 @@ Page({
   onCardLong(e) {
     const ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
     if (!ds.id) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     track.track('menu_long', { from: 'album' });
     this.setData({ menu: true, menuId: ds.id, menuTitle: ds.title || '' });
   },

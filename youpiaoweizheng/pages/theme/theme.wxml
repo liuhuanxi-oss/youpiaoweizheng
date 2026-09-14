@@ -4,7 +4,10 @@
      点卡片 = 即时预览；底部「应用此主题」= 落库。
      头像与装饰图形走 <image src="data:image/svg+xml;base64,...">（src 由 utils/deco.js
      按各主题色板在 JS 侧编译好）—— 不能写内联 <svg>，小程序 wxml 不渲染。 -->
-<view class="tk-page theme-{{preview}}">
+<!-- 7.4.0 动效：轻量进场（.fade-up，轻档 280ms / 16rpx，含减弱动态效果降级）。
+     ⚠️ 底部固定操作条 .th-bar 挂在**根节点之外**（文件末尾）正是为了这个：根节点带 .fade-up，
+     fill:both 会一直留一个 transform，它里面的 fixed 会以根节点为包含块 —— 条子会跟着页面滚走。 -->
+<view class="tk-page theme-{{preview}} fade-up">
 
   <!-- ===== 页头 ===== -->
   <view class="tk-hero th-head">

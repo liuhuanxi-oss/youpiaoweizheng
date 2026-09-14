@@ -4,10 +4,24 @@
    .hc-card 310×240。 */
 
 /* —— 品牌行 —— */
+/* 品牌行：往下滚吸顶。
+   · position 必须是 sticky 不是 fixed —— 根节点的 .fade-up 会留下 transform，
+     fixed 后代会被它当成包含块（跟着页面滚）；sticky 不受影响（已实测）。
+   · 吸顶这里**只改底色与描边，不改内边距**：它在文档流里，一改高度整页就跳一下。
+   · 底色只在吸住时给：平时透明，页面底纹（--page-deco）能连成一片；
+     吸住时它压着下面的卡片，必须有实底才读得清。 */
 .hc-head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
   padding: 32rpx 48rpx 0;
+  transition: background-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+.hc-head.is-stuck {
+  background-color: var(--bg, #FBF2EC);
+  box-shadow: 0 1rpx 0 var(--line, #E8DCCB), 0 8rpx 20rpx rgba(var(--shadow-rgb, 44, 44, 44), 0.07);
 }
 .hc-logo {
   width: 76rpx;
@@ -213,7 +227,14 @@
   align-items: center;
   justify-content: center;
 }
-.hc-shot-img { width: 100%; height: 100%; display: block; }
+/* 照片解码完成才淡入落位（.is-loaded 由 bindload/binderror 挂上）。
+   不等解码的话，图片会在解码完的某一帧「蹦」出来 —— 照片一多，整面墙都在蹦。 */
+.hc-shot-img {
+  width: 100%; height: 100%; display: block;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+.hc-shot-img.is-loaded { opacity: 1; }
 
 /* A1 近似共享元素：点卡后照片在框内「推近」并淡出（框是 overflow:hidden，放大被裁在框里），
    150ms 后跳详情；详情页那侧由 .fade-up 接住落位 */

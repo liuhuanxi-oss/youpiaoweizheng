@@ -143,12 +143,22 @@ t('artHint 对脏数据不崩、不为负', () => {
   ok(points.artHint('abc').ready === false, '非数字应该当成 0');
 });
 
-t('我的页积分与签到取同一次返回值（两处各拉一次会自相矛盾）', () => {
+t('我的页余额只有一个来源：签到那次返回值', () => {
   const me = read('pages/me/me.js');
   const fn = /refreshSign\(\) \{[\s\S]*?\n  \},/.exec(me);
   ok(fn, '找不到 refreshSign');
   ok(/this\._applyPoints\(s\.balance\)/.test(fn[0]), '积分不是从签到那次返回值来的');
-  ok(!/points\.status\(\)/.test(me), '我的页又单独拉了一次积分（会与签到卡上的数字打架）');
+  // 7.4.0 C 段起，这一页**会**调 points.status() —— 积分勋章的「累计获得」只有它拿得到。
+  // 要防的从来不是「调了这个接口」，而是**余额自己算**：
+  // 页面上只允许出现两个余额，且都是服务端刚回的值 ——
+  //   s.balance  签到/进页那次连同余额一起回的
+  //   r.balance  兑换成功后服务端回的新余额
+  // 再多一个来源（比如拿 points.status() 的余额另摆一处），就会出现
+  // 「签到卡说 128、别处说 118」，用户只会认为积分丢了。
+  const refs = [...new Set([...me.matchAll(/[A-Za-z_$][\w$]*\.balance/g)].map((m) => m[0]))];
+  const allowed = ['s.balance', 'r.balance'];
+  const others = refs.filter((x) => allowed.indexOf(x) < 0);
+  ok(others.length === 0, '出现了第三种余额来源：' + others.join(', ') + '（余额只能来自服务端回值）');
 });
 
 t('积分三件套只在一处赋值：三个调用点不会各说各话', () => {

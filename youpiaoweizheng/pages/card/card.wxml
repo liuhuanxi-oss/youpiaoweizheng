@@ -28,47 +28,62 @@
 <view class="page theme-{{theme}} cd-page" wx:elif="{{t}}">
   <view class="grain"></view>
 
-  <!-- ① 卡面舞台：后面垫一张玫瑰卡、前面是画布 —— 稿里那叠「手边一摞明信片」的观感 -->
-  <view class="cd-stage">
-    <view class="cd-behind"></view>
-    <canvas type="2d" id="cardCanvas" class="card-canvas"
-            aria-role="img" aria-label="这张票根的纪念卡片"></canvas>
-    <image class="cd-deco is-sprig-l" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
-    <image class="cd-deco is-star-t" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
-    <image class="cd-deco is-heart-r" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
-    <image class="cd-deco is-sprig-r" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
-  </view>
+  <!-- 7.4.0 动效：卡面 → 按钮 → 入口依 85ms 错开浮上来（.stagger，见 app.wxss）。
+       外面这层 .cd-flow 是给 :nth-child 数位次用的**纯结构层**（自身无样式，同年报的 .an-flow）：
+       .stagger 的延迟按同胞位次算，页面里的 .grain 与 .safe-bottom 混进来会把位次顶偏一档。
+       ⚠️ 提示条（.cd-fail）不能挂在 .cd-flow 里：它是 wx:if，一出现就把后面全体顶后一档。 -->
+  <view class="cd-flow">
 
-  <!-- ② 两枚按钮：保存图片（描边）/ 分享给好友（玫瑰实底） -->
-  <view class="cd-acts">
-    <view class="cd-act is-save pressable" hover-class="press-item-hover" bindtap="save"
-          aria-role="button" aria-label="保存卡片到相册">
-      <image class="cd-act-ic is-ink" src="{{ic.download}}" mode="aspectFit" aria-hidden="true" />
-      <text class="cd-act-t">{{exporting ? '导出中…' : '保存图片'}}</text>
+    <!-- ① 卡面舞台：后面垫一张玫瑰卡、前面是画布 —— 稿里那叠「手边一摞明信片」的观感 -->
+    <view class="cd-stage stagger">
+      <view class="cd-behind"></view>
+      <canvas type="2d" id="cardCanvas" class="card-canvas"
+              aria-role="img" aria-label="这张票根的纪念卡片"></canvas>
+      <image class="cd-deco is-sprig-l" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+      <image class="cd-deco is-star-t" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+      <image class="cd-deco is-heart-r" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
+      <image class="cd-deco is-sprig-r" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+      <!-- 画布起不来时的兜底：盖住整个卡位。原先只在控制台 warn，
+           用户看到的是一个空框，只会以为「还在生成」而干等 -->
+      <view class="cd-fail pressable" wx:if="{{canvasFail}}" hover-class="press-item-hover"
+            bindtap="retryCanvas" aria-role="button" aria-label="重新生成卡片">
+        <text class="cd-fail-t">卡片没画出来</text>
+        <text class="cd-fail-s">点一下重试 · 还不行就退出重进</text>
+      </view>
     </view>
-    <button class="cd-act is-share" open-type="share" aria-label="把这张卡片分享给好友">
-      <image class="cd-act-ic is-on" src="{{ic.share}}" mode="aspectFit" aria-hidden="true" />
-      <text class="cd-act-t">分享给好友</text>
-    </button>
-  </view>
 
-  <!-- ③ 低频动作：稿里没有这一行，但它们也只是低频——藏进长按/手势等于砍功能，
-         故留一行轻量文字入口，视觉重量压到最低（与主按钮拉开层级） -->
-  <view class="cd-links">
-    <view class="cd-link pressable" hover-class="press-item-hover" bindtap="redo"
-          aria-role="button" aria-label="换一版 AI 文案">
-      <text class="cd-link-t">{{redoing ? 'AI 重写中…' : '换一版文案'}}</text>
+    <!-- ② 两枚按钮：保存图片（描边）/ 分享给好友（玫瑰实底） -->
+    <view class="cd-acts stagger">
+      <view class="cd-act is-save pressable" hover-class="press-item-hover" bindtap="save"
+            aria-role="button" aria-label="保存卡片到相册">
+        <image class="cd-act-ic is-ink" src="{{ic.download}}" mode="aspectFit" aria-hidden="true" />
+        <text class="cd-act-t">{{exporting ? '导出中…' : '保存图片'}}</text>
+      </view>
+      <button class="cd-act is-share" open-type="share" aria-label="把这张卡片分享给好友">
+        <image class="cd-act-ic is-on" src="{{ic.share}}" mode="aspectFit" aria-hidden="true" />
+        <text class="cd-act-t">分享给好友</text>
+      </button>
     </view>
-    <view class="cd-link-line"></view>
-    <view class="cd-link pressable" hover-class="press-item-hover" bindtap="onStyle"
-          aria-role="button" aria-label="切换卡片风格">
-      <text class="cd-link-t">卡片风格</text>
+
+    <!-- ③ 低频动作：稿里没有这一行，但它们也只是低频——藏进长按/手势等于砍功能，
+           故留一行轻量文字入口，视觉重量压到最低（与主按钮拉开层级） -->
+    <view class="cd-links stagger">
+      <view class="cd-link pressable" hover-class="press-item-hover" bindtap="redo"
+            aria-role="button" aria-label="换一版 AI 文案">
+        <text class="cd-link-t">{{redoing ? 'AI 重写中…' : '换一版文案'}}</text>
+      </view>
+      <view class="cd-link-line"></view>
+      <view class="cd-link pressable" hover-class="press-item-hover" bindtap="onStyle"
+            aria-role="button" aria-label="切换卡片风格">
+        <text class="cd-link-t">卡片风格</text>
+      </view>
+      <view class="cd-link-line"></view>
+      <view class="cd-link pressable" hover-class="press-item-hover" bindtap="saveXHS"
+            aria-role="button" aria-label="存成小红书竖版图">
+        <text class="cd-link-t">存小红书竖版</text>
+      </view>
     </view>
-    <view class="cd-link-line"></view>
-    <view class="cd-link pressable" hover-class="press-item-hover" bindtap="saveXHS"
-          aria-role="button" aria-label="存成小红书竖版图">
-      <text class="cd-link-t">存小红书竖版</text>
-    </view>
+
   </view>
   <view class="safe-bottom"></view>
 </view>

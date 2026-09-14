@@ -287,6 +287,25 @@
 .sc-ai-lb { font-size: 22rpx; color: var(--text2, #A5968A); letter-spacing: 2rpx; }
 .sc-ai-step.on .sc-ai-lb { color: var(--text, #6B5B50); font-weight: 700; }
 
+/* 进度条：压在四步下方、状态文案上方。宽度由 prog 驱动（0-100），带过渡 ——
+   进度是分段跳的（20→55→85→100），没有过渡这些跳变看着像卡顿 */
+.sc-ai-bar {
+  width: 400rpx;
+  height: 6rpx;
+  margin: 24rpx auto 0;
+  border-radius: 6rpx;
+  background: var(--softbg, #F4EFE7);
+  overflow: hidden;
+}
+.sc-ai-bar-in {
+  height: 100%;
+  border-radius: 6rpx;
+  background: var(--accent, #E0532F);
+  transition: width 300ms var(--ease-smooth);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sc-ai-bar-in { transition: none; }   /* 进度照样走，只是不再动画 */
+}
 .sc-ai-cap {
   margin-top: 22rpx;
   text-align: center;
@@ -441,6 +460,16 @@
   78%  { opacity: 1; transform: scale(1.02) rotate(-5deg); }
   100% { opacity: 0; transform: scale(1.06) rotate(-5deg); }
 }
+/* 7.4.0：盖戳这一下是「从 1.8 倍甩进来」，全站位移最大的一处 —— 降级成原地淡入淡出
+   （重定义同名关键帧，与 app.wxss 的 .fade-up / .stagger 同一手法） */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes stamp-in {
+    0%   { opacity: 0; }
+    16%  { opacity: 1; }
+    78%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+}
 
 /* —— 保存成功「入档」浮层（Canvas 对勾+粒子 → 上移淡出） —— */
 .stamp-overlay {
@@ -495,6 +524,13 @@
 @keyframes st-fade {
   from { opacity: 0; transform: translateY(12rpx); }
   to   { opacity: 1; transform: translateY(0); }
+}
+/* 7.4.0：落章文案只留淡变（12rpx 的上浮去掉，口径同 app.wxss 的 .fade-up 降级） */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes st-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
 }
 
 /* —— A2 撕票：整张票立在中央 → 沿撕票线裂开 → 副券飞进收藏册（存根留在原地） —— */

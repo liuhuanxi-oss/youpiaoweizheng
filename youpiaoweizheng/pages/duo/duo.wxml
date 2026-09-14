@@ -28,7 +28,10 @@
     <view class="sk-card skeleton-bone"></view>
   </view>
 
-  <view class="fade-in" wx:else>
+  <!-- 7.4.0 动效：骨架 → 内容这一下原来是纯淡入（只有亮度变化，看不出「上来」），
+       换成 .fade-up（轻档，280ms / 16rpx，见 app.wxss）。内容里没有 fixed 后代，
+       弹层（邀请码面板）挂在滚动容器之外，故 transform 不会把谁拽偏。 -->
+  <view class="fade-up" wx:else>
 
     <!-- ============ 撕边纸片邀请卡 ============ -->
     <view class="duo-hero">

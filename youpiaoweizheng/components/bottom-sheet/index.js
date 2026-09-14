@@ -6,6 +6,13 @@
 //   点遮罩 / 拖拽手柄 → 触发 close 事件（由页面控制 show=false）
 //   catchtouchmove 阻断滚动穿透；面板最高 85vh，内容超高内部滚动
 //   安全区：底部 padding env(safe-area-inset-bottom)
+//
+// ⚠️ LEAVE_MS 必须与 index.wxss 里 `.bs-panel.out` 的动画时长一模一样。
+//    写短了：动画还没播完节点就被 setData 摘掉，面板「啪」地消失；
+//    写长了：动画早结束了，用户对着一个空壳等两百毫秒（点遮罩关不掉的感觉就是这么来的）。
+//    以前这两处各写各的 250，靠人眼对齐；tests/motion.test.js 现在钉着它们相等。
+const LEAVE_MS = 250;
+
 Component({
   properties: {
     show: {
@@ -26,7 +33,7 @@ Component({
         this.setData({ visible: true, leaving: false });
       } else if (this.data.visible && !this.data.leaving) {
         this.setData({ leaving: true });
-        this._t = setTimeout(() => this.setData({ visible: false, leaving: false }), 250);
+        this._t = setTimeout(() => this.setData({ visible: false, leaving: false }), LEAVE_MS);
       }
     },
     close() { this.triggerEvent('close'); },

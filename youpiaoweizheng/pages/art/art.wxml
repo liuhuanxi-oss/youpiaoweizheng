@@ -11,7 +11,11 @@
 <import src="/templates/sp.wxml" />
 <block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这是别人票根的艺术图版'}}" /></block>
 
-<view class="tk-page theme-{{theme}} ar-page" wx:if="{{!sp}}">
+<!-- 7.4.0 动效：整页进场浮入（.fade-up，见 app.wxss 的说明与降级）。
+     ⚠️ 挂着它的根节点会一直留一个 transform，后代的 position:fixed 会以它（而不是屏幕）为包含块。
+     本页的 fixed 只有屏外合成画布 .cv-off（左移 -9999px，相对根节点也照样在屏外），
+     弹层组件（bottom-sheet / privacy-sheet）本来就挂在根节点**之外**，不受影响。 -->
+<view class="tk-page theme-{{theme}} ar-page fade-up" wx:if="{{!sp}}">
 
   <!-- lost：票根不存在或不属于你（分享落地/过期 id） -->
   <view class="empty" wx:if="{{phase === 'lost'}}">

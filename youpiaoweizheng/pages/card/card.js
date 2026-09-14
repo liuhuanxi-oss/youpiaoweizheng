@@ -30,6 +30,7 @@ const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外�
 // ⚠️ 必须写成一整行：scripts/dev/preview-card.js 靠「行首 const … require(…);」整行删掉
 //    再自行注入这几支笔，拆行会剩下半截声明与注入的同名变量撞车。
 const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape } = require('../../utils/canvas-deco.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const W = 600, H = 960;
 const LS_SHARE = 'sp_share_count'; // 时光信使勋章：分享/导出计数（本地）
@@ -889,6 +890,9 @@ Page({
     // 4.19.1 空态：票根未命中（过期 id / 云库异常 / 分享落地）——整页内容都挂在
     // wx:if="{{t}}" 下，t=null 时四个风格胶囊、海报、按钮全部消失只剩导航栏白屏
     notFound: false,
+    // 7.4.0：画布节点初始化重试耗尽（见 _ensureCanvas）→ 卡位上盖一层可点的提示。
+    // 之前只在控制台 warn，用户看到的是空框，只会以为「还在生成」
+    canvasFail: false,
     // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡
     sp: share.sp()
   },
@@ -957,18 +961,36 @@ Page({
         if (!node) {
           if (tryN >= 10) {
             console.warn('[card] canvas 节点初始化失败（重试耗尽），海报不会渲染：', res);
+            // 7.4.0：还要让**用户**知道 —— 只打 console 等于让他对着一个空框干等「生成中」
+            this.setData({ canvasFail: true });
             return resolve(false);
           }
           return setTimeout(() => resolve(this._ensureCanvas(tryN + 1)), 200);
         }
         this._canvas = node;
         this._ctx = node.getContext('2d');
+        if (this.data.canvasFail) this.setData({ canvasFail: false }); // 起死回生：提示自己收掉
         const dpr = Math.min((wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2, 3);
         this._canvas.width = W * dpr;
         this._canvas.height = H * dpr;
         this._ctx.scale(dpr, dpr);
         resolve(true);
       });
+    });
+  },
+
+  /** 兜底提示被点：把画布初始化整条重走一遍（不清 _ctx 的话 _ensureCanvas 会直接返回 true），
+   *  成了就重画并收起提示；还是不行就留着提示 —— 再弹一个「失败」弹窗只是把人堵在这里。 */
+  retryCanvas() {
+    if (this._retrying) return;          // 连点：重试本身要建节点，排队重来一遍没意义
+    this._retrying = true;
+    haptics.tap();
+    this._ctx = null;
+    this._canvas = null;
+    this._ensureCanvas().then((ok) => {
+      this._retrying = false;
+      if (!ok) return;
+      this.draw();
     });
   },
 
@@ -1109,14 +1131,20 @@ Page({
     }
   },
 
-  /** 时光信使勋章：分享/导出一次 +1（本地计数） */
+  /** 时光信使勋章：**真分享**一次 +1（本地计数）。
+   *  7.4.0 C 段修正口径：保存图片到相册**不再计入分享** —— 原先它和分享共用一个函数，
+   *  用户一次没分享过、只是存了 10 张图，「分享 10 张卡片」的勋章就亮了。 */
   _incrShare() {
     try {
       const n = (wx.getStorageSync(LS_SHARE) || 0) + 1;
       wx.setStorageSync(LS_SHARE, n);
     } catch (e) { /* 忽略 */ }
-    // 7.4.0 B 段 R2：生成卡片 +2 分（服务端白名单只认这一个端上行为，日上限 2 次）。
-    // 不 await、不看返回值：积分是附赠，绝不能因为记账慢/失败打断「已存入相册」的反馈
+  },
+
+  /** 7.4.0 B 段 R2：生成卡片 +2 分（服务端白名单只认这一个端上行为，日上限 2 次）。
+   *  不 await、不看返回值：积分是附赠，绝不能因为记账慢/失败打断「已存入相册」的反馈。
+   *  记在**真的生成了一张卡片**的时刻（保存 / 小红书导出）——分享没有生成卡片，不算。 */
+  _earnCard() {
     points.earnCard();
   },
 
@@ -1134,11 +1162,11 @@ Page({
           fail: reject
         });
       });
-      this._incrShare();
+      this._earnCard();
       // 4.17.0 poster_save：带码海报的保存转化（口径：本次实际画没画码）
       track.track('poster_save', { style: this.data.style, code: this._qrDrawn ? 1 : 0 });
       wx.hideLoading();
-      wx.vibrateShort({ type: 'medium' }); // M4.5：关键操作（卡片入册）
+      haptics.confirm(); // M4.5：关键操作（卡片入册）
       wx.showToast({ title: '已存入相册', icon: 'success' });
       // 4.20.3 按需触发署名：保存动作完成、价值已兑现后再邀请（一次会话至多一次，不打断主流程）
       if (!this.data.signature && !this._sigHintShown) {
@@ -1203,10 +1231,10 @@ Page({
       await new Promise((resolve, reject) => {
         wx.saveImageToPhotosAlbum({ filePath: out.tempFilePath, success: resolve, fail: reject });
       });
-      this._incrShare();
+      this._earnCard();
       track.track('poster_save', { style, code: this._qrDrawn ? 1 : 0, xhs: 1 });
       wx.hideLoading();
-      wx.vibrateShort({ type: 'medium' });
+      haptics.confirm();
       wx.showToast({ title: '已存入相册 · 3:4 适配小红书', icon: 'none' });
     } catch (e) {
       wx.hideLoading();

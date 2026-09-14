@@ -264,8 +264,15 @@ t('隐私授权弹窗组件还在（saveImageToPhotosAlbum 要用）', () => {
   ok(/<privacy-sheet/.test(wxmlClean), '组件节点没了');
   ok(/privacy-sheet/.test(json), '没在 json 里注册');
 });
-t('用不上的组件不再挂在 json 里（本页已无数字滚动）', () => {
-  ok(!/animated-number/.test(json), 'animated-number 已不用却还挂着');
+t('数字滚动：json 里挂着就得真用上，两张统计卡都要接', () => {
+  // 7.4.0 之前本页把数字滚动摘了（那时年报里没有需要「滚」的大数字），
+  // 现在两张水彩统计卡就是全页最大的两个数字，装回来 ——
+  // 但「挂着不用」这条老规矩反向也成立：注册了就必须在 wxml 里真的有。
+  ok(/animated-number/.test(json), 'json 里没注册 —— 统计卡接不上数字滚动');
+  const n = (wxmlClean.match(/<animated-number\b/g) || []).length;
+  ok(n >= 2, '年报里只找到 ' + n + ' 处数字滚动，两张统计卡（票根 / 城市）都要接');
+  ok(/mode="viewport"/.test(wxmlClean),
+    '没用 viewport 模式 —— 年报是一整屏往下滚的长页，数字在屏幕外就滚完了，滚到眼前只剩个静态数');
 });
 
 console.log('\n测试套件：annual_report —— ' + pass + ' 通过 / ' + fail + ' 失败\n');

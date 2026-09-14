@@ -5,6 +5,7 @@
 const themeUtil = require('../../utils/theme.js');
 const track = require('../../utils/track.js');
 const { iconSrc } = require('../../utils/icons.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 /**
  * 只清本地记录，不动云端。
@@ -52,7 +53,7 @@ Page({
 
   onRow(e) {
     const key = e.currentTarget.dataset.key;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     const JUMP = {
       privacy: '/pages/protocol/protocol?type=privacy',
       terms: '/pages/protocol/protocol?type=terms'

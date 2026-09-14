@@ -12,6 +12,7 @@ const track = require('../../utils/track.js');             // 4.17.0：拉新埋
 const share = require('../../utils/share.js');             // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const ads = require('../../utils/ads.js');                 // 4.21.0：底部 Banner 广告位（未配置 ID 时整块隐藏）
 const { iconSrc } = require('../../utils/icons.js');       // 7.0.0：线性图标（替换原 emoji）
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const LS_CAP_STYLE = 'sp_cap_style'; // 4.11.0：文案风格本地记忆（detail/card 共用）
 
@@ -19,6 +20,12 @@ const LS_CAP_STYLE = 'sp_cap_style'; // 4.11.0：文案风格本地记忆（deta
 // （按钮是浅色实底 + 深色字，图标必须跟着字色走，不能吃主题变量）
 const BTN_FIX_FG = '#5F7F5C';
 const BTN_ART_FG = '#8A6F3A';
+
+// 7.4.0：删除后退场的时长，必须与 detail.wxss 里 .dtc-card.leaving 的动画时长一致
+// （不一致会出现两种坏法：短了 → 卡片还没收完就跳页；长了 → 退场播完干等着）
+const LEAVE_MS = 260;
+// 生成失败时手记卡抖动一次，抖完要自己撤掉类名，否则第二次点不会再抖（类名没变化）
+const SHAKE_MS = 320;
 
 /**
  * 按当前主题色板编译本页用到的线性图标（7.0.0）。
@@ -122,7 +129,11 @@ Page({
     // 4.18.0 分享落地空态：票根不存在/不属于你（云库仅创建者可读写）
     notFound: false,
     // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页 → 空态不摆死按钮）
-    sp: false
+    sp: false,
+    // 7.4.0：删除成功后的退场（主卡收拢淡出后再跳页，不再干等 700ms）
+    leaving: false,
+    // 7.4.0：AI 生成失败时手记卡抖一下（只弹个窗，用户容易当成「点了没反应」）
+    memoErr: false
   },
 
   /** 4.12.1 照片解码完成 → 淡入；失败 → 落回纸票样式兜底 */
@@ -227,7 +238,7 @@ Page({
       });
     }
     this.setData({ anniv: n, eggShow: true, confetti });
-    wx.vibrateShort({ type: 'medium' }); // 关键仪式时刻（与收票/保存同级）
+    haptics.confirm(); // 关键仪式时刻（与收票/保存同级）
     this._eggTimer = setTimeout(() => this.setData({ eggShow: false }), 3200);
   },
 
@@ -235,7 +246,7 @@ Page({
   pickCapStyle(e) {
     const key = e.currentTarget.dataset.key;
     if (!key || key === this.data.capStyle) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     try { wx.setStorageSync(LS_CAP_STYLE, key); } catch (err) { /* 忽略 */ }
     this.setData({ capStyle: key });
   },
@@ -261,7 +272,7 @@ Page({
   // 生成纪念卡片 → card 页（4.11.0：带上同场数，卡片画「同场 N 人收藏」角标）
   // v6.4：入口从 FAB 迁至导航「···」更多菜单（品牌稿屏2 无 FAB）
   goCard() {
-    wx.vibrateShort({ type: 'medium' }); // M4.5：关键操作（进入卡片仪式）
+    haptics.confirm(); // M4.5：关键操作（进入卡片仪式）
     const same = this._sameCount > 1 ? this._sameCount : '';
     wx.navigateTo({ url: `/pages/card/card?id=${this.data.t.id}${same ? '&same=' + same : ''}` });
   },
@@ -269,7 +280,7 @@ Page({
   // 4.19.0 票根博物志：艺术图版入口（生图走云函数 artRestyle，异步轮询）
   // v6.4：对应品牌稿底部「🎨 重绘」按钮
   goArt() {
-    wx.vibrateShort({ type: 'medium' });
+    haptics.confirm();
     wx.navigateTo({ url: `/pages/art/art?id=${this.data.t.id}` });
   },
 
@@ -278,7 +289,7 @@ Page({
 
   /** 品牌稿「✦ 修复」：AI 修复（restore）能力待接入 artRestyle，先如实告知 */
   goRepair() {
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     track.track('detail_repair', {});
     wx.showToast({ title: 'AI 修复即将上线', icon: 'none' });
   },
@@ -322,7 +333,10 @@ Page({
           wx.hideLoading();
           track.track('detail_delete', {});
           wx.showToast({ title: '已删除', icon: 'none' });
-          setTimeout(() => this.goBack(), 700);
+          // 先让这张票根当着用户的面收拢淡出，再退回上一页 ——
+          // 干等 700ms 什么都不发生，用户会怀疑到底删没删掉（期间还容易再点一次）
+          this.setData({ leaving: true });
+          setTimeout(() => this.goBack(), LEAVE_MS);
         } catch (e) {
           wx.hideLoading();
           this._removing = false;
@@ -350,7 +364,7 @@ Page({
     const i = favIds.indexOf(t.id);
     if (i >= 0) favIds.splice(i, 1); else favIds.push(t.id);
     try { wx.setStorageSync(KEY, favIds); } catch (e) { /* 忽略 */ }
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({ 't.fav': favIds.indexOf(t.id) >= 0 });
   },
 
@@ -410,13 +424,30 @@ Page({
       const msg = /-502005|collection not exists/i.test(raw)
         ? '云数据库还没建好：请到云开发控制台创建 tickets 集合后重试'
         : raw;
-      wx.showModal({
-        title: '生成失败',
-        content: msg.slice(0, 80),
-        showCancel: false
-      });
+      // 先让手记卡当着用户的面红抖一下，再弹窗说明原因：
+      // 弹窗会立刻把整屏压暗，抖在弹窗底下等于没抖。
+      haptics.warn();
+      this._shakeMemo();
+      setTimeout(() => {
+        wx.showModal({
+          title: '生成失败',
+          content: msg.slice(0, 80),
+          showCancel: false
+        });
+      }, SHAKE_MS);
     } finally {
       this.setData({ genLoading: false });
     }
+  },
+
+  /** 手记卡抖一下（生成失败）。抖完必须自己摘掉类名 ——
+   *  类名不变的话第二次点同样的失败不会再抖（小程序不会重放同名动画）。 */
+  _shakeMemo() {
+    if (this._shakeT) clearTimeout(this._shakeT);
+    this.setData({ memoErr: true });
+    this._shakeT = setTimeout(() => {
+      this._shakeT = null;
+      this.setData({ memoErr: false });
+    }, SHAKE_MS);
   }
 });

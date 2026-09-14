@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": " ",
   "usingComponents": {
-    "bottom-sheet": "/components/bottom-sheet/index"
+    "bottom-sheet": "/components/bottom-sheet/index",
+    "animated-number": "/components/animated-number/index"
   }
 }

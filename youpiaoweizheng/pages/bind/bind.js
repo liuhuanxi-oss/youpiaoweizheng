@@ -3,6 +3,7 @@
 const themeUtil = require("../../utils/theme.js");
 const couple = require('../../utils/couple.js');
 const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 Page({
 
@@ -37,7 +38,7 @@ Page({
         try {
           const res = await couple.joinByCode(code, r.content || '');
           wx.hideLoading();
-          wx.vibrateShort({ type: 'medium' }); // M4.5：关键操作（绑定成功）
+          haptics.confirm(); // M4.5：关键操作（绑定成功）
           // 4.17.0 invite_bind：分享卡进来的绑定（区分于输码，K 因子主路径）
           track.track('invite_bind', { via: 'card' });
           this.setData({ state: 'done', msg: res.couple.partnerName || 'TA' });

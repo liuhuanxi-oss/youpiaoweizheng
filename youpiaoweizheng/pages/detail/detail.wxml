@@ -3,6 +3,27 @@
      其下：手写风 AI 文案（打字机）+ 信息面板 + 「修复/重绘/分享」三胶囊
      业务保留：周年彩蛋 / 演示票提示 / 同场印记 / 广告位 / notFound 空态 -->
 
+<!-- 4.15.0 周年彩蛋（品牌稿外既有功能，保留）。
+     挂根节点**外**：根节点带 .fade-up，动画 fill:both 会留下 transform，
+     fixed 后代就改以根节点为包含块（同下面 .dtc-topfx 那条），
+     纸屑会跟着页面滚、且被根节点的盒子裁掉，铺不满屏。
+     摆在整个 wx:if/wx:elif 链**之前**：塞进链中间会把 elif 打断。 -->
+<view class="egg-layer" wx:if="{{eggShow}}" aria-hidden="true">
+  <view
+    class="confetti"
+    wx:for="{{confetti}}"
+    wx:key="i"
+    style="left:{{item.l}}%; width:{{item.w}}rpx; height:{{item.h}}rpx; border-radius:{{item.r}}rpx; background:{{item.c}}; animation-delay:{{item.d}}ms;"
+  ></view>
+  <view class="anniv-badge">
+    <view class="anniv-seal">
+      <view class="anniv-ring"></view>
+      <view class="anniv-core"><text class="anniv-n">{{anniv}}</text><text class="anniv-u">周年</text></view>
+    </view>
+    <view class="anniv-text">值得纪念的日子</view>
+  </view>
+</view>
+
 <!-- A3 顶栏毛玻璃渐变：内容滚到导航栏下方时淡入。
      挂在根节点**外**是必须的——根节点带 .fade-up，它的 transform 会让 fixed 相对根节点
      定位（见 app.wxss 的 .fade-up 注释），那样遮罩会跟着页面滚，就不叫顶栏了。
@@ -19,27 +40,10 @@
 <!-- .fade-up：接住首页票根卡那一下「放大淡出」（A1 的两段式近似，小程序无真共享元素） -->
 <view class="tk-page theme-{{theme}} dtc-page fade-up" wx:elif="{{t}}">
 
-  <!-- 4.15.0 周年彩蛋（品牌稿外既有功能，保留） -->
-  <view class="egg-layer" wx:if="{{eggShow}}" aria-hidden="true">
-    <view
-      class="confetti"
-      wx:for="{{confetti}}"
-      wx:key="i"
-      style="left:{{item.l}}%; width:{{item.w}}rpx; height:{{item.h}}rpx; border-radius:{{item.r}}rpx; background:{{item.c}}; animation-delay:{{item.d}}ms;"
-    ></view>
-    <view class="anniv-badge">
-      <view class="anniv-seal">
-        <view class="anniv-ring"></view>
-        <view class="anniv-core"><text class="anniv-n">{{anniv}}</text><text class="anniv-u">周年</text></view>
-      </view>
-      <view class="anniv-text">值得纪念的日子</view>
-    </view>
-  </view>
-
   <view class="demo-tip" wx:if="{{t.isDemo}}">演示票根 · 示例数据，收藏你自己的票后这里就是你的回忆</view>
 
   <!-- ===== 时光卡主卡 ===== -->
-  <view class="dtc-card">
+  <view class="dtc-card {{leaving ? 'leaving' : ''}}">
     <view class="b-tape dtc-tape"></view>
 
     <!-- 封面照片：装进一枚邮票（白边 + 四边齿孔，品牌全案·稿屏4）
@@ -47,9 +51,13 @@
     <view class="dtc-photo">
       <view class="dtc-stamp-frame">
         <!-- A3 视差裁剪框：照片比框高 12%，滚动时整框上移（见 onPageScroll），
-             上移的余量就是这 12%，不会再露出框底 -->
-        <view wx:if="{{t.img && !imgFail}}" class="dtc-par" style="transform: translateY(-{{psDy}}px);">
+             上移的余量就是这 12%，不会再露出框底。
+             这块框**始终**在文档流里（没有照片时就是一块纸色）——兜底卡要绝对定位盖在它
+             身上才能交叉淡入，框一撤走就没有盒子给兜底卡定位了。
+             视差位移只挂给「有照片」那一档：没有照片时框里没有超出部分，上移会露出空。 -->
+        <view class="dtc-par" style="{{t.img && !imgFail ? 'transform: translateY(-' + psDy + 'px);' : ''}}">
           <image
+            wx:if="{{t.img && !imgFail}}"
             class="dtc-img pressable {{imgLoaded ? 'ld' : ''}}"
             hover-class="dtc-img-hover"
             src="{{t.img}}"
@@ -61,7 +69,10 @@
             aria-label="点击全屏查看票根原图"
           />
         </view>
-        <view class="dtc-img-fb" wx:else>
+        <!-- 无图 / 照片加载失败：兜底卡**盖在**照片框上淡入 200ms。
+             以前是 wx:if / wx:else 直接换，两张卡高度还不一样（400rpx vs 440rpx），
+             换的那一下既是硬切又跳一下。兜底卡绝对定位后就地淡入，两样都没了。 -->
+        <view class="dtc-img-fb fade-in-200" wx:if="{{!t.img || imgFail}}">
           <image class="dtc-fb-ic" src="{{icons.iTicketEmpty}}" mode="aspectFit" aria-hidden="true" />
           <text class="dtc-fb-title">{{t.title}}</text>
         </view>
@@ -132,14 +143,17 @@
        无文案时点按生成 ===== -->
   <!-- hover-class 跟着可点性走：已有文案时 bindtap 为空串（不可点），此时不给按压反馈，
        否则会出现「按下去有反馈、点了没反应」 -->
-  <view class="dtc-memo pressable" hover-class="{{t.aiCaption ? 'none' : 'press-item-hover'}}"
+  <view class="dtc-memo pressable {{memoErr ? 'shake-err' : ''}}"
+        hover-class="{{t.aiCaption ? 'none' : 'press-item-hover'}}"
         bindtap="{{t.aiCaption ? '' : 'genCaption'}}">
     <view class="dtc-memo-bar"></view>
     <view class="dtc-memo-badge">
       <image class="dtc-memo-badge-ic" src="{{icons.iSpark}}" mode="aspectFit" aria-hidden="true" />
       <text>AI 时光手记</text>
     </view>
-    <view class="dtc-memo-txt" wx:if="{{t.aiCaption}}">
+    <!-- 打字机别「啪」地开始：文案落定这一刻整块淡入 200ms。
+         只在 t.aiCaption 由无到有时挂载一次，之后逐字 setData 不会重播动画。 -->
+    <view class="dtc-memo-txt fade-in-200" wx:if="{{t.aiCaption}}">
       <text>{{captionShow || t.aiCaption}}</text><text class="cap-cursor" wx:if="{{captionTyping}}">|</text>
     </view>
     <view class="dtc-memo-txt dim" wx:else>

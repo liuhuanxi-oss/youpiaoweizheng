@@ -39,9 +39,10 @@ t('setting.js 里写死的图标名全部存在', () => {
   const bad = [...new Set(used)].filter((u) => !ICONS.has(u));
   ok(bad.length === 0, '不存在：' + bad.join(', '));
 });
-t('mock.js 的 13 枚勋章图标名全部存在（v7.0 已从 emoji 换成图标名）', () => {
+t('mock.js 的勋章图标名全部存在（v7.0 已从 emoji 换成图标名）', () => {
   const used = [...mock.matchAll(/id: 'b\d+', icon: '([^']+)'/g)].map((m) => m[1]);
-  ok(used.length === 13, '勋章数不是 13：' + used.length);
+  // 数量归 tests/badges.test.js 管（那边连判定一起钉）；这里只防「正则没匹配上」的静默失效
+  ok(used.length >= 16, '只扫到 ' + used.length + ' 枚勋章图标，7.4.0 起应该是 16 枚');
   const bad = used.filter((u) => !ICONS.has(u));
   ok(bad.length === 0, '不存在：' + bad.join(', '));
 });
@@ -65,13 +66,16 @@ console.log('\n【三、类名与样式对得上】');
 [['me', meWxml, meWxss], ['setting', stWxml, stWxss]].forEach(([name, w, s]) => {
   t(name + '：wxml 的类名 wxss 都有（放行全局公共类）', () => {
     const GLOBAL = /^(tk-|press|card$|b-|theme-|skeleton-|ad-)/;
+    // 纯结构包裹层：只为把几张卡圈成一组（.stagger 的延迟靠 :nth-child 数位次，
+    // 得有个固定的父节点），本身**不该**有样式 —— 所以 wxss 里找不到它们是正常的。
+    const STRUCT = ['me-flow'];
     const used = new Set([...w.matchAll(/(?:^|\s)class="([^"]*)"/g)]
       .flatMap((m) => m[1].replace(/\{\{[\s\S]*?\}\}/g, ' ').split(/\s+/)).filter(Boolean));
     // 本页 wxss + app.wxss 一起算「有定义」—— 每往 app.wxss 加一个全局类
     // 就得回来改一遍上面那串 GLOBAL 正则，早晚会漏（.refresher 就是这么漏的）
     const def = new Set([...read('app.wxss').matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
     [...s.matchAll(/\.([a-zA-Z][\w-]*)/g)].forEach((m) => def.add(m[1]));
-    const miss = [...used].filter((u) => !def.has(u) && !GLOBAL.test(u));
+    const miss = [...used].filter((u) => !def.has(u) && !GLOBAL.test(u) && !STRUCT.includes(u));
     ok(miss.length === 0, '缺：' + miss.join(', '));
   });
   t(name + '.wxss 无写死的颜色（rgba 兜底除外）', () => {

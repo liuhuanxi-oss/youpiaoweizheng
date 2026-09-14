@@ -22,6 +22,7 @@ const track = require('../../utils/track.js'); // 4.17.0：拉新埋点
 const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（好友 + 朋友圈）
 const deco = require('../../utils/deco.js');   // 图形：齿边纸片 / 雏菊 / 邮戳 / 星点
 const { iconSrc } = require('../../utils/icons.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 // —— 尺寸（rpx）：WXSS 里写死的宽高必须与这里一致 ——
 // 齿边是贴着纸边跑一圈的，盒子与 viewBox 差一点齿就偏出边框（同 deco.artFrame 的约定）
@@ -274,7 +275,7 @@ Page({
         try {
           const c = await couple.joinByCode(code, '');
           wx.hideLoading();
-          wx.vibrateShort({ type: 'medium' });   // 关键操作（绑定成功）的明确反馈
+          haptics.confirm();   // 关键操作（绑定成功）的明确反馈
           // 4.17.0 invite_bind：被邀请方落地成功（增长口径：K 因子的转化环节）
           track.track('invite_bind', { via: 'code' });
           wx.showToast({ title: `已和 ${c.couple.partnerName} 绑定`, icon: 'success' });
@@ -303,13 +304,13 @@ Page({
   /** 生成双人纪念卡片：带最近一张共同票根的 id；一张都没有就去看完整时间线 */
   goCard() {
     const id = this.data.stat && this.data.stat.recentId;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     if (id) { wx.navigateTo({ url: `/pages/card/card?id=${id}` }); return; }
     wx.navigateTo({ url: '/pages/timeline/timeline' });
   },
 
   goReport() {
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     wx.navigateTo({ url: '/pages/report/report' });
   },
 
@@ -321,7 +322,7 @@ Page({
       confirmColor: '#E0532F',
       success: async (r) => {
         if (!r.confirm) return;
-        wx.vibrateShort({ type: 'heavy' });   // 删除类操作的明确反馈
+        haptics.warn();   // 删除类操作的明确反馈
         try {
           await couple.unbind();
           wx.showToast({ title: '已解绑', icon: 'none' });

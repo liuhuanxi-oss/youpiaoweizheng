@@ -58,7 +58,10 @@
       <!-- 地图舞台：水彩陆地 → 时光路线 → 城市气泡，三层严格同尺寸同投影。
            宽高由 JS 下发（mapArt.STAGE_W/H）—— 气泡避让算法用的就是这两个数，
            写死在 WXSS 里迟早和算法对不上，气泡就会飘出色块。 -->
-      <view class="dc-stage" style="width:{{stageW}}rpx; height:{{stageH}}rpx;">
+      <!-- 换层（水彩 ↔ 真地图）时加 .is-swapping：整块先淡出、换完再淡回。
+           地图是原生组件，能不能吃 opacity 各机型不一致 —— 吃就得到一次交叉淡变，
+           不吃也就是「原地换一张」，与改动前一样，不会更糟。 -->
+      <view class="dc-stage {{swapping ? 'is-swapping' : ''}}" style="width:{{stageW}}rpx; height:{{stageH}}rpx;">
         <!-- 真地图：坐标还是那份真经纬度（城市字典 + 腾讯 LBS 算出来的），
              只是不自己画、交给微信原生地图去投影，点图钉弹的还是同一个城市面板 -->
         <map wx:if="{{view === 'real'}}" class="dc-map" latitude="{{mapLat}}" longitude="{{mapLng}}"
@@ -82,9 +85,15 @@
           <!-- 连接杆：气泡被顶开时才有长度，平时被尾巴盖住看不见 -->
           <view class="dc-stem" style="background:{{item.color}}; {{item.stemPos}};"></view>
 
-          <!-- 气泡：贴 bottom = 在落点上方（尾巴朝下），贴 top = 在下方（尾巴朝上） -->
-          <view class="dc-bubble {{item.below ? 'down' : 'up'}} pressable" hover-class="press-item-hover"
-                style="background:{{item.color}}; color:{{item.fg}}; {{item.bubblePos}};"
+          <!-- 气泡：贴 bottom = 在落点上方（尾巴朝下），贴 top = 在下方（尾巴朝上）。
+               按下态用本页自己的 dc-bubble-hover，不能用全局 press-item-hover ——
+               后者只写 scale，会把气泡的 translateX(-50%) 居中量整个盖掉，
+               手一按气泡就横跳半个身位（tests/press_feedback.test.js ⑥ 钉着这条）。
+               错开延迟由 JS 下发（item.d）：气泡是绝对定位的兄弟节点，
+               前面还夹着图层与骨架层，:nth-child 的下标靠不住。 -->
+          <view class="dc-bubble {{item.below ? 'down' : 'up'}} pressable {{enter ? 'dc-rise' : ''}}"
+                hover-class="dc-bubble-hover"
+                style="background:{{item.color}}; color:{{item.fg}}; {{item.bubblePos}}; animation-delay:{{item.d}}ms;"
                 data-city="{{item.city}}" bindtap="onCityTap"
                 aria-role="button" aria-label="{{item.city}}，{{item.count}} 张票根">
             <text class="dc-bubble-n">{{item.city}}</text>
@@ -98,11 +107,18 @@
       </view>
 
       <!-- 底部署名：已走过 N 座城市 · M 段时光。
-           加载中/失败时不显示——「已走过 0 座城市」是一句数据断言，此刻并不成立 -->
+           加载中/失败时不显示——「已走过 0 座城市」是一句数据断言，此刻并不成立。
+           两个数字接数字滚动（与时光机/我的页同一套语言）；<text> 里塞不下组件，故换 <view> 承载 -->
       <view class="dc-foot" wx:if="{{!loading && !error}}">
         <view class="dc-foot-rule"></view>
         <image class="dc-foot-spark" src="{{ic.sparkSm}}" mode="aspectFit" aria-hidden="true" />
-        <text class="dc-foot-txt">已走过 {{cityCount}} 座城市 · {{total}} 段时光</text>
+        <view class="dc-foot-txt">
+          <text>已走过 </text>
+          <animated-number value="{{cityCount}}" />
+          <text> 座城市 · </text>
+          <animated-number value="{{total}}" />
+          <text> 段时光</text>
+        </view>
         <image class="dc-foot-spark" src="{{ic.sparkSm}}" mode="aspectFit" aria-hidden="true" />
         <view class="dc-foot-rule"></view>
       </view>

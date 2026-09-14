@@ -13,6 +13,9 @@ dist/
 miniprogram_npm/
 cloudfunctions/**/node_modules/
 
+# ===== 设计预览会话（视觉伴侣生成的临时页面，不入库）=====
+.superpowers/
+
 # ===== 编辑器 / 操作系统 =====
 .DS_Store
 Thumbs.db

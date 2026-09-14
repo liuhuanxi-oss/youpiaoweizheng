@@ -32,6 +32,19 @@
 }
 .dtc-tape { left: 40rpx; top: -18rpx; }
 
+/* 删除票根：主卡收拢淡出再跳页（260ms，与 detail.js 的 LEAVE_MS 必须同值）。
+   原先删完干等 700ms 什么都不发生，用户会怀疑到底删没删掉，等的时候还容易再点一次。 */
+.dtc-card.leaving { animation: dtc-leave 260ms var(--ease-smooth) forwards; }
+@keyframes dtc-leave {
+  to { opacity: 0; transform: translateY(24rpx) scale(0.94); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 位移收拢会让人不适：只留淡出，时长与 JS 的 LEAVE_MS 仍要对齐（否则跳页早于淡完） */
+  @keyframes dtc-leave {
+    to { opacity: 0; }
+  }
+}
+
 /* 封面照片 */
 .dtc-photo { position: relative; }
 /* A3 视差裁剪框：照片比框高 12%（上缘 -12%），滚动时整框上移最多 20px（见 onPageScroll），
@@ -61,12 +74,16 @@
 .dtc-img.ld { opacity: 1; }
 /* 照片按压只缩不放暗——放暗会与加载淡入抢 opacity，呈现为慢半拍的滞后 */
 .dtc-img-hover { transform: scale(0.97); }
+/* 无图 / 加载失败兜底：**盖在** .dtc-par 上（同一块 440rpx 的票位），200ms 淡入。
+   绝对定位 + 与邮票白框内边同值的 16rpx 内缩，正好贴住照片框；
+   在文档流里的话它会把邮票撑高，换图那一下就会跳（旧版 400rpx vs 440rpx 正是这么跳的）。 */
 .dtc-img-fb {
-  width: 100%; height: 400rpx;
-  border-radius: 24rpx;
+  position: absolute; left: 16rpx; top: 16rpx; right: 16rpx; bottom: 16rpx;
+  border-radius: 4rpx;   /* 与 .dtc-par 同值，收进同一个白框 */
   background: linear-gradient(160deg, var(--bg), var(--soft));
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 18rpx;
+  /* 淡入一律复用全局 .fade-in-200（wxml 上挂着），降级口径也就跟着它走，别另写一份 */
 }
 .dtc-fb-ic { width: 110rpx; height: 110rpx; }
 .dtc-fb-title { font-size: 30rpx; font-weight: 700; color: var(--brown, #6B5B50); }
@@ -213,6 +230,14 @@
   color: var(--brown, #6B5B50);
 }
 .dtc-memo-txt.dim { color: var(--text2, #A5968A); font-size: 27rpx; }
+/* 生成失败：手记卡红抖一次（关键帧在 app.wxss，页面自己挂类；抖完由 JS 摘掉类名）。
+   本类**不写 transition** —— 写了会盖掉全局 .pressable 的按压回弹，卡片会变得按下去没反应。
+   降级下抖动被压成 translateX(0)，红边与内圈留着，仍有一句「刚才那下失败了」。 */
+.dtc-memo.shake-err {
+  animation: shake-err 320ms ease-out 1;
+  border-color: var(--stamp, #C26B5E);
+  box-shadow: inset 0 0 0 3rpx var(--stamp, #C26B5E);
+}
 
 /* ===== 补充信息面板（座位/票价/天气；全空时整块不渲染） ===== */
 .dtc-fields {
@@ -376,6 +401,16 @@
 @keyframes anniv-ring-pop {
   0%   { transform: scale(0.4); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
+}
+/* 前庭敏感：三条全压成「直接到位」——
+   · 纸屑纯装饰，且基础态就是 opacity:0，压掉动画即等于不出现；
+   · 印章的基础态**没有**居中位移（居中量在关键帧里），所以压掉动画必须把它补回来，
+     否则徽章会偏到右下角；eggShow 由 JS 的 3.2s 定时器收尾，不会赖着不走；
+   · 圆环的基础态就是「最终样子」，直接不动即可。 */
+@media (prefers-reduced-motion: reduce) {
+  .confetti { animation: none; }
+  .anniv-badge { animation: none; transform: translate(-50%, -50%); }
+  .anniv-ring { animation: none; }
 }
 .anniv-core {
   width: 148rpx;

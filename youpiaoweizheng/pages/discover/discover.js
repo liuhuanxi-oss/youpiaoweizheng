@@ -17,6 +17,7 @@ const deco = require('../../utils/deco.js');
 const mapArt = require('../../utils/mapArt.js');
 const sk = require('../../utils/skeleton.js');
 const enter = require('../../utils/enter.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 /** 地图上最多画几座城（超出的仍计入统计，只是不落点，否则气泡会糊成一片） */
 const MAX_CITIES = 12;
@@ -26,6 +27,12 @@ const ROW_TINT = { show: '#D98C8A', movie: '#C4A9B8', traffic: '#E2B45E', other:
 
 /** 压在水彩实底上的字色：恒白，品牌常量，故不走主题变量 */
 const ON_TINT = '#FFFFFF';
+
+/** 气泡依次升起：与全局 .stagger 同一口径（85ms 一档，最多错开前 6 颗） */
+const RISE_STEP = 85;
+const RISE_MAX = 5;
+/** 换层（水彩 ↔ 真地图）淡出/淡回的时长，必须与 discover.wxss 的 .is-swapping 一致 */
+const SWAP_MS = 180;
 
 Page({
   data: {
@@ -56,10 +63,28 @@ Page({
     stageH: mapArt.STAGE_H,
     // 两种看法：'art' 水彩中国（稿屏7 的默认）/ 'real' 微信原生地图（可缩放、可拖）
     view: 'art',
+    swapping: false, // 换层中（整块淡出 → 换 → 淡回），见 setView
     markers: [],     // 原生地图的图钉（一城一枚）
     mapPts: [],      // include-points：让原生地图自动缩放到装下全部图钉
     mapLat: 35,      // 没数据时的中心（中国中部）
     mapLng: 105
+  },
+
+  onLoad() {
+    // 「减弱动态效果」探测：只影响换层（别的动效在 CSS 里降级）。
+    // 探测不到（老基础库）按「没开」处理：换层多一次淡变代价很小，
+    // 反过来把动效当降级，用户看到的才是「点了半天不换」。
+    this._reduce = false;
+    try {
+      const mq = wx.createMediaQueryObserver();
+      mq.observe({ query: '(prefers-reduced-motion: reduce)' }, (res) => { this._reduce = !!res.matches; });
+      this._mqo = mq;
+    } catch (e) { /* 该基础库不支持：_reduce 保持 false */ }
+  },
+
+  onUnload() {
+    if (this._swapT) { clearTimeout(this._swapT); this._swapT = null; }
+    if (this._mqo) { try { this._mqo.disconnect(); } catch (e) { /* 忽略 */ } this._mqo = null; }
   },
 
   onShow() {
@@ -176,14 +201,17 @@ Page({
         mapPts: markers.map((k) => ({ latitude: k.latitude, longitude: k.longitude })),
         mapLat: markers.length ? markers[0].latitude : 35,
         mapLng: markers.length ? markers[0].longitude : 105,
-        cities: cities.map((c) => {
+        cities: cities.map((c, i) => {
           const gap = mapArt.PIN_GAP + c.push;
           const stem = Math.max(0, gap - 11); // 11 = 落点圆环半径，杆从环外起画
           return {
             city: c.city, count: c.count, x: c.x, y: c.y, color: c.color, below: c.below, fg: ON_TINT,
             // 气泡贴哪个边、隔多远：在上的贴 bottom、在下的贴 top（见 WXSS 的 .dc-bubble）
             bubblePos: (c.below ? 'top:' : 'bottom:') + gap + 'rpx',
-            stemPos: (c.below ? 'top:11rpx;' : 'bottom:11rpx;') + 'height:' + stem + 'rpx'
+            stemPos: (c.below ? 'top:11rpx;' : 'bottom:11rpx;') + 'height:' + stem + 'rpx',
+            // 升起动效的错开延迟。气泡前面还夹着图层、骨架层（且真地图档会少一层），
+            // :nth-child 的下标靠不住，所以排在 JS 这边
+            d: Math.min(i, RISE_MAX) * RISE_STEP
           };
         }),
         total: all.length,
@@ -214,8 +242,21 @@ Page({
   setView(e) {
     const v = e.currentTarget.dataset.view;
     if (!v || v === this.data.view) return;
-    wx.vibrateShort({ type: 'light' });
-    this.setData({ view: v });
+    haptics.tap();
+    // 换层不是「啪」地换一张：先让整块淡出（SWAP_MS），换完再淡回来。
+    // 为什么要分两步而不是给两层都挂过渡：真地图是**原生组件**，各机型对它吃不吃
+    // opacity 不一致（同层渲染的新基础库吃，老的直接把地图画在最上层），
+    // 让两层同时在场赌不起 —— 赌输就是「水彩视图上盖着一张地图」。
+    // 分两步则最坏情况只是「原地换一张」，与改动前一样，不会更糟。
+    // 减弱动效：CSS 那边把过渡撤了，这里就不能再等 SWAP_MS ——
+    // 否则会变成「点了没反应，180ms 后突然换掉」，比直接换还差。
+    if (this._reduce) { this.setData({ view: v }); return; }
+    if (this._swapT) clearTimeout(this._swapT);
+    this.setData({ swapping: true });
+    this._swapT = setTimeout(() => {
+      this._swapT = null;
+      this.setData({ view: v, swapping: false });
+    }, SWAP_MS);
   },
 
   /** 点气泡：底部升起这座城的票根面板 */
@@ -232,7 +273,7 @@ Page({
   openCity(name) {
     const hit = this._byCity && this._byCity.get(name);
     if (!hit || !hit.length) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     const ic = this.data.rowIc;
     this.setData({
       picked: name,

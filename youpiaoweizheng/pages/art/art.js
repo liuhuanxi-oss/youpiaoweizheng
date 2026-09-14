@@ -16,6 +16,7 @@ const pay = require('../../utils/pay.js'); // 4.20.0：额度查询 + 次数包�
 const ads = require('../../utils/ads.js'); // 4.21.0：激励视频（流量主变现：看视频免费补 1 幅）
 const { iconSrc } = require('../../utils/icons.js');
 const deco = require('../../utils/deco.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const LS_QUOTA = 'sp_art_quota'; // { ym: 'YYYY-MM', used: n }
 const LS_TOTAL = 'sp_art_total'; // 藏品编号（全局第几幅，跳号不回收）
@@ -233,7 +234,7 @@ Page({
         // 4.22.5（BUG审查④）：全局也未累加（storage 异常/首次中断）时 clamp≥1，杜绝「Plate No.00」
         const no = Math.max(1, this.data.plateNo || this._plateNo(false));
         this.setData({ phase: 'done', imgUrl: url, plateNo: no });
-        wx.vibrateShort({ type: 'medium' }); // 出画时刻（与收票/保存同级）
+        haptics.confirm(); // 出画时刻（与收票/保存同级）
       } else {
         this.setData({ phase: 'failed', msg: '图版已生成但加载失败，重新进入页面看看，或再画一幅' });
       }
@@ -255,7 +256,7 @@ Page({
       return;
     }
     if (this.data.quotaLeft <= 0) { this._offerBuy(); return; }
-    wx.vibrateShort({ type: 'medium' });
+    haptics.confirm();
     this.setData({ phase: 'running', waiting: true, msg: '' });
     this._plate = this._plateNo(true);       // 预占藏品编号
     this.setData({ plateNo: this._plate });
@@ -352,7 +353,7 @@ Page({
     if (r && r.ok) {
       this._applyQuota(r.quota);
       if (typeof r.left === 'number') this.setData({ rewardLeft: r.left });
-      wx.vibrateShort({ type: 'medium' });
+      haptics.confirm();
       wx.showToast({ title: '+1 幅已到账', icon: 'success' });
       track.track('art_reward_grant', { left: this.data.quotaLeft });
       if (this.data.quotaLeft > 0) this.setData({ paywall: false, phase: 'idle', msg: '' });
@@ -378,7 +379,7 @@ Page({
     this._buying = false;
     if (r.ok) {
       this._applyQuota(r.quota);
-      wx.vibrateShort({ type: 'medium' });
+      haptics.confirm();
       wx.showToast({ title: '次数包已到账', icon: 'success' });
       this.setData({ phase: 'idle', msg: '' }); // 买完即可再画
       return;
@@ -579,7 +580,7 @@ Page({
         wx.saveImageToPhotosAlbum({ filePath: res.tempFilePath, success: resolve, fail: reject });
       });
       wx.hideLoading();
-      wx.vibrateShort({ type: 'medium' });
+      haptics.confirm();
       // 4.19.0 art_save：图版装帧完成（口径：实际存入相册）
       track.track('art_save', { tid: String((this.data.t && this.data.t.id) || '').slice(-6) });
       wx.showToast({ title: '已存入相册', icon: 'success' });

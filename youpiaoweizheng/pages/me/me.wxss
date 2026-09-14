@@ -293,7 +293,17 @@
   background: var(--soft, #F5EDE2);
   overflow: hidden;
 }
-.me-quota-fill { height: 12rpx; border-radius: 6rpx; background: var(--sage, #A9C3A6); }
+/* 额度条：进页从 0 涨到自己的宽度，之后换数据（重绘一次少一次）走 transition 平滑回落，
+   不再是一格一格地「跳」。@keyframes 只写 from（0），to 交给行内 width ——
+   关键帧缺省的那一端取元素的当前值。填充只许用 backwards：
+   both/forwards 会把动画终值留在元素上，把行内 width 盖死，
+   之后再换数据就永远不涨了（同 .stagger / report 的 .bar-fill 那条坑）。 */
+.me-quota-fill {
+  height: 12rpx; border-radius: 6rpx; background: var(--sage, #A9C3A6);
+  transition: width 900ms var(--ease-smooth);
+  animation: me-quota-grow 900ms var(--ease-smooth) backwards;
+}
+@keyframes me-quota-grow { from { width: 0; } }
 .me-quota-label { margin-top: 12rpx; font-size: 23rpx; color: var(--text2, #A5968A); }
 
 /* ===== 7.2.0 L1：勋章横滑（从设置页搬来） ===== */
@@ -322,6 +332,20 @@
   box-sizing: content-box;
 }
 .me-badge.on .me-badge-ic { background: var(--sage-soft, #E9F0E6); }
+/* 点亮：原先只是底色直接换过去，看着像「刷」地闪一下；现在是弹一下再落定。
+   @keyframes 只写 from，to 交给元素自身（scale 1 / opacity 1），
+   --ease-spring 自带过冲，0.72 → 越过 1 一点 → 停住。
+   backwards：延迟期间先按住 from（缩着、透明），否则会先以原大小闪一帧再弹。 */
+.me-badge.on .me-badge-ic { animation: badge-pop 420ms var(--ease-spring) backwards; }
+@keyframes badge-pop { from { transform: scale(0.72); opacity: 0; } }
+/* 一次点亮多枚时像一串灯依次亮起 —— 85ms 一档，同 app.wxss 的 .stagger。
+   只错前 6 枚（一屏横滑也就露出 5 枚），第 7 枚起与第 6 枚同时。
+   延迟按 DOM 位次给：锁着的勋章照样占位，所以「第几枚」是稳的。 */
+.me-badge.on:nth-child(2) .me-badge-ic { animation-delay: 85ms; }
+.me-badge.on:nth-child(3) .me-badge-ic { animation-delay: 170ms; }
+.me-badge.on:nth-child(4) .me-badge-ic { animation-delay: 255ms; }
+.me-badge.on:nth-child(5) .me-badge-ic { animation-delay: 340ms; }
+.me-badge.on:nth-child(n+6) .me-badge-ic { animation-delay: 425ms; }
 .me-badge-name {
   display: block;
   margin-top: 10rpx;
@@ -366,3 +390,11 @@
 }
 .redeem-btn.disabled { opacity: 0.6; }
 .redeem-note { display: block; margin-top: 18rpx; text-align: center; font-size: 20rpx; color: var(--text2); letter-spacing: 1rpx; }
+
+/* ===== 7.4.0 动效降级（docs/MOTION.md §5）=====
+   本页新增的三处动效：额度条涨、勋章弹。降级后条子直接落到最终宽度、
+   勋章直接亮 —— 与改动前的行为一致。卡片错开登场由 app.wxss 的 .stagger 统一收掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .me-quota-fill { animation: none; transition: none; }
+  .me-badge.on .me-badge-ic { animation: none; }
+}

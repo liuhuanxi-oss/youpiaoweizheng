@@ -9,6 +9,7 @@ const { groupLabel } = require('../../utils/date.js');
 const themeUtil = require("../../utils/theme.js");
 const sk = require('../../utils/skeleton.js');
 const { iconSrc } = require('../../utils/icons.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通' };
 
@@ -103,7 +104,7 @@ Page({
       wx.navigateTo({ url: `/pages/detail/detail?id=${id}` });
       return;
     }
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({ expandId: this.data.expandId === id ? '' : id });
   },
 

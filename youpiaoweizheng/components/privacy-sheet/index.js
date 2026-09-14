@@ -9,6 +9,7 @@
 // 颜色编译一次即可：弹窗是瞬时出现的授权层，极少在「刚切完主题」的同一帧里弹出
 const { iconSrc } = require('../../utils/icons.js');
 const themeUtil = require('../../utils/theme.js');
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 Component({
   data: {
@@ -36,7 +37,7 @@ Component({
     // 修复：由 open-type="agreePrivacyAuthorization" button 的授权事件触发（bindagreeprivacyauthorization）。
     // 该事件仅在微信侧接受本次同意后触发——此时带 buttonId resolve 才是合法授权。
     onAgreePrivacy() {
-      wx.vibrateShort({ type: 'light' });
+      haptics.tap();
       this.setData({ show: false });
       if (this._resolve) { this._resolve({ event: 'agree', buttonId: 'agree-btn' }); this._resolve = null; }
     },

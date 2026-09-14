@@ -53,6 +53,21 @@ page { background: var(--bg, #F4EFE6); }
 .cd-deco.is-star-t { right: -44rpx; top: -34rpx; width: 36rpx; height: 27rpx; }
 .cd-deco.is-heart-r { left: -54rpx; bottom: 286rpx; width: 30rpx; height: 30rpx; transform: rotate(9deg); }
 
+/* 画布初始化失败时的兜底卡：盖住整个卡位（与画布同尺寸、同圆角，不跳版）。
+   7.4.0 之前这里只在控制台 warn —— 用户看到的是一个空框，还以为是「还在生成」 */
+.cd-fail {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: 12rpx;
+  background: var(--card-bg, var(--card, #FBF7F0));
+  border: 2rpx dashed var(--border, #D8CDBA);
+  box-sizing: border-box;
+}
+.cd-fail-t { font-size: 28rpx; color: var(--text, #6B5B50); letter-spacing: 2rpx; }
+.cd-fail-s { margin-top: 14rpx; font-size: 22rpx; color: var(--text2, #8A7B66); letter-spacing: 2rpx; }
+
 /* ═══ ② 两枚按钮（稿里那对胶囊：左描边、右玫瑰实底） ═══ */
 .cd-acts {
   display: flex;

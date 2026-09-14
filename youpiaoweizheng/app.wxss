@@ -361,6 +361,48 @@ page {
   }
 }
 
+/* —— 7.4.0 动效标准：卡片/列表项错开登场（docs/MOTION.md §2）——
+   三档节奏里的「中」档：整页进场用 .fade-up（280ms/16rpx），
+   **单个元素的登场**用这个（260ms/60rpx）——16rpx 那点位移肉眼看不出来，
+   卡片看着只是「亮」了一下，不像浮上来。
+
+   两个必须这么写的理由：
+   ① 填充用 backwards 而不是 both。both 会让动画结束后 transform 一直挂在卡片上，
+      而动画的优先级高于普通样式 —— 卡片自己的按下缩放（hover-class）会被整条压死。
+      backwards 只在延迟期间占位，播完即撒手，位移终态与正常样式完全一致，不会闪。
+   ② 错开写在 CSS 里（:nth-child），不往 JS 里塞下标。少一层数据、少一处 Math.min 写错的机会，
+      而且「只错开前 6 项」这条规则就写在它生效的地方，改的人一眼看得见。
+      ⚠️ :nth-child 按**同胞位置**数，所以用它的容器里别混进不参与错开的兄弟节点。
+
+   用法：给首屏那批元素加 .stagger（如 {{enter ? 'stagger' : ''}}），其余什么都不用做。 */
+.stagger { animation: stagger-up 260ms var(--ease-smooth) backwards; }
+@keyframes stagger-up {
+  from { opacity: 0; transform: translateY(60rpx); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* 只错开前 6 项（85ms 一档）。第 7 项起与第 6 项同时 ——
+   100 张票一路排下去要 8.5 秒才铺完，用户会以为卡死。 */
+.stagger:nth-child(2) { animation-delay: 85ms; }
+.stagger:nth-child(3) { animation-delay: 170ms; }
+.stagger:nth-child(4) { animation-delay: 255ms; }
+.stagger:nth-child(5) { animation-delay: 340ms; }
+.stagger:nth-child(6) { animation-delay: 425ms; }
+.stagger:nth-child(n+7) { animation-delay: 425ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* 只留淡变，去掉位移；顺带把错开也一起收掉 —— 错开本身就是「动」，
+     开着无障碍设置的用户不该还要逐张等。 */
+  @keyframes stagger-up {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .stagger,
+  .stagger:nth-child(2), .stagger:nth-child(3), .stagger:nth-child(4),
+  .stagger:nth-child(5), .stagger:nth-child(6), .stagger:nth-child(n+7) {
+    animation-delay: 0ms;
+  }
+}
+
 /* ============================================
    4.10.1 重装饰系统（逐页一致）
    .grain      —— 纸面噪点（A/C 灰纸纹；B 反相成星尘）

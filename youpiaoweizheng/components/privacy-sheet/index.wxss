@@ -1,4 +1,16 @@
 /* components/privacy-sheet/index.wxss —— 隐私授权弹窗内容 */
+/* ⚠️ 自定义组件默认**样式隔离**：app.wxss 的 .pressable / .press-hover / .serif
+   在本组件里引用不到。之前三个可点元素写了 class="pressable" hover-class="press-hover"，
+   全项目都有定义、机检也是绿的，**手机上按下去毫无反应** —— 用户点「同意」时没有任何回执。
+   隔离进来的类就在这里各留一份。改 app.wxss 里那几行时，记得同步这一份。 */
+.serif { font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif; font-weight: 700; }
+.pressable { transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out; }
+.press-hover { transform: scale(0.94); opacity: 0.88; transition: transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 100ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .pressable { transition: opacity 150ms ease-out; }
+  .press-hover { transform: none; }
+}
+
 .pv-body {
   text-align: center;
   padding: 8rpx 10rpx 24rpx;

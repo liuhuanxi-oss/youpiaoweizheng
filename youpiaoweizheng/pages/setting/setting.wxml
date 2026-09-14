@@ -2,7 +2,9 @@
      只放真正的设置：外观主题 / 协议 / 关于 / 清除。
      AI 重绘额度与 13 枚勋章墙 7.2.0 迁去「我的 · 留存中心」——
      荣誉与余额塞在设置里的那两年，等于没人看见过。 -->
-<scroll-view class="tk-page theme-{{theme}} st-page" scroll-y enhanced show-scrollbar="{{false}}">
+<!-- 7.4.0 动效：轻量进场（.fade-up，轻档 280ms / 16rpx，含减弱动态效果降级）。
+     设置页没有 fixed 后代（整页就是一个滚动容器），transform 不会把谁拽偏。 -->
+<scroll-view class="tk-page theme-{{theme}} st-page fade-up" scroll-y enhanced show-scrollbar="{{false}}">
 
   <!-- ① 外观主题 -->
   <view class="st-card">

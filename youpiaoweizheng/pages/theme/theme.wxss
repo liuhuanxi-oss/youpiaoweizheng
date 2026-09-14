@@ -16,6 +16,12 @@
 }
 .th-card.on { border-color: var(--primary); }
 .th-card-hover { transform: scale(0.985); }
+/* 7.4.0：按下的缩放也要降级。描边变色是「状态」，缩放是「动」——
+   开着系统「减弱动态效果」的用户只该看到前者（口径同 app.wxss 的 .pressable 降级）。 */
+@media (prefers-reduced-motion: reduce) {
+  .th-card { transition: border-color 200ms ease; }
+  .th-card-hover { transform: none; }
+}
 
 /* ① IP 头像区（三套一致形象，仅换背景色/光） */
 .th-ip {

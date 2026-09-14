@@ -94,7 +94,20 @@ page { background: var(--bg, var(--paper)); }
   background: var(--soft);
   overflow: hidden;
 }
-.bar-fill { height: 100%; border-radius: 999rpx; }
+/* 类型分布条：进页时从 0 涨到自己的宽度，之后换数据走 transition 平滑涨落。
+   @keyframes 只写 from（0），to 交给行内 width —— 关键帧缺省的那一端取元素的当前值。
+   填充只许用 backwards：both/forwards 会把动画终值留在元素上，
+   把行内 width「盖」住，之后再换数据就永远不涨了（同 .stagger 那条坑）。 */
+.bar-fill {
+  height: 100%; border-radius: 999rpx;
+  transition: width 700ms var(--ease-smooth);
+  animation: bar-grow 700ms var(--ease-smooth) backwards;
+}
+@keyframes bar-grow { from { width: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  /* 涨落也是位移感：降级下条子直接落到最终宽度（与改动前的行为一致） */
+  .bar-fill { animation: none; transition: none; }
+}
 .bar-fill.show { background: var(--cat-show); }
 .bar-fill.movie { background: var(--cat-movie); }
 .bar-fill.traffic { background: var(--cat-transport); }

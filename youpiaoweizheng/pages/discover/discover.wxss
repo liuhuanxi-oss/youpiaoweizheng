@@ -85,7 +85,15 @@
 .dc-view-b.on { background: var(--primary, #2B2420); border-color: var(--primary, #2B2420); color: var(--on-primary, #FFFFFF); }
 
 /* —— 地图舞台：三层严格同尺寸、同投影 —— */
-.dc-stage { position: relative; margin: 8rpx auto 0; }
+/* 换层：整块淡出，换完再淡回（时长与 discover.js 的 SWAP_MS 必须一致）。
+   给的是 .dc-stage 整体而不是某一层 —— 真地图是原生组件，两层同时在场
+   在旧基础库上会变成「水彩上盖着地图」（见 setView 的注释）。 */
+.dc-stage { position: relative; margin: 8rpx auto 0; transition: opacity 180ms ease-out; }
+.dc-stage.is-swapping { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  /* 换层本来就不是动画，只是别在降级里多一次闪烁：直接换，不等 */
+  .dc-stage { transition: none; }
+}
 /* 原生地图铺满舞台，尺寸跟着 JS 下发的 stageW/H 走（和水彩图一样大，切换不跳版） */
 .dc-map { width: 100%; height: 100%; border-radius: 18rpx; }
 .dc-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
@@ -134,6 +142,33 @@
   border-radius: 2rpx;
   transform: rotate(45deg);
 }
+/* 气泡升起（7.4.0）：从落点下方一颗颗弹上来，不再「贴」在图上。
+   · 位移/缩放的**居中量必须一起写进关键帧** —— transform 是整体替换的，
+     只写 translateY 的话气泡会跳到落点右侧半个身位（它靠 translateX(-50%) 居中）。
+   · 错开延迟由 JS 下发（内联 animation-delay），见 discover.js 的 RISE_STEP。
+   · backwards：动画结束不留值，否则按下态的 transform 会被它盖住。 */
+.dc-bubble.dc-rise { animation: dc-rise 320ms var(--ease-spring) backwards; }
+@keyframes dc-rise {
+  from { opacity: 0; transform: translate(-50%, 24rpx) scale(0.94); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+/* 气泡的按下态必须是本页自己的类：全局 press-item-hover 只写 scale，
+   会把 translateX(-50%) 的居中量冲掉，按下去气泡横跳（press_feedback ⑥ 钉着） */
+.dc-bubble-hover {
+  transform: translate(-50%, 0) scale(0.94);
+  opacity: 0.92;
+  transition: transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 100ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 位移与缩放去掉，只留淡变；错开也一并归零，降级的人不用干等 */
+  @keyframes dc-rise {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .dc-bubble.dc-rise { animation-delay: 0ms !important; }
+  .dc-bubble-hover { transform: translate(-50%, 0); }
+}
+
 .dc-bubble.up::after { bottom: -6rpx; }
 .dc-bubble.down::after { top: -6rpx; }
 /* 气泡文字恒为白色（压在水彩实底上）。白色是品牌常量、不是主题色，

@@ -54,109 +54,117 @@
       <view class="an-tt-brush"></view>
     </view>
 
-    <!-- ③ 两张水彩统计卡：珍藏票根 / 走过城市 -->
-    <view class="an-stats">
-      <view class="an-stat is-rose">
-        <image class="an-stat-bg" src="{{art.panRose}}" mode="aspectFit" aria-hidden="true" />
-        <view class="an-stat-lab">
-          <image class="an-stat-sp" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
-          <text class="an-stat-lab-t">珍藏票根</text>
+    <!-- ③④⑤⑥ 依次登场（.stagger 标准，见 app.wxss）。
+         包一层 .an-flow 是必须的：.stagger 的延迟靠 :nth-child 数位次，
+         直接挂在根节点上，前面还排着噪点层与故障横幅（横幅是 wx:if），
+         下标会飘到第 5 位往后 —— 延迟起步 340ms，还随横幅有无而变。 -->
+    <view class="an-flow">
+      <!-- ③ 两张水彩统计卡：珍藏票根 / 走过城市 -->
+      <view class="an-stats stagger">
+        <view class="an-stat is-rose">
+          <image class="an-stat-bg" src="{{art.panRose}}" mode="aspectFit" aria-hidden="true" />
+          <view class="an-stat-lab">
+            <image class="an-stat-sp" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+            <text class="an-stat-lab-t">珍藏票根</text>
+          </view>
+          <view class="an-stat-n">
+            <!-- 数字滚动：viewport 模式 = 滚进视口 30% 才播（组件就是为年报这种大数字写的）。
+                 样式挂在组件标签上（= 宿主节点），字号/字体从宿主继承到组件内部那句 text -->
+            <animated-number class="an-stat-v" mode="viewport" value="{{s.total}}" />
+            <text class="an-stat-u">张</text>
+          </view>
+          <image class="an-stat-do" src="{{ic.ticket}}" mode="aspectFit" aria-hidden="true" />
+          <image class="an-stat-sprig" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
         </view>
-        <view class="an-stat-n">
-          <text class="an-stat-v">{{s.total}}</text>
-          <text class="an-stat-u">张</text>
+
+        <view class="an-stat is-sage">
+          <image class="an-stat-bg" src="{{art.panSage}}" mode="aspectFit" aria-hidden="true" />
+          <view class="an-stat-lab">
+            <image class="an-stat-sp" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+            <text class="an-stat-lab-t">走过城市</text>
+          </view>
+          <view class="an-stat-n">
+            <animated-number class="an-stat-v is-sage" mode="viewport" value="{{s.cities}}" />
+            <text class="an-stat-u is-sage">座</text>
+          </view>
+          <image class="an-stat-do" src="{{ic.plane}}" mode="aspectFit" aria-hidden="true" />
+          <image class="an-stat-sprig is-r" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
         </view>
-        <image class="an-stat-do" src="{{ic.ticket}}" mode="aspectFit" aria-hidden="true" />
-        <image class="an-stat-sprig" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
       </view>
 
-      <view class="an-stat is-sage">
-        <image class="an-stat-bg" src="{{art.panSage}}" mode="aspectFit" aria-hidden="true" />
-        <view class="an-stat-lab">
-          <image class="an-stat-sp" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
-          <text class="an-stat-lab-t">走过城市</text>
-        </view>
-        <view class="an-stat-n">
-          <text class="an-stat-v is-sage">{{s.cities}}</text>
-          <text class="an-stat-u is-sage">座</text>
-        </view>
-        <image class="an-stat-do" src="{{ic.plane}}" mode="aspectFit" aria-hidden="true" />
-        <image class="an-stat-sprig is-r" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+      <!-- ④ 年度精选：玫瑰标签压在拼贴左上角 -->
+      <view class="an-sec stagger">
+        <image class="an-sec-sp" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+        <view class="an-sec-tag"><text class="an-sec-tag-t">年度精选</text></view>
+        <image class="an-sec-sp is-r" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
+        <image class="an-sec-heart" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
       </view>
-    </view>
 
-    <!-- ④ 年度精选：玫瑰标签压在拼贴左上角 -->
-    <view class="an-sec">
-      <image class="an-sec-sp" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
-      <view class="an-sec-tag"><text class="an-sec-tag-t">年度精选</text></view>
-      <image class="an-sec-sp is-r" src="{{art.star}}" mode="aspectFit" aria-hidden="true" />
-      <image class="an-sec-heart" src="{{art.heart}}" mode="aspectFit" aria-hidden="true" />
-    </view>
-
-    <!-- ⑤ 照片拼贴：四张齿边白框 + 两枚邮戳 + 编号标签 + 花枝 -->
-    <view class="an-collage">
-      <view class="an-grid">
-        <view
-          wx:for="{{picks}}"
-          wx:key="id"
-          wx:for-item="p"
-          class="an-cell"
-          style="transform:rotate({{p.tilt}}deg);"
-        >
-          <view class="an-frame">
-            <image class="an-frame-bg" src="{{p.bg}}" mode="aspectFit" aria-hidden="true" />
-            <view class="an-frame-in">
-              <image wx:if="{{p.img}}" class="an-frame-img" src="{{p.img}}" mode="aspectFill" />
-              <view wx:else class="an-frame-fb">
-                <image class="an-frame-fb-ic" src="{{p.ico}}" mode="aspectFit" aria-hidden="true" />
-                <text class="an-frame-fb-t">{{p.typeText}}</text>
+      <!-- ⑤ 照片拼贴：四张齿边白框 + 两枚邮戳 + 编号标签 + 花枝 -->
+      <view class="an-collage stagger">
+        <view class="an-grid">
+          <view
+            wx:for="{{picks}}"
+            wx:key="id"
+            wx:for-item="p"
+            class="an-cell"
+            style="transform:rotate({{p.tilt}}deg);"
+          >
+            <view class="an-frame">
+              <image class="an-frame-bg" src="{{p.bg}}" mode="aspectFit" aria-hidden="true" />
+              <view class="an-frame-in">
+                <image wx:if="{{p.img}}" class="an-frame-img" src="{{p.img}}" mode="aspectFill" />
+                <view wx:else class="an-frame-fb">
+                  <image class="an-frame-fb-ic" src="{{p.ico}}" mode="aspectFit" aria-hidden="true" />
+                  <text class="an-frame-fb-t">{{p.typeText}}</text>
+                </view>
               </view>
+              <image class="an-frame-tape" src="{{p.tape}}" mode="aspectFit" aria-hidden="true" />
             </view>
-            <image class="an-frame-tape" src="{{p.tape}}" mode="aspectFit" aria-hidden="true" />
           </view>
         </view>
-      </view>
 
-      <!-- 邮戳：圆环与注销波浪是图形，城市与日期是真文本（同时光机页） -->
-      <!-- wx:key 用 index 不用 city：两枚戳可能落在同一座城市，就会撞 key -->
-      <view
-        wx:for="{{pm}}"
-        wx:key="index"
-        wx:for-item="k"
-        class="an-pm {{index === 0 ? 'is-1' : 'is-2'}}"
-      >
-        <image class="an-pm-ring" src="{{art.pm.ring}}" mode="aspectFit" aria-hidden="true" />
-        <image class="an-pm-wave" src="{{art.pm.wave}}" mode="aspectFit" aria-hidden="true" />
-        <view class="an-pm-in">
-          <text class="an-pm-city">{{k.city}}</text>
-          <text class="an-pm-l">{{k.dd}}</text>
-          <text class="an-pm-l">{{k.mm}}</text>
-          <text class="an-pm-l">{{k.yy}}</text>
+        <!-- 邮戳：圆环与注销波浪是图形，城市与日期是真文本（同时光机页） -->
+        <!-- wx:key 用 index 不用 city：两枚戳可能落在同一座城市，就会撞 key -->
+        <view
+          wx:for="{{pm}}"
+          wx:key="index"
+          wx:for-item="k"
+          class="an-pm {{index === 0 ? 'is-1' : 'is-2'}}"
+        >
+          <image class="an-pm-ring" src="{{art.pm.ring}}" mode="aspectFit" aria-hidden="true" />
+          <image class="an-pm-wave" src="{{art.pm.wave}}" mode="aspectFit" aria-hidden="true" />
+          <view class="an-pm-in">
+            <text class="an-pm-city">{{k.city}}</text>
+            <text class="an-pm-l">{{k.dd}}</text>
+            <text class="an-pm-l">{{k.mm}}</text>
+            <text class="an-pm-l">{{k.yy}}</text>
+          </view>
         </view>
+
+        <!-- 编号标签（票根编号后六位） -->
+        <view class="an-tag-no"><text class="an-tag-no-t">No. {{no}}</text></view>
+
+        <image class="an-spot is-a" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+        <image class="an-spot is-b" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
       </view>
 
-      <!-- 编号标签（票根编号后六位） -->
-      <view class="an-tag-no"><text class="an-tag-no-t">No. {{no}}</text></view>
-
-      <image class="an-spot is-a" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
-      <image class="an-spot is-b" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
-    </view>
-
-    <!-- ⑥ AI 年度结语 -->
-    <view class="an-ai">
-      <image class="an-ai-bg" src="{{art.panCream}}" mode="aspectFit" aria-hidden="true" />
-      <view class="an-ai-band"></view>
-      <image class="an-ai-band-sp" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
-      <view class="an-ai-body">
-        <view class="an-ai-h">
-          <text class="an-ai-h-t">AI 年度结语</text>
-          <view class="an-ai-h-brush"></view>
+      <!-- ⑥ AI 年度结语 -->
+      <view class="an-ai stagger">
+        <image class="an-ai-bg" src="{{art.panCream}}" mode="aspectFit" aria-hidden="true" />
+        <view class="an-ai-band"></view>
+        <image class="an-ai-band-sp" src="{{art.sprig}}" mode="aspectFit" aria-hidden="true" />
+        <view class="an-ai-body">
+          <view class="an-ai-h">
+            <text class="an-ai-h-t">AI 年度结语</text>
+            <view class="an-ai-h-brush"></view>
+          </view>
+          <text class="an-ai-p" wx:for="{{ai}}" wx:key="index">{{item}}</text>
         </view>
-        <text class="an-ai-p" wx:for="{{ai}}" wx:key="index">{{item}}</text>
-      </view>
-      <view class="an-ai-stamp">
-        <image class="an-ai-stamp-ic" src="{{art.stamp}}" mode="aspectFit" aria-hidden="true" />
-        <image class="an-ai-stamp-wave" src="{{art.stampWave}}" mode="aspectFit" aria-hidden="true" />
+        <view class="an-ai-stamp">
+          <image class="an-ai-stamp-ic" src="{{art.stamp}}" mode="aspectFit" aria-hidden="true" />
+          <image class="an-ai-stamp-wave" src="{{art.stampWave}}" mode="aspectFit" aria-hidden="true" />
+        </view>
       </view>
     </view>
 

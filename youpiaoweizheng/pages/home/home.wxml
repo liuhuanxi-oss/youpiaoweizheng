@@ -1,7 +1,7 @@
 <!-- 票根卡：左右两列共用同一段模板（旧版把这段抄了两遍，改一处必漏一处） -->
 <template name="hcTicket">
   <view
-    class="hc-card pressable"
+    class="hc-card pressable {{enter ? 'stagger' : ''}}"
     hover-class="press-item-hover"
     data-id="{{item.id}}"
     data-title="{{item.title}}"
@@ -34,8 +34,14 @@
 
     <view class="hc-shot">
       <view class="hc-shot-frame">
-        <!-- A1 近似共享元素：被点的那张照片放大淡出（.fly），详情页接住落位 -->
-        <image wx:if="{{item.img}}" class="hc-shot-img {{flyingId === item.id ? 'fly' : ''}}" src="{{item.img}}" mode="aspectFill" lazy-load />
+        <!-- A1 近似共享元素：被点的那张照片放大淡出（.fly），详情页接住落位。
+             照片解码完成才淡入落位（is-loaded）：不等解码的话，图片会在某一帧「蹦」出来。
+             bindload 与 binderror 同一个处理函数：加载失败也要放行，否则照片永久停在透明态，
+             比「加载失败」本身更像坏了。 -->
+        <image wx:if="{{item.img}}"
+               class="hc-shot-img {{item.loaded ? 'is-loaded' : ''}} {{flyingId === item.id ? 'fly' : ''}}"
+               src="{{item.img}}" mode="aspectFill" lazy-load
+               bindload="onShotReady" binderror="onShotReady" data-id="{{item.id}}" />
         <image wx:else class="hc-shot-fb" src="{{item.ico}}" mode="aspectFit" aria-hidden="true" />
       </view>
       <!-- 照片角上那朵小白花与支出来的一枝绿叶（探出照片外，所以裁圆角的是内层 frame） -->
@@ -84,8 +90,11 @@
   <!-- 4.10.1 重装饰层：纸面噪点 -->
   <view class="grain"></view>
 
-  <!-- ============ 品牌行：logo + 有票为证 + 个人中心 ============ -->
-  <view class="hc-head">
+  <!-- ============ 品牌行：logo + 有票为证 + 个人中心 ============
+       往下滚会吸顶（.is-stuck 时浮出纸色实底与细描边）。用 position: sticky，
+       没用 fixed —— 根节点的 .fade-up 会留下 transform，fixed 后代会被它拽着走，
+       sticky 不受影响（已实测：动画播完后根节点留着 translateY(0)，吸顶照常）。 -->
+  <view class="hc-head {{stuck ? 'is-stuck' : ''}}">
     <view class="hc-logo">
       <image class="hc-logo-img" src="/images/brand-logo.png" mode="aspectFit" aria-hidden="true" />
     </view>
@@ -161,7 +170,8 @@
   </view>
 
   <!-- ============ 票根墙：两列 ============ -->
-  <view class="hc-grid" wx:if="{{!loading && (colA.length || colB.length)}}">
+  <!-- 骨架替成真数据、以及切换分类时，整批走一次 200ms 淡入，不再「唰」地硬切 -->
+  <view class="hc-grid {{listIn ? 'fade-in-200' : ''}}" wx:if="{{!loading && (colA.length || colB.length)}}">
     <view class="hc-col">
       <block wx:for="{{colA}}" wx:key="id">
         <template is="hcTicket" data="{{item: item, art: art, ic: ic}}" />

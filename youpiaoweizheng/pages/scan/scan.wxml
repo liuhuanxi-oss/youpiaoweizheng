@@ -134,6 +134,11 @@
         </block>
       </view>
 
+      <!-- 真实进度条：prog 一直在算（0-100），之前只是算了不画，
+           用户只能靠四步图标猜「到哪一步了」。 -->
+      <view class="sc-ai-bar" wx:if="{{progText}}">
+        <view class="sc-ai-bar-in" style="width: {{prog}}%;"></view>
+      </view>
       <view class="sc-ai-cap" wx:if="{{progText}}">{{statusText}}</view>
       <view class="sc-demo" wx:if="{{isDemo}}">演示模式：识别结果为示例数据，开通云开发后自动变成真实识别</view>
 

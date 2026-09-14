@@ -18,6 +18,7 @@ const deco = require('../../utils/deco.js');   // 图形：齿边面板 / 邮戳
 const poster = require('./poster.js');         // 分享海报的 1080×1920 版式（Canvas）
 const { iconSrc } = require('../../utils/icons.js'); // 全页无 emoji，图标一律线性 SVG
 const ai = require('../../utils/ai.js');       // AI 年度结语（失败有本地兜底，不空着）
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 // 海报画布尺寸
 const RW = poster.RW, RH = poster.RH;
@@ -309,7 +310,7 @@ Page({
         wx.saveImageToPhotosAlbum({ filePath: res.tempFilePath, success: resolve, fail: reject });
       });
       wx.hideLoading();
-      wx.vibrateShort({ type: 'medium' });
+      haptics.confirm();
       track.track('annual_save', { total: this._s ? this._s.total : 0 });
       wx.showToast({ title: '海报已存入相册', icon: 'success' });
     } catch (e) {

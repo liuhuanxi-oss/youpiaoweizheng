@@ -50,17 +50,17 @@ Component({
   data: { display: '0' },
   lifetimes: {
     attached() {
-      this._armed = this.data.mode !== 'viewport'; // viewport 模式等视口触发
       if (this.data.mode === 'viewport') this._setupViewport();
       this._probeReduce();
     },
     detached() { this._teardown(); }
   },
   methods: {
-    /** value 变化：instant 模式照旧即播；viewport 模式只记录目标值（未武装不播） */
+    /** value 变化：instant 模式即播；viewport 模式等滚入视口，但视口探测拿不到时直接播
+     *  （探测拿不到的设备上如果照旧返回，数字会永远停在初始的 0 —— 那比不滚动更糟：是错的） */
     onValue() {
-      if (this.data.mode === 'viewport') return; // 视口触发统一走 start()
-      this.play();
+      if (this.data.mode === 'viewport' && this._io) return; // 视口触发统一走 start()
+      this.play(this.data.mode === 'viewport');
     },
 
     /** 滚入视口 30% → 播放一次（外部也可直接调 start() 手动触发） */
@@ -100,13 +100,16 @@ Component({
         this._io = this.createIntersectionObserver({ thresholds: [0.3] });
         this._io.relativeToViewport({ bottom: 0 }).observe('.an', () => this.start());
       } catch (e) {
-        // observer 不可用（老基础库）：回退为「可播」状态，等数据到位直接播
-        this._armed = true;
+        // observer 不可用（老基础库）：_io 保持为空，onValue 据此直接播（见 onValue 注释）
+        this._io = null;
       }
     },
 
-    /** prefers-reduced-motion 探测：支持则精确降级，不支持 fail-open（正常播放） */
+    /** prefers-reduced-motion 探测：支持则精确降级；探测不到按「会播放」处理（fail-open） */
     _probeReduce() {
+      // 探测不出来的设备一律当作「没开减弱动效」：数字滚动只动文本，不位移，
+      // 万一误播代价很小；反过来把动的当成不动的，用户看到的是数字卡住不动。
+      this._reduce = false;
       try {
         if (typeof this.createMediaQueryObserver !== 'function') return;
         const mq = this.createMediaQueryObserver();
@@ -115,7 +118,7 @@ Component({
           if (this._reduce) this._stop();
         });
         this._mqo = mq;
-      } catch (e) { /* 该基础库不支持 prefers-reduced-motion：照常播放 */ }
+      } catch (e) { /* 该基础库不支持 prefers-reduced-motion：照常播放（_reduce 已是 false） */ }
     },
 
     _stop() {

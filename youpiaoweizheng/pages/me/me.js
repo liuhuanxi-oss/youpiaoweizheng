@@ -18,6 +18,7 @@ const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（�
 const track = require('../../utils/track.js'); // 7.3.0 S1：分享埋点
 const sign = require('../../utils/sign.js');   // 7.4.0 R1：今日时光签（端上只读，判定在服务端）
 const points = require('../../utils/points.js'); // 7.4.0 B 段 R2：积分（端上只读，兑换门槛的文案）
+const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 const LS_SHARE = 'sp_share_count';
 
@@ -152,9 +153,20 @@ Page({
     this.setData({ signPoints: Math.max(Number(balance) || 0, 0), pointsHint: h.text, pointsReady: h.ready });
   },
 
+  /** 签到状态：同一页两个调用点（勋章墙 / 签到卡）**共用一次请求**。
+   *  各拉一次不只是多一次云函数调用 —— 两次返回可能不同（用户刚好在中间签到了），
+   *  会出现「勋章说连签 2 天、签到卡说连签 3 天」这种自相矛盾。
+   *  拿到后即作废，下次 onShow 重新拉（状态要新，不能一直吃缓存）。 */
+  _signStatus() {
+    if (!this._signP) {
+      this._signP = sign.status().then((s) => { this._signP = null; return s; });
+    }
+    return this._signP;
+  },
+
   /** 拉签到状态：只看不动。取不到就整块不显示（演示模式 / 云失败） */
   refreshSign() {
-    sign.status().then((s) => {
+    this._signStatus().then((s) => {
       if (!s) return;
       // 积分与签到取同一次返回值：两处各拉一次会出现「这里 128、那里 118」的自相矛盾
       this.setData({ sign: s, signText: sign.bannerText(s) });
@@ -167,7 +179,7 @@ Page({
     if (this.data.signing) return;
     if (this.data.sign && this.data.sign.signed) return;
     this.setData({ signing: true });
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     const r = await sign.checkIn();
     this.setData({ signing: false });
     if (!r || !r.ok) {
@@ -191,7 +203,7 @@ Page({
       wx.showToast({ title: '积分还不够', icon: 'none' });
       return;
     }
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({
       redeemShow: true,
       redeemCost: points.POINTS_PER_ART,
@@ -214,7 +226,7 @@ Page({
       wx.showToast({ title: (r && r.msg) || '兑换失败，请稍后再试', icon: 'none' });
       return;
     }
-    wx.vibrateShort({ type: 'medium' });
+    haptics.confirm();
     this.setData({ redeemShow: false });
     this._applyPoints(r.balance);
     this.refreshQuota(); // 额度卡就在下面一张：不刷新就会出现「刚兑了 1 次，可用次数没变」
@@ -257,7 +269,7 @@ Page({
   async onChooseAvatar(e) {
     const url = e.detail && e.detail.avatarUrl;
     if (!url) return;
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     if (!USE_CLOUD) {
       this.setData({ 'profile.avatar': url }); // 演示模式：临时路径仅本会话可见
       wx.showToast({ title: '演示模式不持久化头像', icon: 'none' });
@@ -295,7 +307,7 @@ Page({
   /** 4.22.0 修复：原生 input 无 selectComponent/focus()——改绑 focus 属性编程聚焦，
       键盘上方「使用微信昵称」快捷条由 type=nickname 原生提供（需已同意隐私协议） */
   onNickAssist() {
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     this.setData({ nickFocus: true });
   },
 
@@ -320,7 +332,10 @@ Page({
 
   /** 统计卡三列 + 勋章墙的数据源（一次 listTickets 供两处用） */
   async refresh() {
-    const ts = await store.listTickets();
+    // 三件事并行：票根列表（统计卡 + 勋章墙）、签到状态、积分 —— 串行拉会让这一页明显变慢。
+    // 7.4.0 C 段 R3：连签与积分那三枚勋章要服务端数据（端上算不了，见 utils/badges.js 文件头）。
+    // 两个都取不到就传 null，勋章退化成「只说门槛、不说进度」，一个字都不编。
+    const [ts, sg, pt] = await Promise.all([store.listTickets(), this._signStatus(), points.status()]);
     const m = themeUtil.getThemeMeta(themeUtil.getTheme());
     let shareCount = 0;
     let mapVisited = false;
@@ -330,7 +345,10 @@ Page({
     try { inviteSent = !!wx.getStorageSync('sp_invite_sent'); } catch (e) { /* 忽略 */ }
     const c = couple.cachedCouple();
     // 未解锁的用低透明度正文色置灰（iconSrc 对未知名会回落票根图标，故不必再兜底）
-    const badges = computeBadges(ts, c && c.boundAt ? c : null, shareCount, mapVisited, inviteSent)
+    const badges = computeBadges(ts, c && c.boundAt ? c : null, shareCount, mapVisited, inviteSent, {
+      streak: sg && sg.streak,
+      lifetime: pt && pt.lifetime
+    })
       .map((b) => Object.assign(b, { src: iconSrc(b.icon, b.unlocked ? m.accent : m.text, b.unlocked ? 1 : 0.25) }));
     this.setData({
       stats: {
@@ -383,7 +401,7 @@ Page({
 
   /** 两个入口的路由：都是没有别的入口的二级页（tab 与设置另有入口） */
   _route(key) {
-    wx.vibrateShort({ type: 'light' });
+    haptics.tap();
     const PAGE = { duo: '/pages/duo/duo', annual: '/pages/annual/annual', setting: '/pages/setting/setting' };
     if (PAGE[key]) wx.navigateTo({ url: PAGE[key] });
   },
