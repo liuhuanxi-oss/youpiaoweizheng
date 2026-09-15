@@ -314,6 +314,41 @@ async function backfillGeoAction(OPENID) {
 //   ② artQuery：前端每 4s 轮询 job 状态 → done 拿 fileID / failed 拿 msg
 // 额度控制在本端（sp_art_quota，每月 3 张免费）；tickets.artVersion 记录最新图版。
 // ============================================================
+
+// ---------- P1-11 僵尸 job 回收 ----------
+// 生图是在云函数里同步跑的，而云函数最长 60 秒 —— 执行被杀掉时，写 done / 写 failed /
+// 退额度这三步一步都不会发生，job 永远停在 running。用户遇到的是：
+//   ① 额度扣了不退（白扣一次）；② 轮询永远「正在作画」；③ 该票再也不接受新的重绘请求
+//   （防重入看到 running 就返回 queued）—— ③ 最要命，这张票等于被判了无期。
+// 判定：running 且 updatedAt 早于 3 分钟（真在跑的活不可能超过云函数 60 秒上限）。
+// 回收走条件更新抢占：并发轮询 / 连点只有一次能抢到 —— **只退一次**额度。
+const ART_JOB_STALE_MS = 3 * 60 * 1000;
+const ART_JOB_STALE_MSG = '上次没跑完，次数已退回，再点一次';
+
+/**
+ * 把这个僵尸 job 收掉（置 failed + 退额度）。
+ * @returns {Promise<boolean>} true = 这次抢到了回收权（job 已作废、额度已退）
+ */
+async function reclaimStaleJob(db, OPENID, job) {
+  if (!job || job.status !== 'running') return false;
+  const _ = db.command;
+  const cut = Date.now() - ART_JOB_STALE_MS;
+  // 这一句与下面条件更新里的 updatedAt 是同一个判据的两道写法：读到的 job 还新鲜就直接返回，
+  // 省掉每 4 秒一次注定失败的条件写。**两道互为等价**，拿掉任一道另一道照样拦得住，
+  // 但两道一起拿掉，刚起的任务就会被判失败并白退一次额度（tests/art_job_reclaim 会红）。
+  if ((job.updatedAt || job.createdAt || 0) >= cut) return false;
+  const claim = await db.collection('prefs')
+    .where({ _id: job._id, status: 'running', updatedAt: _.lt(cut) })
+    .update({ data: { status: 'failed', msg: ART_JOB_STALE_MSG, updatedAt: Date.now() } });
+  if (!claim || !claim.stats || !claim.stats.updated) return false; // 别人抢到了，由他退
+  // 退当初扣的那个池。本次改动之前留下的老 job 没有 pool 字段 → refundQuota 内部
+  // 有兼容的反推分支，不需要数据迁移。
+  await pay.refundQuota(db, OPENID, job.pool).catch((e) => {
+    console.error('[artReclaim] refundQuota 失败', OPENID, job._id, (e && e.message) || e);
+  });
+  return true;
+}
+
 async function artRestyleAction(event, OPENID) {
   const ticketId = String(event.ticketId || '').trim();
   if (!ticketId) return { ok: false, msg: '缺少票根 id' };
@@ -329,9 +364,13 @@ async function artRestyleAction(event, OPENID) {
     if (!t.img) return { ok: false, msg: '这张票根没有照片，先补一张票根照片' };
 
     // 防重复：同票已有 running 的 job → 直接返回（前端转轮询）
+    // P1-11：但如果那条 running 是超时留下的僵尸，先收掉它再往下走 —— 否则这张票
+    // 永远卡在「正在作画」，用户点多少次重绘都只会回到这里。
     const jobs = db.collection('prefs');
     const pend = await jobs.where({ _openid: OPENID, type: 'art_job', ticketId, status: 'running' }).limit(1).get();
-    if (pend.data && pend.data.length) return { ok: true, queued: true, jobId: pend.data[0]._id };
+    if (pend.data && pend.data.length && !(await reclaimStaleJob(db, OPENID, pend.data[0]))) {
+      return { ok: true, queued: true, jobId: pend.data[0]._id };
+    }
 
     // 6.6.5（P0）：原子抢占 job 槽，再扣额度。旧实现「查 running → 扣额度 → add job」存在 TOCTOU：
     // 并发双击/网络重试时两次都查不到 running → 各扣一次额度、各起一个生图任务（真实产生 AI 成本）。
@@ -366,15 +405,23 @@ async function artRestyleAction(event, OPENID) {
       return { ok: false, quota: spend.quota, code: 'NO_QUOTA', msg: '本月免费额度已用完，可购买图版次数包' };
     }
     const job = { _id: revId };
+    // 记下这次扣的是哪个池（免费 / 付费）—— 回收时按它精确退，别退错池（PAY-3 的同一口径）
+    await jobs.doc(job._id).update({ data: { pool: spend.pool, updatedAt: Date.now() } }).catch(() => {});
 
     // 同步跑完生图全程（前端已不等）；任何失败回写 job，轮询侧可见
     try {
       const r = await generateArt(cloud, t.img);
-      await jobs.doc(job._id).update({ data: { status: 'done', fileID: r.fileID, updatedAt: Date.now() } });
-      // 6.6.5：回写 artVersion 必须带 _openid 自限权（云函数是管理员权限，裸 doc(id) 写是越权模式）
-      await col.where({ _id: ticketId, _openid: OPENID })
-        .update({ data: { artVersion: { fileID: r.fileID, createdAt: Date.now() } } })
-        .catch(() => { /* 记录失败不影响交付 */ });
+      // P1-11 的另一半：这份结果只有在 job 还活着的时候才算数。万一它已被判僵尸、
+      // 额度也退了，迟到的成功不能再覆盖成 done —— 否则用户既拿到图、又拿回了次数。
+      const done = await jobs.where({ _id: job._id, status: 'running' })
+        .update({ data: { status: 'done', fileID: r.fileID, updatedAt: Date.now() } });
+      if (done && done.stats && done.stats.updated) {
+        // 6.6.5：回写 artVersion 必须带 _openid 自限权（云函数是管理员权限，裸 doc(id) 写是越权模式）
+        await col.where({ _id: ticketId, _openid: OPENID })
+          .update({ data: { artVersion: { fileID: r.fileID, createdAt: Date.now() } } })
+          .catch(() => { /* 记录失败不影响交付 */ });
+      }
+      // 抢不到（已被判僵尸、额度也退了）→ 图不留、票根不写，让用户拿着退回的次数重画一次
     } catch (e) {
       const raw = String((e && e.message) || e);
       console.error('[artRestyle] 生图失败', OPENID, ticketId, raw); // 细节只进日志（P2-4）
@@ -409,6 +456,11 @@ async function artQueryAction(event, OPENID) {
       .get();
     const j = res.data && res.data[0];
     if (!j) return { ok: true, status: 'none' };
+    // P1-11：轮到的是个僵尸 job（超时留下的 running）→ 当场收掉并退额度，
+    // 别让前端一直转圈到 160 秒上限、最后只说一句「画得有点久」
+    if (j.status === 'running' && await reclaimStaleJob(db, OPENID, j)) {
+      return { ok: true, status: 'failed', fileID: '', msg: ART_JOB_STALE_MSG };
+    }
     return { ok: true, status: j.status, fileID: j.fileID || '', msg: j.msg || '' };
   } catch (e) {
     return { ok: false, msg: '查询失败' };
@@ -1254,10 +1306,23 @@ async function bindAction(event, OPENID) {
       const code = String(event.code || '').trim().toUpperCase();
       if (code.length !== 4) return { ok: false, msg: '邀请码是 4 位字符' };
       const mine = await findMyCouple(db, OPENID);
-      if (mine && mine.status === 'bound') return { ok: false, msg: '你已和 TA 绑定，先解绑才能换人' };
+      if (mine && mine.status === 'bound') {
+        // 已经和 TA 绑着、又把同一个码输一遍（重进页面 / 点回旧链接）→ 幂等成功。
+        // 这里回「先解绑才能换人」会把人吓一跳：他根本没想换人。
+        if (mine.code === code) return { ok: true, bound: true, couple: coupleView(mine, OPENID) };
+        return { ok: false, msg: '你已和 TA 绑定，先解绑才能换人' };
+      }
       const res = await db.collection('couples').where({ code, status: 'waiting' }).limit(1).get();
       const doc = (res.data && res.data[0]) || null;
-      if (!doc) return { ok: false, msg: '邀请码不存在或已被使用' };
+      if (!doc) {
+        // 码已经不是 waiting 了 —— 但如果那个码里坐的是我自己，说明是刚才这一次已经成了
+        // （连点两下 / 网络重试），当幂等成功返回，别让用户看到「邀请码不存在」
+        const used = await db.collection('couples')
+          .where({ code, members: OPENID, status: 'bound' }).limit(1).get();
+        const u = used.data && used.data[0];
+        if (u) return { ok: true, bound: true, couple: coupleView(u, OPENID) };
+        return { ok: false, msg: '邀请码不存在或已被使用' };
+      }
       if ((doc.members || []).includes(OPENID)) {
         return { ok: true, bound: true, couple: coupleView(doc, OPENID) };
       }
@@ -1273,8 +1338,30 @@ async function bindAction(event, OPENID) {
         status: 'bound',
         boundAt: Date.now()
       };
-      await db.collection('couples').doc(doc._id).update({ data: next });
-      return { ok: true, bound: true, couple: coupleView({ ...doc, ...next }, OPENID) };
+      // 6.6.3（P2-9）抢占式绑定：两个人同时输同一个码时，只有先把 waiting 改成 bound 的那次能成功，
+      // 后到的这次条件更新命中 0 行。旧实现是裸 doc(id).update——后写覆盖先写：两边都收到「绑定成功」，
+      // 文档里却只留下后一个人，前一个人凭空消失（而他的端上还缓着已绑定的状态）。
+      const claim = await db.collection('couples')
+        .where({ _id: doc._id, status: 'waiting' })
+        .update({ data: next });
+      if (!claim || !claim.stats || !claim.stats.updated) {
+        // 输给了并发 —— 除非坐进去的就是我自己（同一个人连点两下）
+        const after = await db.collection('couples')
+          .where({ _id: doc._id, members: OPENID, status: 'bound' }).limit(1).get();
+        const a = after.data && after.data[0];
+        if (a) return { ok: true, bound: true, couple: coupleView(a, OPENID) };
+        return { ok: false, msg: '这个邀请码刚被别人用了' };
+      }
+      // P2-9：加入成功 → 把自己名下那条还在等人的码作废（一个人只站在一份关系里）。
+      // 未绑定态页面上没有「作废我的邀请码」的入口，留着它只会让我同时躺在两份文档里，
+      // 而 findMyCouple 没排序、只取一条 —— 我到底和谁绑着会变成随机的。
+      // 放在绑定成功之后：万一这次加入没成，我自己的码还得留着。
+      let canceledCode = '';
+      if (mine && mine.status === 'waiting') {
+        await db.collection('couples').doc(mine._id).remove().catch(() => { /* 作废失败不拦加入 */ });
+        canceledCode = mine.code || '';
+      }
+      return { ok: true, bound: true, canceledCode, couple: coupleView({ ...doc, ...next }, OPENID) };
     }
 
     // —— 查询我的绑定态 ——

@@ -283,7 +283,12 @@ Page({
           haptics.confirm();   // 关键操作（绑定成功）的明确反馈
           // 4.17.0 invite_bind：被邀请方落地成功（增长口径：K 因子的转化环节）
           track.track('invite_bind', { via: 'code' });
-          wx.showToast({ title: `已和 ${c.couple.partnerName} 绑定`, icon: 'success' });
+          // P2-9：你自己那条等别人加入的码被服务端作废了 —— 得说一声，不能悄悄失效
+          if (c.canceledCode) {
+            wx.showToast({ title: `已和 ${c.couple.partnerName} 绑定，你原来那条码已作废`, icon: 'none' });
+          } else {
+            wx.showToast({ title: `已和 ${c.couple.partnerName} 绑定`, icon: 'success' });
+          }
           this.refresh();
         } catch (e) {
           wx.hideLoading();
