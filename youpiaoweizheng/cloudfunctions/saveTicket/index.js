@@ -33,6 +33,17 @@ async function ensureCollection(db, name) {
   }
 }
 
+/**
+ * catch 的统一出口（P2-4）：错误细节只进云函数日志，回给前端的永远是人话。
+ * 原实现把 e.message 原样拼进返回文案，而 wx-server-sdk 的 message 里带着集合名与
+ * 内部结构（有一处连 config 集合、pay_secret 字段名都一并抛给前端）。前端拿到这些
+ * 除了吓人没有任何用处——真要排查，看的是云函数日志，不是用户屏幕。
+ */
+function failLog(tag, e, msg) {
+  console.error('[' + tag + ']', (e && (e.errMsg || e.message)) || e);
+  return { ok: false, msg };
+}
+
 /** 内容安全检测内部实现：pass 通过 / risky 拦截 / error 服务异常（调用方定策略） */
 async function secCheck(openid, content) {
   try {
@@ -51,6 +62,23 @@ async function secCheck(openid, content) {
     }
     return { result: 'error', msg: '安全检查服务异常' };
   }
+}
+
+/**
+ * 入库/展示文本的安检闸门（P2-3）：平台故障（error）**不再等于放行**。
+ * 旧口径是「服务异常即通过」—— 那等于给违规文本留了一条旁路：挑一个腾讯侧抖动的
+ * 时刻提交，未审内容就写进去了，而它会跟着卡片/海报导出去当展示内容。
+ * 抖动是真的，所以先重试一次（多数 error 是瞬时的、重试即过）；两次都异常才拒绝。
+ * 拒绝时给出人话，用户重试一次就过去了。
+ * @param {string} what 触发拒绝时的主语（如「文案」→「文案未通过安全检查」）
+ * @returns {Promise<{ok:true}|{ok:false,msg:string}>} 不 ok 时 msg 可直接回前端
+ */
+async function secGate(openid, content, what) {
+  let r = await secCheck(openid, content);
+  if (r.result === 'error') r = await secCheck(openid, content);
+  if (r.result === 'pass') return { ok: true };
+  if (r.result === 'risky') return { ok: false, msg: what + '未通过安全检查：' + r.msg };
+  return { ok: false, msg: '安全检查暂时不可用，请稍后再试' };
 }
 
 /** 内容安全校验（action 路由复用 secCheck，避免新增云函数的部署成本） */
@@ -74,6 +102,11 @@ async function setCaptionAction(event, OPENID) {
   const caption = String(event.caption || '').trim().slice(0, 500);
   if (!id || !caption) return { ok: false, msg: '参数缺失' };
   try {
+    // P2-2：文案是唯一漏检的自由文本（title/note/昵称都检了），而它会跟着卡片/海报
+    // 导出去当展示内容 —— 端上生成时虽然先调了 checkText，但那是「自觉」，
+    // 直连 callFunction 就能绕开。入库这道才是边界，所以在这里再检一次。
+    const sc = await secGate(OPENID, caption, '文案');
+    if (!sc.ok) return sc;
     const db = cloud.database();
     await ensureCollection(db, 'tickets');
     // _openid 双保险：只能改自己的票（云函数端是管理员权限，必须自己限权）
@@ -85,7 +118,7 @@ async function setCaptionAction(event, OPENID) {
     }
     return { ok: true };
   } catch (e) {
-    return { ok: false, msg: '文案保存失败：' + (e.message || 'unknown') };
+    return failLog('setCaption', e, '文案保存失败，请稍后再试');
   }
 }
 
@@ -93,26 +126,33 @@ async function setCaptionAction(event, OPENID) {
  * 4.14.0：组内拖拽排序（action 路由）
  * 前端整理模式下整组重排后调用；orders = [{id, sortAt}]（同组全量，组内严格有序）。
  * 复用 setCaptionAction 的自愈模式：ensureCollection + _openid 归属校验。
+ * P2-6：原实现逐条 await（最多 200 次串行 DB 往返），整组整理一次就顶到云函数超时，
+ * 超时后已写进去的那部分不回滚 —— 用户看到的是「排了一半」。改成小批并发。
  */
+const REORDER_CONCURRENCY = 10; // 并发太高会撞云开发连接数限流，10 条一轮够快也不扎堆
+
 async function reorderAction(event, OPENID) {
   const orders = Array.isArray(event.orders) ? event.orders.slice(0, 200) : [];
   if (!orders.length) return { ok: false, msg: '缺少排序数据' };
   try {
     const db = cloud.database();
     await ensureCollection(db, 'tickets');
+    const col = db.collection('tickets');
+    const items = orders
+      .map((o) => ({ id: String((o && o.id) || '').trim(), sortAt: Number(o && o.sortAt) || 0 }))
+      .filter((o) => o.id && o.sortAt);
     let updated = 0;
-    for (const o of orders) {
-      const id = String(o.id || '').trim();
-      const sortAt = Number(o.sortAt) || 0;
-      if (!id || !sortAt) continue;
-      const res = await db.collection('tickets')
-        .where({ _id: id, _openid: OPENID })
-        .update({ data: { sortAt } });
-      updated += (res.stats && res.stats.updated) || 0;
+    for (let i = 0; i < items.length; i += REORDER_CONCURRENCY) {
+      const chunk = items.slice(i, i + REORDER_CONCURRENCY);
+      const rs = await Promise.all(chunk.map((o) =>
+        col.where({ _id: o.id, _openid: OPENID }).update({ data: { sortAt: o.sortAt } })
+          .catch(() => null) // 单条失败（如票已删）不拖垮整组：其余的照排
+      ));
+      rs.forEach((r) => { updated += (r && r.stats && r.stats.updated) || 0; });
     }
     return { ok: true, updated };
   } catch (e) {
-    return { ok: false, msg: '排序保存失败：' + (e.message || 'unknown') };
+    return failLog('reorder', e, '排序保存失败，请稍后再试');
   }
 }
 
@@ -139,7 +179,7 @@ async function reorderGroupsAction(event, OPENID) {
     }
     return { ok: true, count: labels.length };
   } catch (e) {
-    return { ok: false, msg: '章节顺序保存失败：' + (e.message || 'unknown') };
+    return failLog('reorderGroups', e, '章节顺序保存失败，请稍后再试');
   }
 }
 
@@ -203,7 +243,7 @@ async function wxacodeAction(event) {
     } catch (e) { /* 缓存写失败不阻塞（下次重生成，可接受） */ }
     return { ok: true, fileID: up.fileID };
   } catch (e) {
-    return { ok: false, msg: '小程序码服务异常：' + String((e && (e.errMsg || e.message)) || e).slice(0, 60) };
+    return failLog('wxacode', e, '小程序码生成失败，稍后再试');
   }
 }
 
@@ -214,32 +254,55 @@ async function wxacodeAction(event) {
 // 已是场馆级的跳过。只回填 geo 不回填天气（避免逐票 HTTP 超时风险）。
 // limit 200 分批：多次调用直到返回 filled=0 即回填完毕。
 // ============================================================
+// P2-6：单次上限从 200 收到 60 —— 原实现 200 票 × 每票一次串行 geocode（4s 超时），
+// 最坏 800s，必然撞上云函数 60s 上限，写一半就断了（断在哪算哪，用户看到的是「回填了但没回填完」）。
+const BACKFILL_GEO_BATCH = 60;     // 单次处理上线
+const BACKFILL_GEO_CONCURRENCY = 6; // 并发 6：60 票最坏 10 轮 × 4s = 40s，留出余量
+
+/** 单票的坐标：同城同场地共用一次 geocode（同一场馆的票往往成串，缓存省下的是真时间） */
+function geoForDoc(doc, cache) {
+  const key = String(doc.city || '') + '|' + String(doc.venue || '');
+  if (cache.has(key)) return cache.get(key);
+  const task = (async () => {
+    if (!doc.city) return null; // 双保险：不依赖 where 语义差异
+    if (doc.venue) {
+      const p = await geocodeVenue(doc.city, doc.venue).catch(() => null); // 场馆级优先（未配 key 返回 null）
+      if (p) return { geo: p, src: 'venue' };
+    }
+    const g = lookupCity(doc.city);
+    return g ? { geo: g, src: 'city' } : null;
+  })();
+  cache.set(key, task);
+  return task;
+}
+
 async function backfillGeoAction(OPENID) {
   try {
     const db = cloud.database();
     const _ = db.command;
-    const res = await db.collection('tickets')
+    const col = db.collection('tickets');
+    const res = await col
       .where({ _openid: OPENID, geoSource: _.neq('venue'), city: _.neq('').and(_.neq(null)) })
-      .limit(200)
+      .limit(BACKFILL_GEO_BATCH)
       .get();
+    const docs = res.data || [];
+    const cache = new Map();
     let filled = 0;
-    for (const doc of res.data || []) {
-      if (!doc.city) continue; // 双保险：不依赖 where 语义差异
-      let g = null;
-      let src = 'city';
-      if (doc.venue) {
-        const p = await geocodeVenue(doc.city, doc.venue); // 场馆级优先（未配 key 返回 null）
-        if (p) { g = p; src = 'venue'; }
-      }
-      if (!g) g = lookupCity(doc.city);
-      if (g) {
-        await db.collection('tickets').doc(doc._id).update({ data: { geo: g, geoSource: src } });
-        filled++;
-      }
+    for (let i = 0; i < docs.length; i += BACKFILL_GEO_CONCURRENCY) {
+      const chunk = docs.slice(i, i + BACKFILL_GEO_CONCURRENCY);
+      const gs = await Promise.all(chunk.map((doc) => geoForDoc(doc, cache)));
+      await Promise.all(chunk.map((doc, k) => {
+        const g = gs[k];
+        if (!g) return null;
+        return col.doc(doc._id).update({ data: { geo: g.geo, geoSource: g.src } })
+          .then(() => { filled++; })
+          .catch(() => null); // 单票写失败不拖垮整批
+      }));
     }
-    return { ok: true, scanned: (res.data || []).length, filled };
+    // more=true 时还有存票没轮到（客户端/控制台再调一次即可，幂等）
+    return { ok: true, scanned: docs.length, filled, more: docs.length >= BACKFILL_GEO_BATCH };
   } catch (e) {
-    return { ok: false, msg: 'geo 回填失败：' + (e.message || 'unknown') };
+    return failLog('backfillGeo', e, 'geo 回填失败，稍后再试');
   }
 }
 
@@ -314,9 +377,10 @@ async function artRestyleAction(event, OPENID) {
         .catch(() => { /* 记录失败不影响交付 */ });
     } catch (e) {
       const raw = String((e && e.message) || e);
+      console.error('[artRestyle] 生图失败', OPENID, ticketId, raw); // 细节只进日志（P2-4）
       const msg = /model|not\s*found|permission|ai/i.test(raw)
         ? '生成服务暂不可用（需在云开发控制台「AI+」开通生图模型并核对资源包）'
-        : raw.slice(0, 80);
+        : '这次没画出来，次数已退回，稍后再试';
       await jobs.doc(job._id).update({ data: { status: 'failed', msg, updatedAt: Date.now() } }).catch(() => {});
       // 6.6.5：返还失败不能再静默吞掉（旧实现 catch(()=>{}) → 用户白扣且无日志），至少落日志
       await pay.refundQuota(db, OPENID, spend.pool).catch((e2) => {
@@ -327,7 +391,7 @@ async function artRestyleAction(event, OPENID) {
     const q = await pay.loadQuota(db, OPENID);
     return { ok: true, jobId: job._id, async: true, quota: pay.quotaView(q) };
   } catch (e) {
-    return { ok: false, msg: '图版服务异常：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('artRestyle', e, '图版服务异常，稍后再试');
   }
 }
 
@@ -390,7 +454,7 @@ async function authLoginAction(event, OPENID) {
     }
     return { ok: true };
   } catch (e) {
-    return { ok: false, msg: '登录异常：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('authLogin', e, '登录失败，请稍后再试');
   }
 }
 
@@ -442,7 +506,7 @@ async function payCreateAction(event, OPENID) {
     });
     return { ok: true, mode: 'short_series_goods', signData, paySig, signature, outTradeNo };
   } catch (e) {
-    return { ok: false, msg: '下单失败：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('payCreate', e, '下单失败，请稍后再试');
   }
 }
 
@@ -600,7 +664,7 @@ async function artRewardGrantAction(event, OPENID) {
     try { points = await earnPoints(db, OPENID, 'video'); } catch (e) { points = null; }
     return { ok: true, quota: pay.quotaView(after), left: AD_REWARD_DAILY_LIMIT - (count + 1), points };
   } catch (e) {
-    return { ok: false, msg: '奖励入账失败：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('artRewardGrant', e, '奖励入账失败，请稍后再试');
   }
 }
 
@@ -933,8 +997,8 @@ async function profileSaveAction(event, OPENID) {
   if (!nickname && !avatar) return { ok: false, msg: '没有可保存的资料' };
   try {
     if (nickname) {
-      const sc = await secCheck(OPENID, nickname);
-      if (sc.result === 'risky') return { ok: false, msg: '昵称未通过安全检查：' + sc.msg };
+      const sc = await secGate(OPENID, nickname, '昵称');
+      if (!sc.ok) return sc;
     }
     const db = cloud.database();
     await ensureCollection(db, 'prefs');
@@ -951,7 +1015,7 @@ async function profileSaveAction(event, OPENID) {
     }
     return { ok: true };
   } catch (e) {
-    return { ok: false, msg: '资料保存失败：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('profileSave', e, '资料保存失败，请稍后再试');
   }
 }
 
@@ -967,7 +1031,7 @@ async function profileClearAction(OPENID) {
     }
     return { ok: true };
   } catch (e) {
-    return { ok: false, msg: '资料清除失败：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('profileClear', e, '资料清除失败，请稍后再试');
   }
 }
 
@@ -1114,7 +1178,7 @@ async function goodsImgSetupAction(event) {
     const f = got && got.fileList && got.fileList[0];
     return { ok: true, fileID: fileID, url: (f && f.tempFileURL) || '', status: (f && f.status) };
   } catch (e) {
-    return { ok: false, msg: String((e && e.message) || e).slice(0, 100) };
+    return failLog('goodsImgSetup', e, '道具图上传失败');
   }
 }
 
@@ -1229,7 +1293,7 @@ async function bindAction(event, OPENID) {
 
     return { ok: false, msg: '未知的绑定操作' };
   } catch (e) {
-    return { ok: false, msg: '绑定服务异常：' + (e.message || 'unknown') };
+    return failLog('bind', e, '绑定服务异常，请稍后再试');
   }
 }
 
@@ -1616,7 +1680,7 @@ async function pointsRedeemAction(event, OPENID) {
       balance: after.balance || 0, quota: pay.quotaView(q)
     };
   } catch (e) {
-    return { ok: false, msg: '兑换失败：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('pointsRedeem', e, '兑换失败，请稍后再试');
   }
 }
 
@@ -1717,7 +1781,7 @@ async function dailySignAction(event, OPENID) {
     if (art) out.quota = pay.quotaView(await pay.loadQuota(db, OPENID));
     return out;
   } catch (e) {
-    return { ok: false, msg: '签到失败：' + String((e && e.message) || e).slice(0, 60) };
+    return failLog('dailySign', e, '签到失败，请再点一次');
   }
 }
 
@@ -1805,7 +1869,7 @@ async function duoStatsAction(OPENID, full) {
       boundAt: mine.boundAt || 0
     };
   } catch (e) {
-    return { ok: false, msg: '统计失败：' + (e.message || 'unknown') };
+    return failLog('duoStats', e, '统计失败，请稍后再试');
   }
 }
 
@@ -1820,6 +1884,39 @@ async function eventStatsAction(event) {
   } catch (e) {
     return { ok: false, msg: '查询失败' };
   }
+}
+
+// ============================================================
+// P2-1 入库白名单：端上传来的是一个整对象，原实现 `add({ data: t })` 整包入库 ——
+// 白名单外的字段（base64 图、任意长度的文案、任意结构）全都写进文档。单文档上限 1MB，
+// 被塞满的那张票此后连读都读不出来（用户视角：这张票坏了，而且不知道为什么会坏）。
+// 这里只放行客户端真的会填的字段，其余**丢弃而不是报错** —— 老版本客户端多传一个字段，
+// 不该让用户存不了票。
+// 图片必须是本环境云存储的 fileID：一旦允许任意字符串，<image> 就拿到了一个可指向
+// 外部的地址（伪造来源 / 混入未审图），而云存储地址是可核对的环境内资产。
+// ============================================================
+const CLOUD_FILEID_RE = /^cloud:\/\/[\w-]+\.[\w-]+\//;
+/** 文本字段 → 长度上限（按展示位宽度取：标题一行、备注最多几行） */
+const TICKET_TEXT_MAX = {
+  title: 60, date: 10, time: 12, type: 16, city: 24,
+  venue: 60, seat: 40, source: 20, note: 500, aiCaption: 500
+};
+
+function sanitizeTicket(raw) {
+  const src = (raw && typeof raw === 'object') ? raw : {};
+  const out = {};
+  Object.keys(TICKET_TEXT_MAX).forEach((k) => {
+    const v = src[k];
+    if (v === undefined || v === null || v === '') return;
+    out[k] = String(v).slice(0, TICKET_TEXT_MAX[k]);
+  });
+  const img = String(src.img || '');
+  if (CLOUD_FILEID_RE.test(img)) out.img = img;
+  // price / rating / geo 的夹紧在下方主流程里做（口径不变），这里只搬运原始值
+  if (src.price !== undefined) out.price = src.price;
+  if (src.rating !== undefined) out.rating = src.rating;
+  if (src.geo !== undefined) out.geo = src.geo;
+  return out;
 }
 
 exports.main = async (event) => {
@@ -1984,7 +2081,11 @@ exports.main = async (event) => {
   if (event.action === 'eventStats') {
     return eventStatsAction(event);
   }
-  const t = event.ticket || {};
+  // —— P2-1：先过白名单，其余字段一概丢弃 ——
+  const t = sanitizeTicket(event.ticket);
+  // 4.11.0 同场印记 opt-out：用户退出参与时不下发场次键（eventStats 聚合自然排除）。
+  // 偏好本身不入库（不在白名单里），只在当次入库生效 —— 与隐私协议口径一致。
+  const sameOptOut = !!(event.ticket && event.ticket.sameOptOut);
 
   // —— 必填兜底 ——
   if (!t.title) t.title = '未命名票根';
@@ -1993,9 +2094,6 @@ exports.main = async (event) => {
   // —— 服务端补齐（不可信任客户端的字段都在这补） ——
   t._openid = OPENID;
   t.createdAt = Date.now();
-  // 4.11.0 同场印记 opt-out：用户退出参与时不下发场次键（eventStats 聚合自然排除）
-  const sameOptOut = !!t.sameOptOut;
-  delete t.sameOptOut; // 偏好不入库，只在当次入库生效并写进隐私协议口径
   t.eventKey = sameOptOut ? '' : makeEventKey(t.venue, t.date);
   t.type = ['show', 'movie', 'traffic'].includes(t.type) ? t.type : 'show';
   // 6.6.5（P1）：price 拒绝负数/Infinity/NaN（typeof NaN === 'number'，Number('-100') 原实现直接入库污染报表）
@@ -2008,38 +2106,39 @@ exports.main = async (event) => {
   }
   // 6.6.5（P1）：geo 加 lng + isFinite + 范围校验——NaN 的 typeof 也是 'number'，
   // 旧校验只查 lat 类型会放 NaN 坐标/缺 lng 的脏数据入库，污染地图与 haversine 里程累加
-  t.geo = (t.geo && typeof t.geo.lat === 'number' && isFinite(t.geo.lat) &&
+  // P2-1：顺便收成 {lat, lng} 两个字（原样存客户端对象 = 嵌套结构也能夹带私货）
+  const _geoOk = t.geo && typeof t.geo.lat === 'number' && isFinite(t.geo.lat) &&
     typeof t.geo.lng === 'number' && isFinite(t.geo.lng) &&
-    t.geo.lat >= -90 && t.geo.lat <= 90 && t.geo.lng >= -180 && t.geo.lng <= 180) ? t.geo : null;
+    t.geo.lat >= -90 && t.geo.lat <= 90 && t.geo.lng >= -180 && t.geo.lng <= 180;
+  t.geo = _geoOk ? { lat: t.geo.lat, lng: t.geo.lng } : null;
   // 4.18.0 P0 geo 断链修复：OCR/手填通常只有 city 文本、没有坐标，导致天气/足迹/勋章
   // 全链路拿不到 geo。此处用城市静态字典按 city 配中心坐标（查不到保持 null，不猜）。
-  // 4.18.1 场馆级精化：配了腾讯位置服务 key 且场馆名可解析 → 精确到 POI 坐标
-  // （如「南京奥体中心」），失败/未配 key 保持城市中心；geoSource 标记坐标来源。
+  // 城市中心先落地（静态字典、同步）：天气只要城市级精度，先有它才有下面三路并行。
   if (!t.geo && t.city) {
-    let src = '';
     const g = lookupCity(t.city);
-    if (g) { t.geo = g; src = 'city'; }
-    if (t.geo && t.venue) {
-      const p = await geocodeVenue(t.city, t.venue);
-      if (p) { t.geo = p; src = 'venue'; }
-    }
-    if (src) t.geoSource = src;
+    if (g) { t.geo = g; t.geoSource = 'city'; }
   }
 
-  // —— M5+：用户可改写的文本字段入库前统一过安全检测（合规口径：文字先审后显） ——
-  // title/note 为自由输入字段，入库前必检；venue/seat/city 以票面 OCR 转录+字典配对为主，不作强制检测。
-  // 服务异常（微信平台级故障）时放行入库：内容仅用户私有、无公开场景，不阻塞核心收藏流程。
+  // —— 三件外部调用并行（P2-8）——
+  // 原实现串行：场馆精化（≤4s）→ 内容安全（≤2s）→ 天气（≤4s）。入库是关键路径，
+  // 最坏 10s+ 叠在用户点「保存」上，历史上撞过云函数默认超时（-504003）。
+  // 三者互不依赖：安全检测只看文本；天气只要有坐标就算数（同城的场馆 POI 与城市中心，
+  // 在天气取档的精度之外）；场馆精化没成，落回城市中心本来就是设计内的降级。
+  // 并行后总耗时 = 三者里最长的那个。
   const userText = [t.title, t.note].filter(Boolean).join('\n').trim();
-  if (userText) {
-    const sc = await secCheck(OPENID, userText);
-    if (sc.result === 'risky') return { ok: false, msg: '票面文字未通过安全检查：' + sc.msg };
-  }
-
-  // —— 天气静默存档（V1.5 起 UI 使用；失败不阻塞） ——
-  t.weather = null;
-  if (t.geo && t.date) {
-    t.weather = await fetchWeather(t.geo.lat, t.geo.lng, t.date);
-  }
+  const gateP = userText ? secGate(OPENID, userText, '票面文字') : Promise.resolve({ ok: true });
+  // 4.18.1 场馆级精化：配了腾讯位置服务 key 且场馆名可解析 → 精确到 POI 坐标
+  //（如「南京奥体中心」），失败/未配 key 保持城市中心；geoSource 标记坐标来源
+  const geoP = (t.city && t.venue)
+    ? geocodeVenue(t.city, t.venue).catch(() => null)
+    : Promise.resolve(null);
+  const weatherP = (t.geo && t.date)
+    ? fetchWeather(t.geo.lat, t.geo.lng, t.date).catch(() => null) // 天气只是锦上添花，失败不阻塞
+    : Promise.resolve(null);
+  const [gate, venueGeo, weather] = await Promise.all([gateP, geoP, weatherP]);
+  if (!gate.ok) return { ok: false, msg: gate.msg };
+  if (venueGeo) { t.geo = venueGeo; t.geoSource = 'venue'; }
+  t.weather = weather || null;
 
   try {
     const db = cloud.database();
@@ -2051,6 +2150,6 @@ exports.main = async (event) => {
     try { points = await earnPoints(db, OPENID, 'upload'); } catch (e) { points = null; }
     return { ok: true, _id: res._id, weather: t.weather, points };
   } catch (e) {
-    return { ok: false, msg: '入库失败：' + (e.message || 'unknown') };
+    return failLog('addTicket', e, '保存失败，请稍后再试');
   }
 };

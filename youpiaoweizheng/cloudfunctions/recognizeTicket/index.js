@@ -82,6 +82,68 @@ async function wxOcr(imgBuffer) {
   return (ocr.items || []).map((i) => String(i.text || '').trim()).filter(Boolean);
 }
 
+// ============================================================
+// P2-11 调用者与频次闸门
+// ------------------------------------------------------------
+// 这个函数每被调一次就是一次真实开销（百度 OCR 的免费额度、微信云调用的服务市场配额）。
+// 原实现既不校验调用者、也不记次数：一个脚本循环 callFunction 就能把整月额度刷光，
+// 之后**正常用户拍照全变成「识别失败」**，而我们连是谁刷的都查不到。
+// 两道闸：
+//   ① 调用者必须是小程序端用户（OPENID 由 getWXContext 注入，端上伪造不了）；
+//      控制台/HTTP 直调没有 OPENID —— 那类调用连对象都不是，直接拒（要联调就临时注释这行）。
+//   ② 每人每天 OCR_DAILY_LIMIT 次。正常用户一天用不到 5 次，30 是留给「反复拍不清楚」的余量。
+// 注：时限不住「多开微信号」这种刷法，但把敞口从「无限」压到「按人头」，这是当前
+// 没有风控体系时能做的最小一步（真要再收紧，得上微信侧的实名/设备维度）。
+// ============================================================
+const OCR_DAILY_LIMIT = 30;
+
+/** 北京时间日期串（与 saveTicket 的 pay.ymdNow 同口径；两个云函数各自部署，不共享模块） */
+function bjYmd() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+/**
+ * 当日额度原子抢占：条件更新「今天还没到上限」才 +1，抢不到即超限。
+ * 首次调用没有文档可抢 → 用固定 _id 建一条；并发首调时后来的那个会撞主键，
+ * 落进 catch 再抢一次条件更新（用固定 _id 正是为了让这场竞态有个确定的输赢）。
+ * @returns {Promise<{ok:true}|{ok:false,msg:string}>}
+ */
+async function claimDailyQuota(db, openid) {
+  const _ = db.command;
+  const col = db.collection('prefs');
+  const ymd = bjYmd();
+  const hit = await col.where({ _openid: openid, type: 'ocr_day', ymd, count: _.lt(OCR_DAILY_LIMIT) })
+    .update({ data: { count: _.inc(1), updatedAt: Date.now() } });
+  if (hit && hit.stats && hit.stats.updated) return { ok: true };
+  const cur = await col.where({ _openid: openid, type: 'ocr_day', ymd }).limit(1).get();
+  const doc = cur.data && cur.data[0];
+  // 有条件更新却没命中：要么今天到顶了，要么这次更新本身抖动失败（文档里的 count 还没到顶）。
+  // 后者宁可放行一次，也不把用户挡在门外 —— 这里是成本闸门，不是风控闸门。
+  if (doc) return (doc.count || 0) < OCR_DAILY_LIMIT
+    ? { ok: true }
+    : { ok: false, msg: '今天的识别次数用完了，明天再来' };
+  try {
+    await col.add({
+      data: {
+        _id: 'ocr_' + openid + '_' + ymd, _openid: openid, type: 'ocr_day',
+        ymd, count: 1, createdAt: Date.now(), updatedAt: Date.now()
+      }
+    });
+    return { ok: true };
+  } catch (e) {
+    // add 失败有两种可能：并发首调（文档刚被别人建好）与库本身出问题。
+    // 必须分开 —— 一律当成「到顶了」的话，一次数据库抖动就会让所有用户看到
+    // 「今天的识别次数用完了」，那是把我们的故障说成用户用超了。
+    const retry = await col.where({ _openid: openid, type: 'ocr_day', ymd, count: _.lt(OCR_DAILY_LIMIT) })
+      .update({ data: { count: _.inc(1), updatedAt: Date.now() } });
+    if (retry && retry.stats && retry.stats.updated) return { ok: true };
+    const after = await col.where({ _openid: openid, type: 'ocr_day', ymd }).limit(1).get();
+    if (after.data && after.data[0]) return { ok: false, msg: '今天的识别次数用完了，明天再来' };
+    throw e; // 读都读不到 = 库的问题 → 交给外层按「服务出了点问题」处理（配额闸门宁可放行）
+  }
+}
+
 // ---------- 主流程 ----------
 exports.main = async (event) => {
   const { fileID } = event;
@@ -91,8 +153,12 @@ exports.main = async (event) => {
   if (!/^cloud:\/\/[\w-]+\.[^/]+\//.test(String(fileID))) {
     return { ok: false, msg: 'fileID 格式不合法' };
   }
-
+  // P2-11：调用者闸门（端上调用才带 OPENID）+ 每人每日配额
+  const { OPENID } = cloud.getWXContext();
+  if (!OPENID) return { ok: false, msg: '请在小程序内使用识别功能' };
   try {
+    const gate = await claimDailyQuota(cloud.database(), OPENID);
+    if (!gate.ok) return gate;
     // 1. 从云存储下载原图
     const dl = await cloud.downloadFile({ fileID });
     const imgBuffer = Buffer.from(dl.fileContent);
@@ -129,6 +195,8 @@ exports.main = async (event) => {
     const draft = parser.parse(lines);
     return { ok: true, draft, lines };
   } catch (e) {
-    return { ok: false, msg: '识别异常：' + (e.message || 'unknown') };
+    // 细节只进日志（P2-4）：SDK 的 message 里带着云存储路径与内部结构，端上除了吓人没用
+    console.error('[ocr] 识别异常', OPENID, (e && (e.errMsg || e.message)) || e);
+    return { ok: false, msg: '识别服务出了点问题，稍后再试' };
   }
 };
