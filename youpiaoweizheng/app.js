@@ -37,6 +37,18 @@ App({
     invite.boot(options);
   },
 
+  // ===== 7.4.2 失效路径兜底 =====
+  // pages/wall 与 pages/map 在 7.0 已下线，可老分享卡、老二维码还在这世上流传：
+  // 点到失效路径时小程序停在白屏，用户以为坏了 —— 他这一刻本是带着兴趣点进来的，
+  // 漏掉的正是最该接住的那批人。回首页，给个出口。
+  onPageNotFound(res) {
+    // 顺手记一笔：这是「有人在传失效链接」唯一看得见的迹象（后台登记 page_404 后可见）
+    try {
+      track.track('page_404', { p: String((res && res.path) || '').slice(0, 120) });
+    } catch (e) { /* 埋点失败不拦兜底 */ }
+    wx.reLaunch({ url: '/pages/home/home' });
+  },
+
   // ===== 4.19.2 全局异常自动上报 =====
   // 背景：真机问题（如卡片页白屏类反馈）无法依赖用户开调试面板——
   // JS 错误直接进 mp 后台自定义分析（js_error/js_rejection）+ 本地环形缓冲，

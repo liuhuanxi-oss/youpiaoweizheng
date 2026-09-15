@@ -137,6 +137,7 @@ function byOrder(a, b) {
  * - 演示模式：写 overrides 覆盖层
  */
 async function setCaption(id, caption) {
+  bustList(); // 7.4.2：文案改了 → 缓存作废（票根墙上的摘要是从列表里来的）
   if (USE_CLOUD) {
     if (isMockTicket(id)) {
       const map = readCaptions();
@@ -174,6 +175,20 @@ function listFlags() {
 const PAGE_SIZE = 20;   // 小程序端单次上限
 const LIST_MAX = 500;   // 单次列表最多拉取张数（25 批），防止无限翻页拖垮首屏
 
+// —— 7.4.2 列表缓存 ——
+// 四个 tab 页（首页 / 时光机 / 回忆地图 / 我的）的 onShow 都无条件全量拉一次，而
+// fetchCloudTickets 是 1 次 count + 最多 25 次分批 get。来回切 tab 等的是同一份数据，
+// 用户却每次都把这段云往返重走一遍。
+// 只缓存**成功**结果：失败时兜底的演示票不能进缓存，否则网络恢复了还继续给人看别人的票。
+// 三个写操作入口一律置脏 —— 传完票切回首页必须看得见，这条是底线。
+const LIST_TTL = 30 * 1000;
+let _listCache = null; // { at: Number, rows: Array }
+
+/** 写操作入口调用：让下一次 listTickets 重新问云。
+ *  放在函数**入口**而不是成功之后：写操作分支多，逐个 return 前补一句迟早会漏一个，
+ *  而漏掉的那个分支就是「传完票看不到新票」。多拉一次云只是浪费一次请求，漏掉是 bug。 */
+function bustList() { _listCache = null; }
+
 /**
  * 分批拉全量票根。
  * skip 翻页必须配「稳定排序」，否则 date 相同的票在各页之间次序会漂移 → 漏票/重票，
@@ -206,6 +221,10 @@ async function fetchCloudTickets(db) {
 /** 读取全部票根（组内自定义序 sortAt 优先，其余按票面日期倒序） */
 async function listTickets() {
   if (USE_CLOUD) {
+    // 7.4.2：30 秒内复用上一次的成功结果（切 tab 不再重走一遍云往返）。
+    // 能命中缓存 ⇒ 上一次走的是成功路径（失败会 bustList），所以 _listTruncated
+    // 保持原值就与缓存里那份数据一致，不必另存一份。
+    if (_listCache && Date.now() - _listCache.at < LIST_TTL) return _listCache.rows.slice();
     _listFallback = false;
     _listTruncated = false;
     try {
@@ -215,9 +234,12 @@ async function listTickets() {
       // 5.0.0：分批拉取（原 .limit(200) 被小程序端硬上限截断）→ 见 fetchCloudTickets
       const { rows, truncated } = await fetchCloudTickets(db);
       _listTruncated = truncated;
-      return rows.map(normalize).sort(byOrder);
+      const out = rows.map(normalize).sort(byOrder);
+      _listCache = { at: Date.now(), rows: out };
+      return out.slice(); // 给副本：调用方排序/裁剪不会污染缓存
     } catch (e) {
       console.warn('[store] 云库读取失败，兜底演示数据：', e);
+      bustList(); // 失败不留缓存 —— 下次调用必须重新问云
       // M4.9.6：兜底也要套文案覆盖层——演示票上保存过 AI 文案的重进不能丢
       // 4.19.1：兜底链自身防抛（覆盖层读 storage 的 JSON 若损坏会抛 → 页面白屏死透）
       _listFallback = true; // 4.18.0：亮「网络开小差」横幅，说明当前不是真实数据
@@ -263,6 +285,7 @@ async function getTicket(id) {
  * @returns 补齐后的完整记录
  */
 async function addTicket(payload, fileID) {
+  bustList(); // 7.4.2：新票入库 → 缓存作废，否则切回首页看不见刚传的这张
   // 4.11.0：同场印记 opt-out 随票入库（云函数据此决定是否生成场次键）
   const sameOptOut = getSameOptOut();
   if (USE_CLOUD) {
@@ -303,6 +326,7 @@ async function addTicket(payload, fileID) {
  * 演示模式：本地记录直接删；mock 演示票写入隐藏名单模拟删除
  */
 async function removeTicket(id) {
+  bustList(); // 7.4.2：删票 → 缓存作废
   if (USE_CLOUD && !isMockTicket(id)) {
     const db = wx.cloud.database();
     await db.collection('tickets').doc(id).remove();

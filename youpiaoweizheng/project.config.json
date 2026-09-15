@@ -1,7 +1,18 @@
 {
   "description": "有票为证 —— 纸质票根数字化珍藏小程序",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "folder", "value": "node_modules" },
+      { "type": "folder", "value": "dist" },
+      { "type": "folder", "value": "tests" },
+      { "type": "folder", "value": "scripts" },
+      { "type": "folder", "value": "decision-logs" },
+      { "type": "folder", "value": ".git" },
+      { "type": "folder", "value": ".gitee" },
+      { "type": "file", "value": "package-lock.json" },
+      { "type": "file", "value": ".env" },
+      { "type": "suffix", "value": ".md" }
+    ],
     "include": []
   },
   "setting": {

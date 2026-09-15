@@ -155,19 +155,25 @@
 
 ## 四、🔵 P3 · 优化建议（择要）
 
-- **构建期**：`project.config.json:3-5` 的 `packOptions.ignore` 为空，从微信开发者工具直接上传会把 `youpiaoweizheng/**`、`scripts/**`、`CHANGELOG.md`（121KB）等全打进包（CI 脚本有 ignores，工具端没有）。
-- **废弃 API**：`pages/scan/scan.js:426` 仍用 `wx.getSystemInfoSync`（已有 `wx.getWindowInfo` 兜底，可接受）；`pages/map/map.js:15` `enable-poi` 已废弃。
-- **死代码/死样式**：`app.wxss` 第 813-1073 行约 261 行 v6 设计系统，其中 **133 行 `.v6-*` 类选择器零引用**（`.v6-boy/.v6-dog/.v6-case/.v6-fab/.v6-func-grid` 等一整套「首页 3D IP 化」样式只落了 CSS 没落 WXML）；`app.wxss:726,745,748,758` 的 `.theme-blue/.theme-dream` 同样零引用（无任何代码产生这两个类名）。
-- **主题体系混乱**：三套令牌并存——`--v6-*` 治愈系（仅 38 次引用）、六主题 `.theme-paper/glass/…`（主线）、legacy `.theme-a/b/c`（Canvas 深色页）。`svg-icon/index.js:40` 与 `ticket-card` 只认老 a/b/c，`wall.js:114` 把老键传给新系统 —— 建议老轨道收敛为只服务 Canvas 页。
-- **重复实现**：`TYPE_TEXT` 存在 4 份定义；「城市统计/里程/类型分布」在 `duoData/map/report/annual` 有 4 套近似实现（map 手写里程还漏了 lng 校验）；card.js 与 art.js 各自重复实现 dpr 初始化、图片加载、`canvasToTempFilePath`、`saveImageToPhotosAlbum`+授权引导约 150 行 → 建议抽 `utils/canvas.js`、`utils/stats.js`、`utils/constants.js`。
-- **文档与代码漂移**：README 写「AI 直调 hunyuan-lite」，`utils/ai.js:20-22` 实际用 `hunyuan-v3`；README 写「v6.3 首页 3D IP 化」，实际只有 CSS 没有结构；README 写「六主题」，另有 warm/blue/dream 三主题残留。
-- **杂项**：`pages/me/me.js:283/315` `copyIcp` 在同一对象里重复定义两次；`pages/me/me.json` 声明了 2 个未使用的组件；`pages/album/album.wxml:26` 顶部 🔔 是无事件的死控件；`app.js` 缺 `onPageNotFound` 兜底（遇到失效路径只会白屏）。
+> **2026-09-15 复核（7.4.2 批次开工前）**：本报告写于 9-14，之后修过四批。逐条核实后 **10 条早已不成立**（下面逐条标注）。7.4.2 只做**仍然成立、且用户能感觉到**的那几条；其余标注「为何不做」，不照单重做。
+
+- **构建期** ✅ **已修（7.4.2）**：`packOptions.ignore` 为空 —— 实测主包 **3134 KB，超 2048 KB 上限**（`dist/` 1734KB、`tests/` 389KB、`package-lock.json` 204KB、`CHANGELOG.md` 179KB 全在包里；CI 有自己一份 excludes 所以线上没事，**开发者工具点上传/预览会直接撞上限**）。补齐后约 **1 MB**。清单**故意不含** `cloudfunctions/`（云函数根目录本就不打进小程序包，写进去反可能影响工具里的云函数右键上传）与 `templates/`（`templates/sp.wxml` 被 7 个页面 `import`，是运行时文件 —— 差一点误伤）。
+- **废弃 API**：`pages/scan/scan.js:426` 仍用 `wx.getSystemInfoSync`（已有 `wx.getWindowInfo` 兜底）—— **保留**：为一个已兜底的调用动基线代码不值；`pages/map/map.js:15` `enable-poi` —— **过时**（map 页 7.0 已下线）。
+- **死代码/死样式** ✅ **已修（7.4.2）**：`app.wxss` 的 v6 设计系统**已删 287 行**（46072 → 32680 字节）—— 含 `--v6-*` 整套令牌 + `.v6-*` 类（实测 61 处，全项目 wxml/js 零引用：只有 app.wxss 自己定义、自己消费）与 `.theme-blue/.theme-dream` 那 4 处覆盖（当前主题键只有 paper/glass/collage/film/literary/minimal 六套）。顺带发现 `.theme-dream .tk-hero` 引用的 `--macaron-*` **根本没定义过**，那条规则从写下的那天起就没生效。
+- **主题体系混乱** 🔶 **部分已修（7.4.2）**：`--v6-*` 已随上一行删净，现在**两套令牌并存**（六主题 + legacy a/b/c）。legacy 那套**故意保留** —— `svg-icon/index.js` 与 Canvas 深色页仍认它，收敛它要逐个改 Canvas 页取色，属动视觉资产、需真机看图，不在这批顺手做。
+- **重复实现** 🔶 **复核后仍成立，本轮不做**：`TYPE_TEXT` 4 份定义、城市统计/里程/类型分布 4 套近似实现、card/art 各重复约 150 行画布代码 —— 都是**纯可维护性问题，用户感觉不到**；而抽公共 util 要动 card / art / annual 三个已经跑通的页面，风险 > 收益。等真有第三个消费方再抽。
+- **文档与代码漂移** ✅ **已修（7.4.2）**：README「AI 直调 hunyuan-lite」→ `hunyuan-v3`（模型 `hy3`，`cloudbase` 兜底）；「README 写 v6.3 首页 3D IP 化」—— **过时**（README 已无此表述，v6 样式也已删净）；「README 写六主题，另有 warm/blue/dream 残留」—— **已核对一致**（`utils/theme.js` 就是六套，三套残留在上面第二条里删了）。顺带修掉 README 版本号还停在 `7.1.1`、而顶部写着 7.4.x 的漂移，里程碑表补了 7.2.0 – 7.4.2 五行。
+- **杂项**：`pages/me/me.js` `copyIcp` 重复定义 —— **过时**（实际只定义一处）；`pages/me/me.json` 未使用组件 —— **过时**（声明的组件都在用）；`pages/album/album.wxml:26` 顶部 🔔 死控件 —— **过时**（早改成了右侧品牌标）；`app.js` 缺 `onPageNotFound` ✅ **已修（7.4.2）**：补全局兜底 + `page_404` 埋点，老分享卡不再停白屏。
 
 ---
 
 ## 五、专项优化分析
 
-### 1. 包体积（⚠️ 当前主包已逼近 2MB 上限）
+### 1. 包体积（✅ 2026-09-15 已解决）
+
+> **2026-09-15 复核**：下表四个「可删项」已全部消失 —— `assets/ip.png`、`images/tab-*.png` 已删，`pages/wall/` 随 7.0 下线，`youpiaoweizheng/**` 内层旧副本已随 `packOptions.ignore` 排除。**真实主包一度是 3134 KB（超上限），7.4.2 补齐排除清单后约 1 MB**，详见 §四「构建期」。仍成立但本轮不做的：`images/brand-logo.png`（142KB，album 页右侧品牌标在用，压缩要重出图 + 真机看图）、引入分包（card/art/detail/annual 移入 —— 属发布结构变更，等类目过了真机回归时一并评估）。
+>
+> 以下为 9-14 原始实测记录（保留备查）：
 
 实测（排除 node_modules / .git / cloudfunctions）：
 
@@ -184,10 +190,10 @@
 
 ### 2. 网络请求与云调用费用
 
-- **无任何缓存**：四个 tab 页 `onShow` 无条件全量 `listTickets()`，来回切 tab 反复打云库；`duo` 页 `onShow` 串行发 2-3 次云调用；`report`/`annual` 每次 `onShow` 各调一次 `profileGet`。
-  → **建议**：`store.listTickets` 加 5-30 秒 TTL 内存缓存 + 写操作置脏；profile 缓存进 globalData。可把切 tab 的请求量降到接近 0。
-- **对账在用户请求路径上**：`quotaGet` 每次最多触发 3 单对账（6 次 HTTPS）。→ 移到定时触发器。
-- **入库路径串行 3 次外呼**（secCheck + geocode + weather）：geocode 与 weather 改 `Promise.all` 并行，weather 改入库后异步补写 → 尾延迟从约 8s 降到约 4s。
+- **无任何缓存** ✅ **已修（7.4.2）**：`store.listTickets` 加了 **30 秒 TTL 内存缓存 + 三个写操作（传票/删票/改文案）入口置脏**，切 tab 不再重走「1 次 count + 最多 25 次分批 get」。三条设计约束：置脏放函数**入口**而非成功之后（写分支多，逐个 `return` 前补一句迟早漏一个，漏掉的那个就是「传完票看不到新票」）、**只缓存成功结果**（失败兜底的演示票不进缓存，否则网络恢复了还给人看别人的票）、**返回副本**（页面原地改数组不污染缓存）。守卫：`tests/store_cache.test.js` 11 条，真跑 `store.js`。
+  → 同条的另两项**仍成立，本轮不做**：`profileGet` 缓存进 globalData（收益小）、`duo` 页 `onShow` 串行 2-3 次云调用（改成并行要动双人页取数时序，风险 > 收益）。
+- **对账在用户请求路径上**：`quotaGet` 每次最多触发 3 单对账（6 次 HTTPS）。→ 移到定时触发器。**仍成立，本轮不做**：属「额度读取时机」改动，按项目铁律②的精神不在这批里顺手碰。
+- **入库路径串行 3 次外呼**（secCheck + geocode + weather）—— **过时**：第三批修复时已改 `Promise.all` 并行。
 - **推送 token 无缓存**：按 `expires_in` 缓存 ≥10 分钟，对账从 2 次 HTTPS 降到 1 次。
 - **长耗时任务**：生图、地理回填、对账都应迁到定时触发器，既避超时又省调用。
 
@@ -196,13 +202,13 @@
 - **最大单点**：`annual.js` 画布按 dpr=3 放大到 3240×5760，位图约 75MB → dpr 上限降为 2 或按导出需要降采样。
 - `card.js` 的 canvas 与 Image 引用常驻页面实例且无 `onUnload` 释放；`art.js` 画布同理。
 - `wall/album` 的 `offsets/groupOffsets` 大对象在退出整理模式时未全部释放。
-- 地图 markers **一张票一个 pin 无上限**，上百张时地图卡顿 → 超阈值按城市聚合。
+- 地图 markers **一张票一个 pin 无上限** —— **过时**：现已按城市聚合、上限 12 个（discover 页 7.x 改造时已做）。
 
 ### 4. 性能
 
 - `detail.js:68-76` 打字机 **每字一次 `setData`**（40 字≈40 次），低端机掉帧 → 改 2-3 字一批或一次性渲染 + CSS 动画。
 - 长列表（200 条一次性渲染）无分页、无 `onReachBottom` → 建议虚拟列表或分片渲染；收藏态等更新改用**路径 setData**（`colA[i].fav`）而非整列重算。
-- `pages/album/album.js:104-127` 下拉手势**每帧 setData**，但视图无 refresher 插槽 → 纯属白烧，删掉或补插槽。
+- `pages/album/album.js:104-127` 下拉手势**每帧 setData**，但视图无 refresher 插槽 —— **过时**：album 已补上真正的 `refresher` 插槽（`bindrefresherrefresh` / `refresher-triggered` 都在用），下拉有反馈不再是白烧。
 
 ### 5. 可维护性
 
@@ -253,10 +259,12 @@
 14. 补齐云故障兜底提示（album/map/annual），守住「诚实原则」红线
 15. 补数据库索引
 
-**第 4 批 · 架构与优化（P3）**
-16. 云函数拆分 + 表驱动路由；抽 `utils/canvas.js`、`utils/stats.js`
-17. store 层加 TTL 缓存；长耗时任务迁定时触发器
-18. 引入分包；清理 v6 死样式与三套主题体系收敛
+**第 4 批 · 架构与优化（P3）** —— 2026-09-15 复核后重排
+
+16. ⏸ **仍成立，未做**：云函数拆分 + 表驱动路由（云函数刚部署过，改了要重部署，且用户无感）；抽 `utils/canvas.js`、`utils/stats.js`（要动 card / art / annual 三个已跑通的页面，风险 > 收益）
+17. 🔶 **做了一半（7.4.2）**：store 层 TTL 缓存 ✅ 已做（30 秒 + 三处写操作入口置脏）；长耗时任务迁定时触发器 ⏸ 未做（对账那条涉额度读取时机，按铁律②不顺手碰）
+18. 🔶 **做了一半（7.4.2）**：清理 v6 死样式 ✅ 已做（删 287 行，省 13.4KB）；三套主题体系收敛 ⏸ 未做（legacy a/b/c 是 Canvas 页在认，属动视觉资产）；引入分包 ⏸ 未做（发布结构变更，等类目过后真机回归时一并评估）
+19. ✅ **本批新增（7.4.2）**：`packOptions.ignore` 补齐（主包 3134 KB → 约 1 MB，开发者工具上传/预览不再撞 2MB 上限）+ `app.js` 补 `onPageNotFound`（老分享卡不再白屏，顺带 `page_404` 埋点）+ README 版本号与 AI 模型名漂移修正
 
 ---
 
@@ -343,3 +351,23 @@
 | P2-9 | 并发输同一个码 → 后写覆盖先写，两人都以为绑上了；且一人可同时存在于两份关系 | ✅ 已修 | 绑定写入改条件更新（只有把 `waiting` 改成 `bound` 的那次算数）；加入成功后作废自己名下那条 waiting 码并在提示里说明；连点 / 重输同一个码走幂等成功 | `bind_concurrency` 全套（真跑，假库带真异步让路） |
 
 **注**：P2-9 此前被归到「涉额度」挂起，读代码确认 `bind` 只读写 `couples` 文档、不碰额度（真正发额度的是 `refReward` 那条链），故本批直接修掉。
+
+---
+
+## 附五：P3 收尾与失效路径兜底（2026-09-15 补记）
+
+**体检报告至此全部闭环。** §四 P3 开工前逐条复核，**10 条早已不成立**（见下），实际动手的是下面四条 —— 挑的都是「复核后仍然成立、且用户能感觉到」的。
+
+| # | 问题 | 修复状态 | 改法 | 守卫（测试 / 验证） |
+|---|---|---|---|---|
+| 失效路径 | 老分享卡、老二维码指向 7.0 已下线的 `pages/wall` / `pages/map` → 用户点进来**停在白屏**（这一刻他本是带着兴趣点进来的，漏掉的最该接住） | ✅ 已修 | `app.js` 补 `onPageNotFound`：先记 `page_404` 埋点（「有人在传失效链接」唯一的可见迹象），再 `reLaunch` 回首页 | 埋点需在 mp 后台自定义分析里登记才收得到（同 U1） |
+| P3 · 构建期 | `packOptions.ignore` 为空 → 工具端上传主包 **3134 KB，超 2048 KB 上限**（`dist/` 1734KB、`tests/` 389KB、`package-lock.json` 204KB、`CHANGELOG.md` 179KB 全在包里；CI 有自己的 excludes 所以线上没事，**只有开发者工具上传/预览会撞**） | ✅ 已修 | 补排除清单：`node_modules` / `dist` / `tests` / `scripts` / `decision-logs` / `.git` / `.gitee` / `package-lock.json` / `.env` / `*.md`。**故意不含** `cloudfunctions/`（云函数根目录本就不打进包）与 `templates/`（`sp.wxml` 被 7 个页面 `import`，是运行时文件） | 实测包体积 → 约 **1 MB** |
+| P3 · 死样式 | `app.wxss` 约 261 行 v6 设计系统 + `.theme-blue/.theme-dream` 4 处覆盖，全项目零引用 | ✅ 已修 | 删 287 行（46072 → 32680 字节）。顺带发现 `.theme-dream .tk-hero` 引用的 `--macaron-*` **从未定义过**，那条规则从写下起就没生效 | 搜 `v6-` 残留 0、死主题残留 0、`.tk-hero`/`.tk-underline` 基础规则保留、花括号 162/162 配平 |
+| P3 · 缓存 | 四个 tab 页 `onShow` 无条件全量 `listTickets()`（1 次 count + 最多 25 次分批 get），来回切 tab 等的是同一份数据 | ✅ 已修 | `utils/store.js` 加 30 秒 TTL + 三个写操作**入口**置脏；只缓存成功结果；返回副本。三条理由见 CHANGELOG 7.4.2 | `store_cache.test.js` 11 条（**真跑** store.js：假 wx / 假 require / 可拨动时钟），6 处反向验证逐个精准红在对应用例 |
+| P3 · 文档 | README 版本号停在 `7.1.1`；AI 模型写作 `hunyuan-lite`（实为 `hunyuan-v3`）；里程碑表缺 7.2.0 之后五行 | ✅ 已修 | 逐项改对 | 人工核对 |
+
+**复核后判定「早已不成立」的 10 条**（不重复劳动）：`pages/wall` 死代码、`pages/map` 的 `enable-poi`、`assets/ip.png`、`images/tab-*.png`、`me.json` 未使用组件、`me.js` 的 `copyIcp` 重复定义、album 下拉插槽、入库外呼串行、地图 markers 无上限、`duoStats` 的 `limit(500)`。
+
+**复核后仍成立、本轮不做的**（各带理由，见 §四）：云函数拆分与表驱动路由、抽 `utils/canvas.js`/`utils/stats.js`、`TYPE_TEXT` 4 份合并、legacy a/b/c 主题收敛、`images/brand-logo.png` 压缩、引入分包、`quotaGet` 对账迁定时触发器（涉额度时机，铁律 2）、`profileGet` 缓存与 duo 页串行改并行。
+
+**未验证**：真机（切 tab 的体感、失效链接是否真回首页）；`page_404` 埋点要后台登记才收得到。
