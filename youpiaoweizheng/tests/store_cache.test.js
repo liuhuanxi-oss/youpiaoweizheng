@@ -33,6 +33,11 @@ function makeStore(opt) {
     rows: o.rows || [{ _id: 'real_ticket_1', title: '票A', date: '2024-01-01' }],
     fail: false,
     cloudGets: 0, // 云库 .get() 次数：判断「有没有真的打云」就看它
+    // 7.4.3：删除流程要先读一次拿 img、再连照片一起删，桩得记下这两件事
+    img: o.img === undefined ? 'cloud://env.abc/real_ticket_1.jpg' : o.img,
+    docRemoves: 0,
+    deleted: [],
+    deleteFail: !!o.deleteFail,
     storage: {}
   };
   const clock = { now: RealDate.now() };
@@ -55,13 +60,21 @@ function makeStore(opt) {
       if (state.fail) throw new Error('db down');
       return { data: state.rows.map((r) => ({ ...r })) };
     },
-    doc: () => ({ remove: async () => ({ stats: { removed: 1 } }) })
+    doc: () => ({
+      get: async () => ({ data: { _id: 'real_ticket_1', img: state.img } }),
+      remove: async () => { state.docRemoves++; return { stats: { removed: 1 } }; }
+    })
   };
 
   const wx = {
     cloud: {
       database: () => ({ collection: () => chain }),
-      callFunction: async () => ({ result: { ok: true, _id: 'real_ticket_new' } })
+      callFunction: async () => ({ result: { ok: true, _id: 'real_ticket_new' } }),
+      deleteFile: async (o) => {
+        if (state.deleteFail) throw new Error('storage down');
+        state.deleted = state.deleted.concat(o.fileList || []);
+        return { fileList: [] };
+      }
     },
     getStorageSync: (k) => state.storage[k],
     setStorageSync: (k, v) => { state.storage[k] = v; }
@@ -160,7 +173,33 @@ t('云库失败兜底后，下次读必须重新问云', async () => {
 });
 
 // ════════════════════════════════════════════════════════════
-console.log('\n【四、调用方改返回值，不许污染缓存】');
+console.log('\n【四、删票要连照片一起删（这是承诺，不是优化）】');
+
+t('删票时把记录里的 img 一并从云存储删掉', async () => {
+  const { store, state } = makeStore();
+  await store.removeTicket('real_ticket_1');
+  ok(state.docRemoves === 1, '记录没删掉');
+  ok(state.deleted.length === 1 && /real_ticket_1\.jpg$/.test(state.deleted[0]),
+    '删票没删照片 —— 用户以为删干净了，照片其实永久留在云存储里（隐私政策写着「删除」）');
+});
+
+t('img 不是云文件（空串）时不去删文件', async () => {
+  const { store, state } = makeStore({ img: '' });
+  await store.removeTicket('real_ticket_1');
+  ok(state.docRemoves === 1, '记录没删掉');
+  ok(state.deleted.length === 0, '没有云文件却调了删除 —— 拿空 fileID 去删是危险的');
+});
+
+t('删文件失败不拖垮删票（孤儿图好过「点了删除弹报错」）', async () => {
+  const { store, state } = makeStore({ deleteFail: true });
+  let threw = null;
+  try { await store.removeTicket('real_ticket_1'); } catch (e) { threw = e; }
+  ok(!threw, '删云存储失败把删票也带崩了：' + (threw && threw.message));
+  ok(state.docRemoves === 1, '记录没删掉');
+});
+
+// ════════════════════════════════════════════════════════════
+console.log('\n【五、调用方改返回值，不许污染缓存】');
 
 t('页面若原地改读回的数组，下一次读到的不受影响', async () => {
   const { store } = makeStore();
@@ -172,7 +211,7 @@ t('页面若原地改读回的数组，下一次读到的不受影响', async ()
 });
 
 // ════════════════════════════════════════════════════════════
-console.log('\n【五、结构：常量与置脏点写在明面上】');
+console.log('\n【六、结构：常量与置脏点写在明面上】');
 
 t('TTL 就是 30 秒', () => {
   const m = /const LIST_TTL = ([^;]+);/.exec(scan);

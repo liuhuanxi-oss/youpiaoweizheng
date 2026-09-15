@@ -945,6 +945,25 @@ Page({
   },
 
   /**
+   * 7.4.3：页面退出把画布还回去。这张 600×960 的卡按 dpr 放大后位图约 53MB（年报表那张 74MB），
+   * 是全站最大内存单点；不释放就只能等 GC —— 低端机上连着导出几张海报会直接闪退。
+   * 置零而不是只丢引用：Canvas 2D 的位图要显式释放。
+   * 只在退出时释放、不在导出后释放：onShareAppMessage 还要用同一块画布出转发图。
+   */
+  _releaseCanvas() {
+    if (this._canvas) {
+      this._canvas.width = 0;
+      this._canvas.height = 0;
+    }
+    this._canvas = null;
+    this._ctx = null;
+  },
+
+  onUnload() {
+    this._releaseCanvas();
+  },
+
+  /**
    * 4.22.4 修复：canvas 初始化幂等 + 重试（修「卡片区域整块空白」）。
    * 根因——canvas 挂在 wx:if="{{t}}" 下，onReady 与异步取票存在竞争：
    * 取票慢时（云函数冷启动/弱网）onReady 先跑，t 还是 null → canvas 节点尚未挂载 →

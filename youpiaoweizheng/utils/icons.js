@@ -193,7 +193,15 @@ const ICON_PATH = {
  * @param {number} [width]   描边宽度，默认 1.6
  * @param {boolean} [solid]  true = 实心填充（如收藏态的实心心），此时 opacity/width 不适用
  */
+// 7.4.3：记忆化。取值空间是「图标名 × 主题色 × 透明度 × 线宽」的小组合（十几个 × 几套主题），
+// 而每个页面进 onShow 都会把整页图标重编一遍 —— 500 张票根在手机上约 30–50ms，纯属白烧。
+// 键里带上**全部**入参：颜色随主题变，漏掉任何一个都会把上一个主题的图发给新主题。
+const _uriCache = new Map();
+
 function iconSrc(name, color, opacity, width, solid) {
+  const key = name + '|' + color + '|' + opacity + '|' + width + '|' + (solid ? 1 : 0);
+  const hit = _uriCache.get(key);
+  if (hit) return hit;
   const body = ICON_PATH[name] || ICON_PATH.ticket;
   // 只放行十六进制色值字符：防注入，也防有人误传 var(--x)（SVG 不认）
   const safe = String(color || '#6B5B50').replace(/[^#0-9a-zA-Z]/g, '');
@@ -205,7 +213,10 @@ function iconSrc(name, color, opacity, width, solid) {
   // width/height 与 viewBox 同值：真机渲染器拿不到内在尺寸就不画（工具里会自动兜底）
   const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24' " + paint +
     " stroke-linecap='round' stroke-linejoin='round'>" + body + '</svg>';
-  return toDataUri(svg);
+  const uri = toDataUri(svg);
+  _uriCache.set(key, uri);
+  return uri;
 }
 
-module.exports = { iconSrc, ICON_PATH };
+// _uriCache 一并导出：字符串缓存用 === 验不出来（值本来就相等），测试只能读它的 size
+module.exports = { iconSrc, ICON_PATH, _uriCache };

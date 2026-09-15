@@ -42,7 +42,7 @@
                class="hc-shot-img {{item.loaded ? 'is-loaded' : ''}} {{flyingId === item.id ? 'fly' : ''}}"
                src="{{item.img}}" mode="aspectFill" lazy-load
                bindload="onShotReady" binderror="onShotReady" data-id="{{item.id}}" />
-        <image wx:else class="hc-shot-fb" src="{{item.ico}}" mode="aspectFit" aria-hidden="true" />
+        <image wx:else class="hc-shot-fb" src="{{typeIc[item.type] || typeIc._}}" mode="aspectFit" aria-hidden="true" />
       </view>
       <!-- 照片角上那朵小白花与支出来的一枝绿叶（探出照片外，所以裁圆角的是内层 frame） -->
       <image class="hc-shot-bloom" src="{{art.bloom}}" mode="aspectFit" aria-hidden="true" />

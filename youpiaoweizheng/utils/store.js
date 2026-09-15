@@ -325,11 +325,31 @@ async function addTicket(payload, fileID) {
  *        照片文件保留在云存储（不阻塞，控制台可清理）
  * 演示模式：本地记录直接删；mock 演示票写入隐藏名单模拟删除
  */
+/** 删云存储里的照片。失败只记一笔：删票本身已经成功了，不该让收尾动作把结果变成报错
+ *  （留下的是张孤儿图，代价远小于「用户点了删除却弹报错」）。 */
+async function deleteCloudFile(fileID) {
+  try {
+    await wx.cloud.deleteFile({ fileList: [fileID] });
+  } catch (e) {
+    console.warn('[store] 云存储照片没删掉（留作孤儿，不影响删票）：', e);
+  }
+}
+
 async function removeTicket(id) {
   bustList(); // 7.4.2：删票 → 缓存作废
   if (USE_CLOUD && !isMockTicket(id)) {
     const db = wx.cloud.database();
-    await db.collection('tickets').doc(id).remove();
+    const ref = db.collection('tickets').doc(id);
+    // 7.4.3：连照片一起删。原先只删记录，照片永远留在云存储里 —— 用户以为删干净了，
+    // 隐私政策也是这么写的：这不是省一次请求的事，是承诺。
+    // 先读一次拿 img（记录删掉后就取不到了）；读不到也照样往下删记录。
+    let img = '';
+    try {
+      const r = await ref.get();
+      img = (r && r.data && r.data.img) || '';
+    } catch (e) { /* 读不到（权限 / 已经被删）就继续 */ }
+    await ref.remove();
+    if (/^cloud:\/\//.test(String(img))) await deleteCloudFile(img);
     return;
   }
   writeLocal(readLocal().filter((t) => String(t.id) !== String(id)));

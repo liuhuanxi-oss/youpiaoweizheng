@@ -36,6 +36,16 @@ const FILTERS = [
 /** 类型 → 没照片时的兜底图标名 */
 const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train', travel: 'plane' };
 
+/** 7.4.3：把「类型 → 兜底图标」编成一张映射表（每个类型一张，外加未知类型的兜底）。
+ *  原先每张票根各塞一个 data-uri，500 张就是 ~186KB，点一次分类胶囊全量过一遍 setData 桥；
+ *  而图标只跟 type 有关，编 5 张就够 —— 列表数据从此不含图形。 */
+function buildTypeIc(color) {
+  const map = {};
+  Object.keys(TYPE_ICONS).forEach((k) => { map[k] = iconSrc(TYPE_ICONS[k], color, 0.4, 1.5); });
+  map._ = iconSrc('ticket', color, 0.4, 1.5);
+  return map;
+}
+
 // A8 新用户三步引导：拍一张 → AI 认字 → 上墙（只看一次，可跳过）
 const GUIDE_KEY = 'sp_guide_done';
 const GUIDE = [
@@ -142,7 +152,6 @@ Page({
         // ⚠️ 主键统一用 id：store.listTickets 已把云库的 _id 归一成 id，
         // 旧版这里读写的是 t._id，演示数据里根本没有这个字段 —— 收藏心点了不会亮。
         dateText: String(t.date || '').replace(/-/g, '.'),
-        ico: iconSrc(TYPE_ICONS[t.type] || 'ticket', this._ink || '#6B5B50', 0.4, 1.5),
         fav: favIds.indexOf(t.id) >= 0,
         loaded: !!this._ready[t.id]
       }, stampParts(t)));
@@ -292,6 +301,8 @@ Page({
         heartOff: iconSrc('heart', m.text, 0.35, 1.5),
         emptyIc: iconSrc('ticket', m.text, 0.28, 1.4)
       },
+      // 没照片时的兜底图标：编成映射表，列表里每张票根只带一个 type 字符串
+      typeIc: buildTypeIc(m.text),
       art: {
         // 卡片是等高网格 → 底图只编一张，六张卡共用（见文件头）
         card: deco.pinkedPanel(CARD_W, CARD_H, { fill: '#FFFDF8', ink: '#C9A469', tooth: 16, amp: 4, inset: 4, strokeAlpha: 0.28 }),

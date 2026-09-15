@@ -297,7 +297,11 @@ function apply(page) {
   wx.setNavigationBarColor({
     frontColor: n.front,
     backgroundColor: n.bg,
-    fail: () => { /* 页面可能尚未注册导航栏，忽略 */ }
+    // 7.4.3：只有**真的设上了**才记账。原先无论成败都记 _lastNav，于是「页面尚未注册导航栏」
+    // 那一次失败会把这套配色钉死一整个会话 —— 后面主题换了，顶部还是旧色且不再重试。
+    // 失败不记账的代价只是下次进页面多调一次 API，比导航栏颜色一直错着便宜得多。
+    success: () => { _lastNav = k; },
+    fail: () => { /* 页面可能尚未注册导航栏，忽略；留给下次重试 */ }
   });
   if (wx.setBackgroundColor) {
     wx.setBackgroundColor({
@@ -305,7 +309,6 @@ function apply(page) {
       fail: () => { /* 部分场景不支持，忽略 */ }
     });
   }
-  _lastNav = k;
 }
 
 module.exports = {

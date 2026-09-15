@@ -1,16 +1,16 @@
 // utils/date.js —— 日期工具（纯函数，无依赖）
 
-/** '2025-10-26' → '2025 · 十月'（首页分组标题） */
+/** '2025-10-26' → '2025 · 十月'（双人时间线按月分组）
+ *  7.4.3：补守卫 —— 空值 / 残缺日期 / 月份越界一律返回空串。
+ *  同文件的 weekday 从 4.22.5 起就有这道守卫，这里一直漏着，脏数据会渲染成「undefined月」。 */
 function groupLabel(dateStr) {
   const months = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
-  const [y, m] = dateStr.split('-');
-  return `${y} · ${months[Number(m) - 1]}月`;
-}
-
-/** '2025-10-26' → '10.26'（副券日期） */
-function stubDate(dateStr) {
-  const [, m, d] = dateStr.split('-');
-  return `${Number(m)}.${d}`;
+  const s = String(dateStr || '');
+  if (s.length < 10) return '';
+  const [y, m] = s.split('-');
+  const mi = Number(m) - 1;
+  if (!(mi >= 0 && mi < 12)) return '';
+  return `${y} · ${months[mi]}月`;
 }
 
 /** '2025-10-26' → '周日'（4.22.5：空/不完整（非 YYYY-MM-DD）/无效日期返回空串，防「周undefined」与残缺日期被补全误导） */
@@ -66,4 +66,5 @@ function annivYears(dateStr) {
   return md === today && years > 0 ? years : 0;
 }
 
-module.exports = { groupLabel, stubDate, weekday, todayMD, todaySign, annivYears };
+// stubDate（'2025-10-26' → '10.26'）7.4.3 已删：全项目 0 个调用方，且同样缺守卫
+module.exports = { groupLabel, weekday, todayMD, todaySign, annivYears };

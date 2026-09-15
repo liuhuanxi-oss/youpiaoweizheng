@@ -220,6 +220,24 @@ Page({
   },
 
   // ---------- Canvas（导出海报） ----------
+
+  /** 7.4.3：页面退出释放画布 —— 3240×5760 的位图约 74MB，是全局最大内存单点；不释放就只能等 GC，
+   *  低端机上再导一张别的海报就会闪退。置零而不是只丢引用：Canvas 2D 的位图要显式释放。
+   *  _photos 里是 canvas.createImage() 造的 Image，跟着画布一起丢。 */
+  _releaseCanvas() {
+    if (this._canvas) {
+      this._canvas.width = 0;
+      this._canvas.height = 0;
+    }
+    this._canvas = null;
+    this._ctx = null;
+    this._photos = {};
+  },
+
+  onUnload() {
+    this._releaseCanvas();
+  },
+
   _ensureCanvas() {
     if (this._canvas) return Promise.resolve(true);
     return new Promise((resolve) => {

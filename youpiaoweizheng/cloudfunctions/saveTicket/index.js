@@ -1784,7 +1784,11 @@ function signView(d, today, yesterday) {
     streak: alive ? (d.streak || 0) : 0,
     best: (d && d.best) || 0,
     total: (d && d.total) || 0,
-    today
+    today,
+    // 7.4.3：基础分随视图下发。端上原先自己硬编码了一份「5 分」，用来跟用户说
+    // 「再收一张得 5 积分」—— 两侧各写一份，只改一侧就是对用户的假承诺，且测试各测各的发现不了。
+    // 从今以后这个数字只有一个来源：这里。
+    base: SIGN_BASE_POINTS
   };
 }
 

@@ -9,7 +9,8 @@
 const { USE_CLOUD } = require('./env.js');
 const subscribe = require('./subscribe.js'); // 7.4.0 C2：签到时顺带换一条次日召回（一次性订阅）
 
-const POINTS_PER_SIGN = 5; // 与云函数 SIGN_BASE_POINTS 同源：这里只用于「说」，账在服务端
+// 7.4.3：删掉端上那份「签到 5 分」。数字只认服务端随状态下发的 base —— 账在服务端，
+// 这句话就该由服务端说；两侧各硬编码一个 5，改了一侧就是拿假数字跟用户承诺。
 
 async function call(data) {
   const res = await wx.cloud.callFunction({ name: 'saveTicket', data });
@@ -62,10 +63,14 @@ function bannerText(s) {
       btn: ''
     };
   }
+  // 服务端给了数字才说具体数字，没给就只说「有积分」—— 宁可少说一句，不说错一句
+  const base = (s && s.base) || 0;
   return {
     title: '今日时光签',
     sub: streak > 0
-      ? `连签 ${streak} 天 · 再收一张得 ${POINTS_PER_SIGN} 积分`
+      ? (base
+        ? `连签 ${streak} 天 · 再收一张得 ${base} 积分`
+        : `连签 ${streak} 天 · 再收一张有积分`)
       : '每天来收一张 · 攒积分换 AI 重绘',
     btn: '收下'
   };
@@ -76,7 +81,8 @@ function rewardText(r) {
   const streak = (r && r.milestone) || 0;
   if (r && r.art) return `连签 ${streak} 天 · 已送你 ${r.art} 次 AI 重绘`;
   if (streak) return `连签 ${streak} 天 · 积分 +${(r && r.points) || 0}`;
-  return `积分 +${(r && r.points) || POINTS_PER_SIGN}`;
+  const pts = (r && r.points) || 0;
+  return pts ? `积分 +${pts}` : '积分已到账';
 }
 
-module.exports = { status, checkIn, bannerText, rewardText, POINTS_PER_SIGN };
+module.exports = { status, checkIn, bannerText, rewardText };
