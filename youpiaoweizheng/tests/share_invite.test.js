@@ -56,18 +56,17 @@ function reset(opt) {
 
 const share = require('../utils/share.js');
 const invite = require('../utils/invite.js');
-const COVER = '/images/brand-logo.png';
 
 // ════════════════════════════════════════════════════════════
 console.log('\n【一、share.js：一套文案，两个出口】');
 
-t('好友分享：带票名、带口号、直达详情，配图是 1:1 方图', () => {
+t('好友分享：带票名、带口号、直达详情，配图是该场景的专属封面', () => {
   reset();
   const m = share.message('ticket', { id: 't1', title: '夜宴' });
   ok(m.title.indexOf('夜宴') >= 0, '标题里没有票名：' + m.title);
   ok(m.title.indexOf(share.SLOGAN) >= 0, '标题没有统一口号：' + m.title);
   ok(m.path === '/pages/detail/detail?id=t1', '落地页不对：' + m.path);
-  ok(m.imageUrl === COVER, '配图不是 1:1 方图：' + m.imageUrl);
+  ok(m.imageUrl === share.COVERS.ticket, '配图不对：' + m.imageUrl);
 });
 
 t('没有具体票根时落地收藏册（不是死链）', () => {
@@ -83,9 +82,31 @@ t('朋友圈：只出 query、不出 path，配图必须自带（不支持异步
   ok(tt.query === 'id=t1', 'query 不对：' + tt.query);
   ok(!('path' in tt), '朋友圈不该有 path —— 它只能落在当前页，给了会被忽略');
   ok(!('promise' in tt), '朋友圈不支持 promise 取图');
-  ok(tt.imageUrl === COVER, '朋友圈没有现成配图，卡片会是白板');
+  ok(tt.imageUrl === share.COVERS.ticket, '朋友圈没有现成配图，卡片会是白板');
   ok(tt.title.indexOf(share.SLOGAN) >= 0, '朋友圈标题没有口号');
   ok(share.timeline('annual', { total: 3 }).query === '', '年度报告没有 query 语义，不该硬塞');
+});
+
+// 封面是**图片文件**，改错了路径、拷漏了图、导出成了别的比例，代码全都不会报错——
+// 只在真机转发时才发现卡片是白的或者被裁掉了半张。这条把盘上的文件钉死。
+t('三张封面都在包里，且是 5:4 的 PNG（微信按这个比例显示好友卡片）', () => {
+  Object.keys(share.COVERS).forEach((k) => {
+    const rel = share.COVERS[k];
+    const f = path.join(ROOT, rel.replace(/^\//, ''));
+    ok(fs.existsSync(f), k + ' 的封面不在包里：' + rel);
+    const b = fs.readFileSync(f);
+    ok(b.slice(1, 4).toString() === 'PNG', k + ' 的封面不是 PNG：' + rel);
+    const w = b.readUInt32BE(16), h = b.readUInt32BE(20);  // IHDR 紧跟在 8 字节签名 + 4 字节长度 + 4 字节类型之后
+    ok(Math.abs(w / h - 5 / 4) < 0.01, k + ' 的封面不是 5:4：' + w + '×' + h);
+    ok(w >= 300 && h >= 240, k + ' 的封面小于微信要求的最小尺寸 300×240：' + w + '×' + h);
+  });
+});
+
+t('三个场景各用各的专属封面，不再共用那张方形应用图标', () => {
+  const covers = Object.keys(share.COVERS).map((k) => share.COVERS[k]);
+  ok(new Set(covers).size === covers.length, '有两个场景共用了同一张封面');
+  ok(covers.every((p) => p.indexOf('brand-logo') < 0),
+    '分享封面又用回了 brand-logo（那是正方形应用图标，5:4 卡片上会被裁）：' + covers.join('、'));
 });
 
 t('有画布的场景：交了 promise 就不设 imageUrl（两个同时给的行为各版本不一致）', () => {

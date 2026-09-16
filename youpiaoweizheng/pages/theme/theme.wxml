@@ -29,12 +29,10 @@
       aria-label="主题 {{item.name}}{{preview === item.key ? '，预览中' : ''}}"
     >
 
-      <!-- ① 顶部 IP 头像（六套一致形象，仅换背景色 / 光） -->
-      <view class="th-ip" style="background: {{item.bg}};">
-        <view class="th-ip-glow" style="background: {{item.soft}};"></view>
-        <!-- IP 头像：渔夫帽 + 卷发 + 白卫衣，图形见 utils/deco.js avatarBody() -->
-        <image class="th-ip-img" src="{{item.avatarSrc}}" mode="aspectFit" />
-        <view class="th-ip-name" style="color: {{item.text}};">{{item.name}}</view>
+      <!-- ① 顶部预览：该主题下的一张微缩票根卡（图形见 utils/deco.js ticketPreview()）
+           —— 底色 / 卡片色 / 文字色 / 主色 / 强调色一次看全，比读色号快 -->
+      <view class="th-preview">
+        <image class="th-preview-img" src="{{item.previewSrc}}" mode="aspectFit" />
       </view>
 
       <!-- ② 主题名 + 气质 -->

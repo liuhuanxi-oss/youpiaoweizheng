@@ -2,9 +2,9 @@
  * scripts/dev/preview-deco.js —— 主题装饰图形离线预览
  * ============================================================
  * 【解决什么问题】
- *   theme 页的头像与装饰元素是 JS 侧拼出来的 SVG（data-uri），
+ *   theme 页的票根预览与装饰元素是 JS 侧拼出来的 SVG（data-uri），
  *   改完没法在命令行里「看到」对不对，只能开微信开发者工具、翻到设置页。
- *   本脚本把 6 套主题 ×（1 头像 + 4 装饰）共 30 张图形渲染成一张 HTML，
+ *   本脚本把 6 套主题 ×（1 票根预览 + 4 装饰）共 30 张图形渲染成一张 HTML，
  *   浏览器打开即见 —— 改完颜色/形状能当场肉眼验收，不用等真机。
  *
  * 【用法】
@@ -46,10 +46,8 @@ function cardHtml(t) {
   return '' +
     '<section class="card" style="background:' + esc(t.bg) + ';color:' + esc(t.text) + '">' +
       '<header>' +
-        '<div class="ip" style="background:' + esc(t.bg) + '">' +
-          '<div class="glow" style="background:' + esc(t.soft) + '"></div>' +
-          '<img class="avatar" src="' + esc(deco.avatarSrc(t)) + '" alt="IP 头像">' +
-          '<span style="color:' + esc(t.text) + '">' + esc(t.name) + '</span>' +
+        '<div class="tkprev">' +
+          '<img src="' + esc(deco.previewSrc(t)) + '" alt="主题预览票根">' +
         '</div>' +
         '<h2 style="color:' + esc(t.primary) + '">' + esc(t.name) + ' <small>' + esc(t.key) + '</small></h2>' +
         '<p class="tag">' + esc(t.tagline) + '</p>' +
@@ -69,11 +67,8 @@ const html = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">' +
   'h1{font-size:20px;margin:0 0 6px}.lead{color:#8A7E6E;margin:0 0 28px}' +
   '.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}' +
   '.card{border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}' +
-  '.ip{position:relative;height:150px;border-radius:14px;display:flex;flex-direction:column;' +
-    'align-items:center;justify-content:center;overflow:hidden;margin-bottom:14px}' +
-  '.glow{position:absolute;width:190px;height:190px;border-radius:50%;opacity:.55;filter:blur(26px)}' +
-  '.avatar{position:relative;width:104px;height:104px;z-index:1}' +
-  '.ip span{position:relative;z-index:1;font-weight:700;letter-spacing:1px;font-size:13px}' +
+  '.tkprev{margin-bottom:16px;border-radius:14px;overflow:hidden}' +
+  '.tkprev img{display:block;width:100%;height:auto}' +
   '.card h2{margin:0;font-size:17px}.card h2 small{font-weight:400;opacity:.45;font-size:11px}' +
   '.tag{margin:4px 0 0;font-size:12px;opacity:.7}.desc{margin:2px 0 0;font-size:12px;opacity:.55}' +
   '.card h3{margin:18px 0 8px;font-size:11px;letter-spacing:2px;opacity:.5;font-weight:600}' +
@@ -89,7 +84,7 @@ const html = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">' +
   '.sw i{font-style:normal;font-size:10px;opacity:.5}' +
   '</style></head><body>' +
   '<h1>有票为证 · 主题装饰图形预览</h1>' +
-  '<p class="lead">6 套主题 ×（1 头像 + 4 装饰）＝ 30 张图形。' +
+  '<p class="lead">6 套主题 ×（1 票根预览 + 4 装饰）＝ 30 张图形。' +
   '由 utils/deco.js 在 JS 侧编译成 SVG 实色，走 &lt;image src&gt; 渲染 —— 真机与浏览器应一致。</p>' +
   '<div class="grid">' + theme.THEME_META.map(cardHtml).join('') + '</div>' +
   '</body></html>';

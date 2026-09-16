@@ -7,13 +7,24 @@
 //
 // 【朋友圈(onShareTimeline) 与好友(onShareAppMessage) 的差别 —— 踩过的坑】
 //   ① 朋友圈**只能带 query**，落地页固定是当前页，不能跳到别的页面；
-//   ② 朋友圈**不支持 promise 异步取图**，只能是现成的图片路径（用 1:1 方图）；
+//   ② 朋友圈**不支持 promise 异步取图**，只能是现成的图片路径；
 //   ③ 朋友圈打开是「单页模式」：拿不到用户身份、不能跳页、不能用部分 API
 //      —— 票根分享给好友也读不到（云库仅创建者可读写），两处都靠详情页的
 //      notFound 空态接住（见 pages/detail/detail.js）。
+//
+// 【配图为什么一张能用两处（7.4.4）】
+//   好友卡片按 5:4 显示、朋友圈按 1:1 显示 —— 同一个 cover 落到朋友圈会被居中裁掉
+//   左右各 1/10。所以画封面时把内容全收在中间 600×600 里（出图脚本里的「安全区」，
+//   见 scripts/dev/gen-share-covers.js），一张 5:4 的图两边都不丢内容，不必出两套。
 // ============================================================
 const invite = require('./invite.js'); // 每条分享 path / query 都要带邀请码（R6）
-const COVER = '/images/brand-logo.png'; // 1:1 方图：朋友圈卡片图与「无画布」场景共用
+
+// 场景封面（5:4，内容在中间安全区里，好友卡片与朋友圈共用）
+const COVERS = {
+  ticket: '/images/share/cover-ticket.png',   // 一张微倾的票根 + 邮戳
+  annual: '/images/share/cover-annual.png',   // 一叠票根扇形摊开
+  duo:    '/images/share/cover-duo.png'       // 两张竖票根对倾 + 一颗星
+};
 const SLOGAN = '让时光有票为证';
 
 /** 统一口号：已有口号的不重复拼（各页文案换过几轮，难免有一条自带） */
@@ -22,16 +33,15 @@ function withSlogan(title) {
   return t.indexOf(SLOGAN) >= 0 ? t : t + ' · ' + SLOGAN;
 }
 
-// 场景表：一个场景 = 一套标题 + 落地页（path 给好友分享，query 给朋友圈）。
-// 配图只区分「有画布」与「没画布」：卡片页/年度报告自带画布导出（内容即配图），
-// 其余场景先共用 1:1 品牌图 —— 要换专属方图时只改这里的 cover 一个值。
+// 场景表：一个场景 = 一套标题 + 落地页（path 给好友分享，query 给朋友圈）＋ 一张专属封面。
+// 例外：卡片页/年度报告在**有画布**时传 promise 自取配图（内容即配图），用不到封面。
 const SCENES = {
   // 票根：详情页 / 纪念卡片 / 图版
   ticket: {
     title: (d) => (d && d.title ? `我在有票为证收藏了「${d.title}」` : '我的票根收藏册'),
     path: (d) => (d && d.id ? `/pages/detail/detail?id=${d.id}` : '/pages/album/album'),
     query: (d) => (d && d.id ? `id=${d.id}` : ''),
-    cover: COVER
+    cover: COVERS.ticket
   },
   // 年度回忆报告
   annual: {
@@ -40,7 +50,7 @@ const SCENES = {
       : '我的年度回忆报告'),
     path: () => '/pages/annual/annual',
     query: () => '',
-    cover: COVER
+    cover: COVERS.annual
   },
   // 双人空间 / 双人报告（沿用 v5.1 那句「我们」钩子：比功能描述更能唤起绑定）
   duo: {
@@ -49,7 +59,7 @@ const SCENES = {
       : '我把咱俩看过的时光收成了收藏册，给你留了位置，来一起翻'),
     path: (d) => (d && d.code ? `/pages/bind/bind?code=${d.code}` : '/pages/duo/duo'),
     query: () => '',
-    cover: COVER
+    cover: COVERS.duo
   }
 };
 
@@ -101,4 +111,4 @@ function sp() {
   }
 }
 
-module.exports = { message, timeline, sp, withSlogan, SCENES, COVER, SLOGAN };
+module.exports = { message, timeline, sp, withSlogan, SCENES, COVERS, SLOGAN };

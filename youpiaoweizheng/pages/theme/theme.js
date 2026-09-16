@@ -1,7 +1,9 @@
 // pages/theme/theme.js —— 主题选择页（v6.5 六主题「皮肤」）
 // ============================================================
-// 六张统一版式卡片：顶部 IP 头像 → 主题名 → 6 色色板（含 hex）
+// 六张统一版式卡片：顶部微缩票根预览 → 主题名 → 6 色色板（含 hex）
 //                  → 字体层级样例 → 4 个装饰元素图形
+// 顶部原先是同一个 IP 头像只换背景色（六张看下来等于没看），改成该主题下的
+// 一张微缩票根卡：底色/卡片色/文字色/主色/强调色一次看全。
 // 交互：点卡片 = 即时预览（当场换肤，不落库）
 //       「应用此主题」= setTheme 落库 + 提示 + 返回
 //
@@ -19,7 +21,7 @@ const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别
 /** 把主题元数据 + 编译好的图形 data-uri 合成卡片数组（wxml 只认这个） */
 function buildCards() {
   return themeUtil.THEME_META.map((t) => Object.assign({}, t, {
-    avatarSrc: deco.avatarSrc(t),
+    previewSrc: deco.previewSrc(t),
     decoItems: t.decos.map((d) => ({
       name: d,
       label: themeUtil.DECO_LABELS[d] || '',
@@ -39,7 +41,7 @@ Page({
 
   onLoad() {
     const cur = themeUtil.getTheme();
-    // 编译 6 套 ×（1 头像 + 4 装饰）共 30 张 SVG，一次性 setData (~18KB)
+    // 编译 6 套 ×（1 预览票根 + 4 装饰）共 30 张 SVG，一次性 setData (~18KB)
     // 「当前预览」的勾选标记走 icons.js（原先是字符 ✓，真机字形覆盖不可控）：
     // 它恒为白描线、压在卡片自己的主题色圆底上，故只需编译一次
     this.setData({

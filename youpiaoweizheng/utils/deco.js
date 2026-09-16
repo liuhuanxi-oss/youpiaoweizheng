@@ -1,4 +1,4 @@
-// utils/deco.js —— 主题装饰图形（IP 头像 + 19 款装饰元素）  v7.0 新增
+// utils/deco.js —— 主题装饰图形（主题预览票根 + IP 头像 + 19 款装饰元素）  v7.0 新增
 // ============================================================
 // 【为什么需要这个文件】
 //   theme 页的 IP 头像与 4 个装饰元素，原来是用**内联 <svg> 标签**写的。
@@ -14,7 +14,8 @@
 //
 // 【用法】
 //   const deco = require('../../utils/deco.js');
-//   deco.avatarSrc(themeMeta)          // → 头像 data-uri
+//   deco.previewSrc(themeMeta)         // → 主题预览票根 data-uri（theme 页顶部）
+//   deco.avatarSrc(themeMeta)          // → 头像 data-uri（「我的」页）
 //   deco.decoSrc('postmark', themeMeta) // → 装饰元素 data-uri
 //   themeMeta 直接传 utils/theme.js 里的 THEME_META 元素（含 bg/primary/accent…）
 // ============================================================
@@ -327,6 +328,76 @@ function avatarSrc(theme) {
 }
 
 // ============================================================
+// 主题预览：一张「微缩票根卡」（theme 页每张卡顶部那张）
+// 【为什么换掉 IP 头像】原来六张卡顶部都是同一个戴渔夫帽的小人，只换背景色 ——
+//   六张卡看下来等于没看：用户想知道的是「这套主题下我的票根长什么样」，
+//   而一个与主题无关的卡通人像答不上来。现在直接铺一张该主题的票根卡：
+//   底色、卡片色、文字色、主色、强调色一次性看全，比读色号快得多。
+// 【造型】沿用产品母题：主券（照片 + 票名 + 类型胶囊）+ 撕票虚线 + 副券（条形码）。
+// ============================================================
+
+/** 副券上的条形码：宽窄交替的竖条，占满给定宽度 */
+function barcode(x, y, w, h, c) {
+  const GAP = 3;
+  const widths = [4, 3, 5, 3, 4, 3, 5, 4];              // 合计 31
+  const bars = w - GAP * (widths.length - 1);            // 条身可用宽度
+  const scale = bars / 31;
+  let out = '';
+  let bx = x;
+  for (let i = 0; i < widths.length; i++) {
+    const bw = Math.round(widths[i] * scale * 10) / 10;
+    out += '<rect x="' + bx + '" y="' + y + '" width="' + bw + '" height="' + h +
+      '" ' + fillOf(c.text, '#2B2420', 0.58) + '/>';
+    bx += bw + GAP;
+  }
+  return out;
+}
+
+function ticketPreview(c) {
+  const SPLIT = 226;   // 撕票虚线所在的 x
+  const CARD = { x: 22, y: 22, w: 276, h: 132, r: 12 };
+  const RIGHT = CARD.x + CARD.w;   // 卡片右边界 298
+  return '' +
+    // 底：主题背景色（铺满，让每张卡的第一印象就是它）
+    '<rect x="0" y="0" width="320" height="176" ' + fillOf(c.bg, '#F5F0E6') + '/>' +
+    // 票根卡：主题卡片色 + 描边
+    '<rect x="' + CARD.x + '" y="' + CARD.y + '" width="' + CARD.w + '" height="' + CARD.h +
+      '" rx="' + CARD.r + '" ' + fillOf(c.card, '#FFFFFF') + ' ' +
+      strokeOf(c.border, '#E9E2D4', 1, '') + '/>' +
+    // 主券 · 照片位（左）：色块里压一道极淡的山脊与日头 —— 不然它就是
+    // 「一块没上色的地方」，读者不知道那是什么。
+    // 山与日头的坐标自己收在圆角内，不用 clipPath：少一个 SVG 特性，少一处真机风险。
+    '<rect x="38" y="50" width="72" height="72" rx="10" ' + fillOf(c.soft, '#E9E2D4') + '/>' +
+    '<path d="M46 120L60 96L72 108L86 92L102 120Z" ' + fillOf(c.text, '#2B2420', 0.13) + '/>' +
+    '<circle cx="88" cy="66" r="6" ' + fillOf(c.text, '#2B2420', 0.1) + '/>' +
+    // 主券 · 票名（粗）+ 两行说明（细）
+    '<rect x="124" y="48" width="86" height="12" rx="6" ' + fillOf(c.text, '#2B2420', 0.88) + '/>' +
+    '<rect x="124" y="70" width="80" height="6" rx="3" ' + fillOf(c.text2, '#8A7E6E', 1) + '/>' +
+    '<rect x="124" y="84" width="58" height="6" rx="3" ' + fillOf(c.text2, '#8A7E6E', 1) + '/>' +
+    // 主券 · 类型胶囊（整张图上主色唯一的大色块，一眼看出这套主题的主色）
+    '<rect x="124" y="102" width="56" height="20" rx="10" ' + fillOf(c.primary, '#2B2420') + '/>' +
+    // 撕票虚线 + 上下两个缺口（缺口用主题底色「咬」出来，省一层遮罩）
+    // 撕票线是票根的标志，别用 border 那种浅到看不见的颜色 —— 用正文色压到 22%
+    '<path d="M' + SPLIT + ' ' + (CARD.y + 12) + 'V' + (CARD.y + CARD.h - 12) + '" fill="none" ' +
+      strokeOf(c.text, '#2B2420', 1.4, '5 5', 0.3) + '/>' +
+    '<circle cx="' + SPLIT + '" cy="' + CARD.y + '" r="8" ' + fillOf(c.bg, '#F5F0E6') + '/>' +
+    '<circle cx="' + SPLIT + '" cy="' + (CARD.y + CARD.h) + '" r="8" ' + fillOf(c.bg, '#F5F0E6') + '/>' +
+    // 副券 · 条形码（副券宽 72，两侧各留 6）
+    barcode(SPLIT + 6, 44, RIGHT - SPLIT - 12, 56, c) +
+    // 副券 · 下半部一枚小印章（强调色），六套主题各显其色
+    '<circle cx="' + (SPLIT + 36) + '" cy="128" r="11" fill="none" ' +
+      strokeOf(c.accent, '#C26B5E', 1.6, '3 3') + '/>';
+}
+
+/**
+ * 主题预览（微缩票根卡）→ data-uri
+ * @param {object} theme  THEME_META 里的一个主题
+ */
+function previewSrc(theme) {
+  return toUri('0 0 320 176', 320, 176, ticketPreview(theme || {}));
+}
+
+// ============================================================
 // 邮戳（品牌全案 · 稿屏8 时光机）：每张明信片右上角那一枚
 //   = 双圈圆环 + 右侧四道注销波浪线。
 //
@@ -482,4 +553,4 @@ function flowerStamp(c) {
   return toUri('0 0 48 48', 48, 48, body);
 }
 
-module.exports = { decoSrc, avatarSrc, postmarkParts, artFrame, flowerStamp, pinkedPanel };
+module.exports = { decoSrc, avatarSrc, previewSrc, postmarkParts, artFrame, flowerStamp, pinkedPanel };

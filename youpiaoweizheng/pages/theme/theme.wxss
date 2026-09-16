@@ -23,28 +23,22 @@
   .th-card-hover { transform: none; }
 }
 
-/* ① IP 头像区（三套一致形象，仅换背景色/光） */
-.th-ip {
+/* ① 主题预览区：一张微缩票根卡
+      图本身是 320×176 的 SVG（data-uri），比例由 padding-bottom 撑出来 ——
+      写死高度的话，不同机型宽度一变，票根就会被拉扁。 */
+.th-preview {
   position: relative;
-  height: 220rpx;
+  width: 100%;
+  height: 0;
+  padding-bottom: 55%;        /* 176 / 320 */
   border-radius: 28rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
   margin-bottom: 24rpx;
 }
-.th-ip-glow {
+.th-preview-img {
   position: absolute;
-  width: 300rpx; height: 300rpx; border-radius: 50%;
-  opacity: 0.55; filter: blur(30rpx);
-}
-.th-ip-img { position: relative; width: 168rpx; height: 168rpx; z-index: 1; }
-.th-ip-name {
-  position: relative; z-index: 1;
-  margin-top: 4rpx;
-  font-size: 26rpx; font-weight: 700; letter-spacing: 2rpx;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
 }
 
 /* ② 主题名 */
