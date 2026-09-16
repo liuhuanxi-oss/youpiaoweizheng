@@ -26,7 +26,7 @@ const weekday = (d) => ['周日','周一','周二','周三','周四','周五','�
 const annivYears = () => 0;
 const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape } = require('${brush}');
 ${src.slice(0, cut).replace(/^const .*require\(.*\);.*$/gm, '')}
-return { DRAWERS, W, H };
+return { DRAWERS, W, H, XHS_ART, XHS_W, XHS_H };
 `;
   return new Function('require', code)(require);
 }
@@ -53,26 +53,44 @@ function render(key, t) {
   return { svg: rec.toSVG(), W, H };
 }
 
-module.exports = { loadDrawers, render, DEMO, ROOT };
+/** 录一张小红书素材图（封面图 / 步骤图，1080×1440）→ SVG 文本 */
+function renderXhs(key, t) {
+  const { XHS_ART, XHS_W, XHS_H } = loadDrawers();
+  const rec = new Recorder(XHS_W, XHS_H);
+  XHS_ART[key](rec, t || DEMO, '有些夜晚值得被留下来，一遍一遍地放。',
+    { width: 1200, height: 900 }, null, 0);
+  return { svg: rec.toSVG(), W: XHS_W, H: XHS_H };
+}
+
+/** 写 SVG + 光栅化成 PNG（没装 resvg_py 就只留 SVG，不阻断） */
+function emit(outDir, name, res) {
+  const svgPath = path.join(outDir, name + '.svg');
+  fs.writeFileSync(svgPath, res.svg, 'utf8');
+  console.log('写出 ' + svgPath);
+  const png = path.join(outDir, name + '.png');
+  try {
+    execFileSync('python', ['-c',
+      `import resvg_py;open(r"${png.replace(/\\/g, '\\\\')}","wb").write(bytes(resvg_py.svg_to_bytes(svg_path=r"${svgPath.replace(/\\/g, '\\\\')}", width=${res.W})))`
+    ], { stdio: 'inherit' });
+    console.log('光栅化 ' + png);
+  } catch (e) {
+    console.log('（无 resvg_py，跳过光栅化：' + e.message + '）');
+  }
+}
+
+module.exports = { loadDrawers, render, renderXhs, DEMO, ROOT };
 
 if (require.main === module) {
   const OUT = path.join(ROOT, 'dist/_card');
   fs.mkdirSync(OUT, { recursive: true });
   const only = process.argv[2];
-  Object.keys(loadDrawers().DRAWERS).forEach((key) => {
-    if (only && only !== key) return;
-    const { svg } = render(key);
-    const svgPath = path.join(OUT, key + '.svg');
-    fs.writeFileSync(svgPath, svg, 'utf8');
-    console.log('写出 ' + svgPath);
-    const png = path.join(OUT, key + '.png');
-    try {
-      execFileSync('python', ['-c',
-        `import resvg_py;open(r"${png.replace(/\\/g, '\\\\')}","wb").write(bytes(resvg_py.svg_to_bytes(svg_path=r"${svgPath.replace(/\\/g, '\\\\')}", width=600)))`
-      ], { stdio: 'inherit' });
-      console.log('光栅化 ' + png);
-    } catch (e) {
-      console.log('（无 resvg_py，跳过光栅化：' + e.message + '）');
-    }
-  });
+  // node scripts/dev/preview-card.js xhs → 只出小红书那两张素材图（1080×1440）
+  if (only === 'xhs') {
+    Object.keys(loadDrawers().XHS_ART).forEach((k) => emit(OUT, 'xhs-' + k, renderXhs(k)));
+  } else {
+    Object.keys(loadDrawers().DRAWERS).forEach((key) => {
+      if (only && only !== key) return;
+      emit(OUT, key, render(key));
+    });
+  }
 }

@@ -237,9 +237,11 @@ t('_waitFirstFrame：_render 真跑过才放行', () => {
   ok(/_waitFirstFrame\s*\(\)\s*\{[\s\S]{0,400}?setTimeout\(/.test(jsClean),
     '没有超时兜底：手绘一旦抛错，保存按钮会一直转下去');
 });
-t('save 与 saveXHS 都在 canvasToTempFilePath 之前 await 首帧', () => {
+t('save 与 _saveXhsArt 都在 canvasToTempFilePath 之前 await 首帧', () => {
+  // 8.0.0：小红书那支从「一个 async saveXHS」拆成了「入口 saveXHS（弹三选一）+
+  // 出图 _saveXhsArt」，等首帧也跟着搬进了后者 —— 断言跟着改，别改成个空的
   [['save', /async save\(\)\s*\{([\s\S]*?)\n  \},/],
-   ['saveXHS', /async saveXHS\(\)\s*\{([\s\S]*?)\n  \},/]].forEach(([name, re]) => {
+   ['_saveXhsArt', /async _saveXhsArt\(kind\)\s*\{([\s\S]*?)\n  \},/]].forEach(([name, re]) => {
     const m = re.exec(jsClean);
     ok(m, name + ' 没找到（改了写法就把这条断言一起改）');
     const wait = m[1].indexOf('await this._waitFirstFrame()');
@@ -254,6 +256,39 @@ t('画布倍率走 safeDpr（裸 pixelRatio 在 iOS 上单边越 4096 就建不�
   ok(lines.length > 0, '找不到 dpr 赋值（改了写法就把这条断言一起改）');
   const raw = lines.filter((s) => !/safeDpr\(/.test(s));
   ok(raw.length === 0, '这些 dpr 没走 safeDpr：' + raw.join(' | '));
+});
+
+console.log('\n【九、小红书素材（8.0.0 X3）：三张图，一张码都不许有】');
+/** 取某个顶层函数的函数体源码（到顶格那个 } 为止）——用来盯住「这段里不许出现什么」 */
+const bodyOf = (name) => {
+  const i = jsClean.indexOf('function ' + name + '(');
+  if (i < 0) throw new Error('找不到函数 ' + name + '（改名了就把这条断言一起改）');
+  const end = jsClean.indexOf('\n}', i);
+  if (end < 0) throw new Error('找不到 ' + name + ' 的结尾');
+  return jsClean.slice(i, end);
+};
+t('入口是三选一：成品图 / 封面图 / 步骤图各落各的', () => {
+  ok(/wx\.showActionSheet\(/.test(jsClean), 'saveXHS 没走 ActionSheet');
+  ok(/'shot', 'cover', 'steps'/.test(jsClean), '三选一的下标映射没了（点第 2 项会出成品图）');
+  ok(/XHS_ART = \{ cover: drawXhsCover, steps: drawXhsSteps \}/.test(jsClean), '两张素材图没挂进 XHS_ART');
+});
+t('两张素材图里一个二维码都不画（发小红书带码 = 站外导流）', () => {
+  // 合规红线：卡片上那枚「扫码看我的时光档案」绝不许混进发小红书的图里。
+  // 连 qr 参数都不留 —— 留着，下一个改这函数的人顺手就接上了（导流最高 2 万违约金 + 封号）
+  [['封面图', bodyOf('drawXhsCover')], ['步骤图', bodyOf('drawXhsSteps')]].forEach(([name, src]) => {
+    ok(src.indexOf('drawQR') < 0, name + ' 画了二维码');
+    ok(!/[^a-zA-Z]qr[^a-zA-Z]/.test(src), name + ' 里出现了 qr —— 参数都不该有');
+    ok(src.indexOf('wxacode') < 0, name + ' 里出现了小程序码的取码逻辑');
+  });
+});
+t('封面图画的是这张票根本人：票名 / 城市 / 日期 / AI 文案都得上', () => {
+  const src = bodyOf('drawXhsCover');
+  ['t.title', 't.city', 't.date', 'quote'].forEach((f) => {
+    ok(src.indexOf(f) >= 0, '封面图没用到 ' + f + ' —— 那它就只是一张通用海报，跟用户的票没关系了');
+  });
+});
+t('步骤图把「去哪找」写出来了（不许放码，文字引导搜索是唯一合规的路）', () => {
+  ok(/微信搜小程序/.test(bodyOf('drawXhsSteps')), '步骤图没写搜什么，用户看完不知道去哪找');
 });
 
 console.log('\n测试套件：card_postcard —— ' + pass + ' 通过 / ' + fail + ' 失败\n');

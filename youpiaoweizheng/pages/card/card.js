@@ -826,6 +826,249 @@ function drawPostcard(ctx, t, quote, img, duo, same, qr, sig) {
 
 const DRAWERS = { postcard: drawPostcard, classic: drawClassic, poster: drawPoster, journal: drawJournal, daily: drawDaily };
 
+// ---------- 小红书素材：封面图与步骤图（8.0.0 X3） ----------
+// 卡片页「存小红书素材」一共出三张 3:4 竖图：成品图（saveXHS 装裱的卡面截图）、封面图
+// （drawXhsCover）、步骤图（drawXhsSteps）。后两张是**直接画**在 1080×1440 上的、不截卡面——
+// 封面要的是能在信息流里被点开的大图，把 600×960 的卡面等比放大只会得到一张小字；
+// 步骤图讲的是「怎么用」，跟某一张具体的票无关。
+//
+// 【为什么一张二维码都不画 —— 这不是漏了】
+//   小红书 2026 细则把站外导流判成违规：笔记配图里出现二维码即算导流，图像识别能识破
+//   马赛克，处罚含限流 30 天、封号、最高 2 万违约金。所以这两支笔连 qr 参数都不接——
+//   卡面右下角那枚「扫码看我的时光档案」绝不许混进来。合规的导流只有一条路：
+//   内容种草 + 让用户自己去微信搜小程序名，所以步骤图末行干脆把这句写出来。
+const XM = 84;             // 素材图左右留白（1080 宽里取 84，比卡面的 74 松一点）
+const XW = XHS_W - XM;     // 内容右边界（996）
+
+/** 封面图：顶部标签 + 大标题 + 齿边照片 + 票面信息 + AI 文案 + 品牌行 */
+function drawXhsCover(ctx, t, quote, img, duo, same, sig) {
+  // ① 纸底 + 两团极淡水彩（与卡面同一支笔，给纸面一点温度）
+  ctx.fillStyle = PC.paper;
+  ctx.fillRect(0, 0, XHS_W, XHS_H);
+  watercolorBlob(ctx, XHS_W - 150, 240, 330, 'rgba(244,198,180,0.18)');
+  watercolorBlob(ctx, 120, XHS_H - 210, 300, 'rgba(169,195,166,0.15)');
+
+  // ② 顶部标签（卡面左上那个 No. 标签的同款语汇：奶油黄底 + 玫瑰虚线内框）
+  ctx.font = '700 30px sans-serif';
+  const tagW = ctx.measureText('票根收藏册').width + 64;
+  ctx.fillStyle = PC.butter;
+  roundRect(ctx, XM, 76, tagW, 64, 12);
+  ctx.fill();
+  ctx.strokeStyle = PC.rose;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([7, 6]);
+  roundRect(ctx, XM + 10, 86, tagW - 20, 44, 8);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = PC.ink;
+  ctx.textAlign = 'left';
+  ctx.fillText('票根收藏册', XM + 32, 119);
+
+  // ③ 大标题：最多两行。超出的截断补省略号——84px 的字截在半个词上，一眼就看出是坏的
+  ctx.fillStyle = PC.ink;
+  ctx.font = '900 84px sans-serif';
+  const all = wrapText(ctx, t.title || '这张票根', XW - XM, 99);
+  const lines = all.slice(0, 2);
+  if (all.length > 2) lines[1] = lines[1].slice(0, -1) + '…';
+  lines.forEach((l, i) => ctx.fillText(l, XM, 282 + i * 100));
+
+  // ④ 标题只有一行时，在照片上方补一道玫瑰波浪 —— 免得中间空出一大块。
+  //    两行时那块地方本来就被第二行占着，不加（加了会撞字）
+  if (lines.length < 2) {
+    ctx.save();
+    ctx.strokeStyle = PC.rose;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    [230, 190, 150].forEach((len, i) => {
+      const y0 = 344 + i * 17;
+      ctx.beginPath();
+      ctx.moveTo(XM, y0);
+      for (let x = XM; x < XM + len; x += 22) {
+        ctx.quadraticCurveTo(x + 11, y0 + 7, Math.min(x + 22, XM + len), y0);
+      }
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ⑤ 票根照片：齿边白框（与卡面同一支笔），框内 cover 裁切。
+  //    位置固定、不随标题行数走——标题只有一行时上方多留一点空，
+  //    比「版式跟着字数跳」更像一张排好的图
+  const fw = XW - XM, fh = 608, fcx = XHS_W / 2, fcy = 734;
+  ctx.save();
+  ctx.translate(fcx, fcy);
+  ctx.rotate(-0.008);
+  ctx.shadowColor = 'rgba(74,59,46,0.20)';
+  ctx.shadowBlur = 34;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = '#FFFFFF';
+  pinkedRect(ctx, -fw / 2, -fh / 2, fw, fh, 30, 8);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  const px = -fw / 2 + 24, py = -fh / 2 + 24, pw = fw - 48, ph = fh - 48;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(px, py, pw, ph);
+  ctx.clip();
+  if (img) {
+    const iw = img.width || 600, ih = img.height || 800;
+    const s = Math.max(pw / iw, ph / ih);
+    try { ctx.drawImage(img, px + (pw - iw * s) / 2, py + (ph - ih * s) / 2, iw * s, ih * s); } catch (e) { /* 图异常落占位 */ }
+  }
+  if (!img) {
+    ctx.fillStyle = '#F2EAD9';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = '#C9BB9F';
+    ctx.font = '28px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('票根照片 · 待补拍', px + 40, py + ph / 2 - 20);
+    drawBarcode(ctx, px + 40, py + ph / 2 + 16, Math.min(pw - 80, 380), 30, '#D5C8AC');
+  }
+  ctx.restore();
+  if (duo) drawDuoBadge(ctx, fw / 2 - 62, fh / 2 - 62, 40, duo);
+  drawSameBadge(ctx, -fw / 2 + 62, fh / 2 - 62, same, false);
+  ctx.restore();
+
+  // ⑥ 票面信息一行（超宽截断：场馆名可能很长，宁可截也不要折行去压下面的虚线）
+  ctx.fillStyle = PC.soft;
+  ctx.font = '34px sans-serif';
+  ctx.textAlign = 'left';
+  const meta = [t.city, (t.date || '').replace(/-/g, '.'), t.venue].filter(Boolean).join(' · ');
+  ctx.fillText(wrapText(ctx, meta, XW - XM, 1)[0], XM, 1118);
+
+  // ⑦ 虚线分隔（与卡面同一道）
+  ctx.save();
+  ctx.strokeStyle = PC.frame;
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([9, 8]);
+  ctx.beginPath();
+  ctx.moveTo(XM, 1172);
+  ctx.lineTo(XW, 1172);
+  ctx.stroke();
+  ctx.restore();
+
+  // ⑧ AI 文案（「换一版文案」在这张图上同样生效）
+  if (quote) {
+    ctx.fillStyle = PC.soft;
+    ctx.font = 'italic 32px serif';
+    wrapText(ctx, '「' + quote + '」', XW - XM, 2)
+      .forEach((l, i) => ctx.fillText(l, XM, 1240 + i * 46));
+  }
+
+  // ⑨ 品牌行（与卡面左下那行同文；不做 logo 方块，封面底部留干净些）
+  ctx.fillStyle = PC.ink;
+  ctx.font = '800 40px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('有票为证', XM, 1362);
+  ctx.fillStyle = PC.soft;
+  ctx.font = '26px sans-serif';
+  ctx.fillText((sig ? sig + ' · ' : '') + '让时光有迹可循', XM + 172, 1362);
+
+  // ⑩ 边距里撒几处点缀（只走左右两条边距，正文区一律不碰 —— 同卡面 ⑧ 的规矩）
+  drawStar4(ctx, 42, 470, 20, PC.gold);
+  drawStar4(ctx, XHS_W - 38, 700, 15, 'rgba(226,184,92,0.85)');
+  drawHeart(ctx, 42, 1080, 17, 'rgba(217,142,155,0.85)');
+}
+
+/** 步骤图：三步教程（怎么用这个小程序），当笔记的第二张图 */
+function drawXhsSteps(ctx) {
+  // ① 纸底 + 齿边内框（整张图就是一枚从整版上撕下来的齿孔页）
+  ctx.fillStyle = PC.paper;
+  ctx.fillRect(0, 0, XHS_W, XHS_H);
+  watercolorBlob(ctx, XHS_W - 130, 200, 310, 'rgba(244,198,180,0.16)');
+  watercolorBlob(ctx, 110, XHS_H - 260, 290, 'rgba(169,195,166,0.14)');
+  ctx.strokeStyle = PC.edge;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  pinkedRect(ctx, 26, 26, XHS_W - 52, XHS_H - 52, 30, 7);
+  ctx.stroke();
+
+  // ② 标题
+  ctx.textAlign = 'left';
+  ctx.fillStyle = PC.ink;
+  ctx.font = '900 78px sans-serif';
+  ctx.fillText('三步，把票根收成册', XM, 216);
+  ctx.fillStyle = PC.soft;
+  ctx.font = '32px sans-serif';
+  ctx.fillText('有票为证 · 拍下票根，AI 帮你存档', XM, 280);
+
+  // ③ 标题下那道玫瑰波浪（与封面图同一道 —— 两张图摆在一起像一套）
+  ctx.save();
+  ctx.strokeStyle = PC.rose;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  [230, 190, 150].forEach((len, i) => {
+    const y0 = 344 + i * 17;
+    ctx.beginPath();
+    ctx.moveTo(XM, y0);
+    for (let x = XM; x < XM + len; x += 22) {
+      ctx.quadraticCurveTo(x + 11, y0 + 7, Math.min(x + 22, XM + len), y0);
+    }
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // ④ 三步：数字圆 + 标题 + 说明（块与块之间一道虚线）。
+  //    说明都压在一行里 —— 折出「都行」这种孤字行，比少说两句话难看多了
+  const STEPS = [
+    ['拍下票根', '对着票根拍一张 —— 演出票、电影票、车票都行'],
+    ['AI 自动识别', '票名、场馆、日期自动填好，还会替你写一句纪念文案'],
+    ['收进册子', '生成纪念卡片、回忆地图、年度报告，随时翻出来看']
+  ];
+  const tx = XM + 148;   // 文字左边界（让开数字圆）
+  STEPS.forEach((s, i) => {
+    const cy = 500 + i * 300;
+    ctx.fillStyle = PC.deep;
+    ctx.beginPath(); ctx.arc(XM + 54, cy, 54, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FFF6E8';
+    ctx.font = '700 54px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(i + 1), XM + 54, cy + 19);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = PC.ink;
+    ctx.font = '800 48px sans-serif';
+    ctx.fillText(s[0], tx, cy - 24);
+    ctx.fillStyle = PC.soft;
+    ctx.font = '30px sans-serif';
+    wrapText(ctx, s[1], XW - tx, 2).forEach((l, k) => ctx.fillText(l, tx, cy + 32 + k * 44));
+    if (i < 2) {
+      ctx.save();
+      ctx.strokeStyle = PC.frame;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 7]);
+      ctx.beginPath();
+      ctx.moveTo(tx, cy + 156);
+      ctx.lineTo(XW, cy + 156);
+      ctx.stroke();
+      ctx.restore();
+    }
+  });
+
+  // ⑤ 页脚：把「去哪找」写清楚。小红书侧不许放码，文字引导搜索是唯一合规的那条路
+  ctx.save();
+  ctx.strokeStyle = PC.frame;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([9, 8]);
+  ctx.beginPath();
+  ctx.moveTo(XM, 1276);
+  ctx.lineTo(XW, 1276);
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = PC.ink;
+  ctx.font = '800 40px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('微信搜小程序：有票为证', XM, 1352);
+  ctx.fillStyle = PC.soft;
+  ctx.font = '26px sans-serif';
+  ctx.fillText('让时光有票为证', XM + 472, 1352);
+
+  // ⑥ 步数那张图正文排得满，装饰只往左右边距里放两处，够了
+  drawStar4(ctx, 42, 372, 20, PC.gold);
+  drawStar4(ctx, XHS_W - 38, 1180, 15, 'rgba(226,184,92,0.85)');
+}
+
+const XHS_ART = { cover: drawXhsCover, steps: drawXhsSteps };
+
 // ---------- 页面 ----------
 Page({
 
@@ -1084,6 +1327,8 @@ Page({
     this._rendered = true;
     if (this._firstFrame) { this._firstFrame(true); this._firstFrame = null; }
     this._qrDrawn = !!qr; // 本次实际是否带码（poster_save 埋点口径）
+    // 8.0.0：封面图要用同一张照片 —— 记下这个已加载好的 img，导出时就不再走一遍云存储
+    this._photoImg = img || null;
     (DRAWERS[this.data.style] || drawClassic)(this._ctx, this.data.t, this.data.quote, img, this._duo || null, this._same || 0, qr || null, this.data.signature || '');
   },
 
@@ -1240,40 +1485,65 @@ Page({
     }
   },
 
-  /** v5.0 S1 小红书竖版导出：主画布截图 → 离屏 1080×1440（3:4）纸边装裱 + S2 品牌水印 → 存相册 */
-  async saveXHS() {
+  /**
+   * 8.0.0 X3：小红书素材三件套的入口。原先这一行只出「成品图」（卡面截图装裱），
+   * 现在点开是三个选项 —— 发一条笔记，封面 / 教程 / 成品各要一张，分三次点太笨。
+   */
+  saveXHS() {
     if (!this._canvas || this.data.exporting) return;
+    wx.showActionSheet({
+      itemList: ['成品图 · 这张卡片', '封面图 · 大图海报', '步骤图 · 三步教程'],
+      success: (r) => { this._saveXhsArt(['shot', 'cover', 'steps'][r.tapIndex] || 'shot'); },
+      fail: () => { /* 用户点「取消」：什么都不做，不提示 */ }
+    });
+  },
+
+  /**
+   * 出一张 1080×1440 的小红书素材并存相册。
+   * @param {string} kind shot=成品图（卡面截图装裱）· cover=封面图 · steps=步骤图
+   */
+  async _saveXhsArt(kind) {
+    if (this.data.exporting) return;
+    const TIP = { shot: '生成小红书竖图…', cover: '生成封面图…', steps: '生成步骤图…' };
     this.setData({ exporting: true });
-    wx.showLoading({ title: '生成小红书竖图…', mask: true });
+    wx.showLoading({ title: TIP[kind] || TIP.shot, mask: true });
     try {
-      await this._waitFirstFrame(); // 同上：截图前先确认画布上真有东西
-      const shot = await wx.canvasToTempFilePath({ canvas: this._canvas });
+      const style = this.data.style;
+      // 三张图都得等：成品图截的是这个画布，封面图用的也是画布上那张照片（_photoImg 由
+      // _render 存下来）。秒点的话，前者截到空白、后者落到「票根照片 · 待补拍」占位
+      await this._waitFirstFrame();
       const off = wx.createOffscreenCanvas({ type: '2d', width: XHS_W, height: XHS_H });
       const ctx = off.getContext('2d');
-      const img = await new Promise((resolve, reject) => {
-        const im = off.createImage();
-        im.onload = () => resolve(im);
-        im.onerror = () => reject(new Error('装裱失败'));
-        im.src = shot.tempFilePath;
-      });
-      // contain 装裱：完整呈现不裁切，纸色/墨色底出收藏册质感（600×960 图高向受限，左右自然出纸边）
-      const style = this.data.style;
-      ctx.fillStyle = XHS_BG[style] || '#F4EFE6';
-      ctx.fillRect(0, 0, XHS_W, XHS_H);
-      const s = Math.min(XHS_W / img.width, XHS_H / img.height);
-      const dw = img.width * s, dh = img.height * s;
-      ctx.drawImage(img, (XHS_W - dw) / 2, (XHS_H - dh) / 2, dw, dh);
-      // S2 水印：右下角小字（深浅底随风格适配）
-      ctx.font = '24px sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillStyle = XHS_WM[style] || XHS_WM.classic;
-      ctx.fillText(WM_TEXT, XHS_W - 44, XHS_H - 36);
+      if (kind === 'shot') {
+        const shot = await wx.canvasToTempFilePath({ canvas: this._canvas });
+        const img = await new Promise((resolve, reject) => {
+          const im = off.createImage();
+          im.onload = () => resolve(im);
+          im.onerror = () => reject(new Error('装裱失败'));
+          im.src = shot.tempFilePath;
+        });
+        // contain 装裱：完整呈现不裁切，纸色/墨色底出收藏册质感（600×960 图高向受限，左右自然出纸边）
+        ctx.fillStyle = XHS_BG[style] || '#F4EFE6';
+        ctx.fillRect(0, 0, XHS_W, XHS_H);
+        const s = Math.min(XHS_W / img.width, XHS_H / img.height);
+        const dw = img.width * s, dh = img.height * s;
+        ctx.drawImage(img, (XHS_W - dw) / 2, (XHS_H - dh) / 2, dw, dh);
+        // S2 水印：右下角小字（深浅底随风格适配）
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = XHS_WM[style] || XHS_WM.classic;
+        ctx.fillText(WM_TEXT, XHS_W - 44, XHS_H - 36);
+      } else {
+        // 封面图 / 步骤图直接画在离屏画布上，不截卡面（见绘制半段的 drawXhsCover / drawXhsSteps）
+        (XHS_ART[kind] || XHS_ART.cover)(ctx, this.data.t, this.data.quote,
+          this._photoImg || null, this._duo || null, this._same || 0, this.data.signature || '');
+      }
       const out = await wx.canvasToTempFilePath({ canvas: off });
       await new Promise((resolve, reject) => {
         wx.saveImageToPhotosAlbum({ filePath: out.tempFilePath, success: resolve, fail: reject });
       });
       this._earnCard();
-      track.track('poster_save', { style, code: this._qrDrawn ? 1 : 0, xhs: 1 });
+      track.track('poster_save', { style, code: this._qrDrawn ? 1 : 0, xhs: 1, kind });
       wx.hideLoading();
       haptics.confirm();
       wx.showToast({ title: '已存入相册 · 3:4 适配小红书', icon: 'none' });

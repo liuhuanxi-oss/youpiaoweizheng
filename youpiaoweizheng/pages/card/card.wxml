@@ -79,8 +79,8 @@
       </view>
       <view class="cd-link-line"></view>
       <view class="cd-link pressable" hover-class="press-item-hover" bindtap="saveXHS"
-            aria-role="button" aria-label="存成小红书竖版图">
-        <text class="cd-link-t">存小红书竖版</text>
+            aria-role="button" aria-label="存小红书素材图，可选成品图、封面图、步骤图">
+        <text class="cd-link-t">存小红书素材</text>
       </view>
     </view>
 
