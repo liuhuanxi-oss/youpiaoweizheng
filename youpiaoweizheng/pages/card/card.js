@@ -835,8 +835,11 @@ const DRAWERS = { postcard: drawPostcard, classic: drawClassic, poster: drawPost
 // 【为什么一张二维码都不画 —— 这不是漏了】
 //   小红书 2026 细则把站外导流判成违规：笔记配图里出现二维码即算导流，图像识别能识破
 //   马赛克，处罚含限流 30 天、封号、最高 2 万违约金。所以这两支笔连 qr 参数都不接——
-//   卡面右下角那枚「扫码看我的时光档案」绝不许混进来。合规的导流只有一条路：
-//   内容种草 + 让用户自己去微信搜小程序名，所以步骤图末行干脆把这句写出来。
+//   卡面右下角那枚「扫码看我的时光档案」绝不许混进来。
+//   **连「微信搜 XX」这种字样也不能写**：项目自己的运营口径《有票为证小红书内容运营
+//   提示词.md》§5 把「图里出现搜索字样」与放码并列成红线，§7 的反面例子表里逐字列着
+//   「微信搜有票为证」。判导流看的是「有没有把用户往站外指」——写出来就是指示。
+//   所以素材图上只落品牌名，让用户自己起「叫什么来着，我搜一下」的念头（§8 原话）。
 const XM = 84;             // 素材图左右留白（1080 宽里取 84，比卡面的 74 松一点）
 const XW = XHS_W - XM;     // 内容右边界（996）
 
@@ -1044,7 +1047,7 @@ function drawXhsSteps(ctx) {
     }
   });
 
-  // ⑤ 页脚：把「去哪找」写清楚。小红书侧不许放码，文字引导搜索是唯一合规的那条路
+  // ⑤ 页脚：只落品牌名，不写「去哪儿找」（口径见本段文件头注释）——与封面图的品牌行同一套写法
   ctx.save();
   ctx.strokeStyle = PC.frame;
   ctx.lineWidth = 2;
@@ -1057,10 +1060,10 @@ function drawXhsSteps(ctx) {
   ctx.fillStyle = PC.ink;
   ctx.font = '800 40px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('微信搜小程序：有票为证', XM, 1352);
+  ctx.fillText('有票为证', XM, 1352);
   ctx.fillStyle = PC.soft;
   ctx.font = '26px sans-serif';
-  ctx.fillText('让时光有票为证', XM + 472, 1352);
+  ctx.fillText('让时光有迹可循', XM + 172, 1352);
 
   // ⑥ 步数那张图正文排得满，装饰只往左右边距里放两处，够了
   drawStar4(ctx, 42, 372, 20, PC.gold);
