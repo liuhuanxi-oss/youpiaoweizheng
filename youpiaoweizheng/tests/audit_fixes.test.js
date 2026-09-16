@@ -183,7 +183,9 @@ console.log('\n【六、P2-1 画布退出释放（结构）】');
 [['card', 'pages/card/card.js'], ['annual', 'pages/annual/annual.js']].forEach(([name, p]) => {
   t(name + '：页面退出时把画布还回去', () => {
     const js = strip(read(p));
-    ok(/onUnload\(\)\s*\{\s*this\._releaseCanvas\(\)/.test(js),
+    // 不要求 _releaseCanvas 是 onUnload 的第一句：8.0.1 起 onUnload 还要清定时器，
+    // 允许多几句，但必须还在 onUnload 里（挪去 onHide 就等于没释放，离开页面才该还）
+    ok(/onUnload\(\)\s*\{[\s\S]{0,200}?this\._releaseCanvas\(\)/.test(js),
       '没有 onUnload 释放画布 —— 几十 MB 的位图留在内存里等 GC，低端机连导两张会闪退');
     const m = /_releaseCanvas\(\)\s*\{([\s\S]{0,400}?)\n {2}\}/.exec(js);
     ok(m, '找不到 _releaseCanvas');

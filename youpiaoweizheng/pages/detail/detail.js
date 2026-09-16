@@ -104,6 +104,8 @@ Page({
     // 删除后的「收拢淡出 → 退回」定时器：用户在这 700ms 内自己按了返回，定时器还在，
     // 于是**再退一层**（一下退回两层）——与 scan 保存后那个是同一类问题。
     if (this._leaveTimer) { clearTimeout(this._leaveTimer); this._leaveTimer = null; }
+    // AI 手记生成失败后那个延迟弹窗（见 onGenCaption 的 catch）
+    if (this._failTimer) { clearTimeout(this._failTimer); this._failTimer = null; }
   },
   data: {
     theme: "paper",
@@ -431,7 +433,10 @@ Page({
       // 弹窗会立刻把整屏压暗，抖在弹窗底下等于没抖。
       haptics.warn();
       this._shakeMemo();
-      setTimeout(() => {
+      // 登记定时器：showModal 是应用级 API、不认页面 —— 用户在这 320ms 内返回，
+      // 弹窗会落到上一页上（与 card 那个署名弹窗同一类问题）
+      this._failTimer = setTimeout(() => {
+        this._failTimer = null;
         wx.showModal({
           title: '生成失败',
           content: msg.slice(0, 80),

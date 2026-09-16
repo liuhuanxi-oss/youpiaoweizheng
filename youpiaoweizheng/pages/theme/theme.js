@@ -65,6 +65,8 @@ Page({
 
   /** 确认应用：落库 + 同步导航栏 + 返回 */
   onApply() {
+    // 连点两下会排两个「返回」定时器 —— 已经排了就别再排
+    if (this._backTimer) return;
     const k = this.data.preview;
     if (!themeUtil.setTheme(k)) {
       wx.showToast({ title: '主题切换失败', icon: 'none' });
@@ -74,7 +76,11 @@ Page({
     themeUtil.apply(this);
     const meta = themeUtil.getThemeMeta(k);
     wx.showToast({ title: `已应用「${meta.name}」`, icon: 'none', duration: 1200 });
-    setTimeout(() => {
+    // 定时器必须登记：navigateBack 是**路由级 API、不绑调用页** —— 用户在这 700ms 内
+    // 自己按了返回，裸 setTimeout 照样再退一层，一路退到「我的」。
+    // 与 detail 的 _leaveTimer、scan 的 _later 是同一类问题（那两处早修了，这里漏了）
+    this._backTimer = setTimeout(() => {
+      this._backTimer = null;
       const pages = getCurrentPages();
       if (pages.length > 1) wx.navigateBack();
       else wx.switchTab({ url: '/pages/me/me' });
@@ -86,5 +92,10 @@ Page({
     const cur = themeUtil.getTheme();
     haptics.tap();
     this.setData({ preview: cur });
+  },
+
+  /** 退出时清掉待返回的定时器 —— 留着它，用户自己返回会被它再顶退一层 */
+  onUnload() {
+    if (this._backTimer) { clearTimeout(this._backTimer); this._backTimer = null; }
   }
 });

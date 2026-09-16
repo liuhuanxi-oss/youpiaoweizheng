@@ -22,10 +22,15 @@ function weekday(dateStr) {
   return `周${days[d.getDay()]}`;
 }
 
-/** 今天 → {m, d} 用于「那年今日」匹配（M3 用） */
-function todayMD() {
-  const n = new Date();
-  return { m: n.getMonth() + 1, d: n.getDate() };
+/** 今天 → {m, d, y} 用于「那年今日」匹配（M3 用）
+ *  固定 UTC+8：与 utils/memory.js 的 bjDay、云函数签到的 pay.ymdNow 同一口径。
+ *  原先取设备时区 —— 手机时区不是东八区（出境、或时区被设错）时，首页「那年今天」与
+ *  时光机「那年今日」会在跨日的那几个小时里各说各话：一边推出一条，一边什么都没有。
+ *  y 一并给出：算「往年」时不能拿设备年份去和北京日期比。
+ *  @param {number=} now 时间戳（测试注入用，缺省取当前 —— 与 utils/memory.js 的 bjDay 同款） */
+function todayMD(now) {
+  const n = new Date((now || Date.now()) + 8 * 3600 * 1000);
+  return { m: n.getUTCMonth() + 1, d: n.getUTCDate(), y: n.getUTCFullYear() };
 }
 
 // 今日时光签（每月两句，上/下半月轮换）——时光机未命中时兜底，永不空转
@@ -45,10 +50,11 @@ const SIGN_LINES = [
 ];
 
 /** 今天 → { date:'2026.09.04', text:时光签 } */
-function todaySign() {
-  const n = new Date();
-  const text = SIGN_LINES[n.getMonth()][n.getDate() > 15 ? 1 : 0];
-  const date = `${n.getFullYear()}.${String(n.getMonth() + 1).padStart(2, '0')}.${String(n.getDate()).padStart(2, '0')}`;
+function todaySign(now) {
+  // 同 todayMD：固定 UTC+8 —— 签上的日期与本页「那年今日」的口径必须一致
+  const n = new Date((now || Date.now()) + 8 * 3600 * 1000);
+  const text = SIGN_LINES[n.getUTCMonth()][n.getUTCDate() > 15 ? 1 : 0];
+  const date = `${n.getUTCFullYear()}.${String(n.getUTCMonth() + 1).padStart(2, '0')}.${String(n.getUTCDate()).padStart(2, '0')}`;
   return { date, text };
 }
 

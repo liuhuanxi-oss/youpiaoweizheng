@@ -335,7 +335,13 @@ Page({
     // 三件事并行：票根列表（统计卡 + 勋章墙）、签到状态、积分 —— 串行拉会让这一页明显变慢。
     // 7.4.0 C 段 R3：连签与积分那三枚勋章要服务端数据（端上算不了，见 utils/badges.js 文件头）。
     // 两个都取不到就传 null，勋章退化成「只说门槛、不说进度」，一个字都不编。
-    const [ts, sg, pt] = await Promise.all([store.listTickets(), this._signStatus(), points.status()]);
+    const [ts, sg, pt, c] = await Promise.all([
+      store.listTickets(), this._signStatus(), points.status(),
+      // 绑定态必须现查一次：解绑是**对方手机上**发生的事，本地的 sp_couple_cache 无从作废 ——
+      // 只读缓存的话这页的双人勋章会一直亮着，而同一时刻双人空间页说「未绑定」，两页结论相反。
+      // 查失败（断网/无云）退回缓存：宁可显示旧的，也不该让已经绑定的用户勋章全灭
+      couple.queryCouple().catch(() => couple.cachedCouple())
+    ]);
     const m = themeUtil.getThemeMeta(themeUtil.getTheme());
     let shareCount = 0;
     let mapVisited = false;
@@ -343,7 +349,6 @@ Page({
     try { shareCount = wx.getStorageSync(LS_SHARE) || 0; } catch (e) { /* 忽略 */ }
     try { mapVisited = !!wx.getStorageSync('sp_map_visited'); } catch (e) { /* 忽略 */ }
     try { inviteSent = !!wx.getStorageSync('sp_invite_sent'); } catch (e) { /* 忽略 */ }
-    const c = couple.cachedCouple();
     // 未解锁的用低透明度正文色置灰（iconSrc 对未知名会回落票根图标，故不必再兜底）
     const badges = computeBadges(ts, c && c.boundAt ? c : null, shareCount, mapVisited, inviteSent, {
       streak: sg && sg.streak,

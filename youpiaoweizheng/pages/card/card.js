@@ -38,6 +38,9 @@ const LS_SHARE = 'sp_share_count'; // 时光信使勋章：分享/导出计数�
 // v5.0 S1 小红书竖版：主画布 600×960（5:8）→ 离屏画布装裱成 1080×1440（3:4 标准竖版）
 // 装裱底色/水印色随卡片风格适配（poster 深底用奶油水印，其余纸底用褐灰）
 const XHS_W = 1080, XHS_H = 1440;
+// 离屏画布导出临时图给多久：canvasToTempFilePath 在 PC 微信上有「永不 settle」的反馈，
+// 不给超时的话 exporting 永远为 true、mask:true 的 loading 把整页焊死（详见 _exportOffscreen）
+const EXPORT_TIMEOUT_MS = 3000;
 const XHS_BG = { classic: '#F4EFE6', daily: '#F4EFE6', journal: '#FDF9F0', poster: '#1A1512' };
 const XHS_WM = {
   classic: 'rgba(156, 143, 128, 0.9)',
@@ -1206,6 +1209,9 @@ Page({
   },
 
   onUnload() {
+    // 署名弹窗的定时器：showModal 是应用级 API、不认页面 —— 用户存完卡立刻返回，
+    // 它会盖在详情页上（点「去设置」还把人 switchTab 甩到「我的」）
+    if (this._sigTimer) { clearTimeout(this._sigTimer); this._sigTimer = null; }
     this._releaseCanvas();
   },
 
@@ -1459,7 +1465,8 @@ Page({
       // 4.20.3 按需触发署名：保存动作完成、价值已兑现后再邀请（一次会话至多一次，不打断主流程）
       if (!this.data.signature && !this._sigHintShown) {
         this._sigHintShown = true;
-        setTimeout(() => {
+        this._sigTimer = setTimeout(() => {
+          this._sigTimer = null;
           wx.showModal({
             title: '给卡片署个名？',
             content: '设置昵称后，你的卡片落款会带上「你的昵称 · 有票为证」。随时可清除。',
@@ -1510,13 +1517,21 @@ Page({
     const TIP = { shot: '生成小红书竖图…', cover: '生成封面图…', steps: '生成步骤图…' };
     this.setData({ exporting: true });
     wx.showLoading({ title: TIP[kind] || TIP.shot, mask: true });
+    let off = null; // 离屏画布：出图后显式释放（见 finally）
     try {
       const style = this.data.style;
       // 三张图都得等：成品图截的是这个画布，封面图用的也是画布上那张照片（_photoImg 由
       // _render 存下来）。秒点的话，前者截到空白、后者落到「票根照片 · 待补拍」占位
       await this._waitFirstFrame();
-      const off = wx.createOffscreenCanvas({ type: '2d', width: XHS_W, height: XHS_H });
-      const ctx = off.getContext('2d');
+      off = this._newOffscreen();
+      const ctx = off && off.getContext('2d');
+      if (!ctx) {
+        // 基础库 < 2.16.1 建不出 2d 离屏画布（旧入参只能建 webgl），表现就是这里拿不到上下文。
+        // 原先落到通用 catch 弹「保存失败，请重试」—— 用户只会反复重试，说清楚版本问题更有用
+        wx.hideLoading();
+        wx.showToast({ title: '微信版本过低，请更新微信后再试', icon: 'none' });
+        return;
+      }
       if (kind === 'shot') {
         const shot = await wx.canvasToTempFilePath({ canvas: this._canvas });
         const img = await new Promise((resolve, reject) => {
@@ -1541,10 +1556,12 @@ Page({
         (XHS_ART[kind] || XHS_ART.cover)(ctx, this.data.t, this.data.quote,
           this._photoImg || null, this._duo || null, this._same || 0, this.data.signature || '');
       }
-      const out = await wx.canvasToTempFilePath({ canvas: off });
+      const out = await this._exportOffscreen(off);
       await new Promise((resolve, reject) => {
-        wx.saveImageToPhotosAlbum({ filePath: out.tempFilePath, success: resolve, fail: reject });
+        wx.saveImageToPhotosAlbum({ filePath: out.path, success: resolve, fail: reject });
       });
+      // 回退路径是自己写的临时文件（相册已经拿到图了）：删掉，别占着用户数据目录
+      if (!out.temp) wx.getFileSystemManager().unlink({ filePath: out.path, success() {}, fail() {} });
       this._earnCard();
       track.track('poster_save', { style, code: this._qrDrawn ? 1 : 0, xhs: 1, kind });
       wx.hideLoading();
@@ -1564,8 +1581,53 @@ Page({
         wx.showToast({ title: '保存失败，请重试', icon: 'none' });
       }
     } finally {
+      this._dropCanvas(off); // 连出三张时离屏位图叠加会顶到低端机内存线，用完就还
       this.setData({ exporting: false });
     }
+  },
+
+  /** 建一块离屏画布；建不出来（基础库过旧 / 机型不支持）返回 null，由调用方给明确提示 */
+  _newOffscreen() {
+    try {
+      return wx.createOffscreenCanvas({ type: '2d', width: XHS_W, height: XHS_H }) || null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  /** 把用完的画布显式置零：Canvas 2D 的位图不这样还，GC 之前一直占着内存 */
+  _dropCanvas(c) {
+    if (!c) return;
+    try { c.width = 0; c.height = 0; } catch (e) { /* 释放失败不值得打断用户 */ }
+  },
+
+  /**
+   * 把离屏画布落成一张临时图片路径 → { path, temp }（temp = 是否走的 canvasToTempFilePath）。
+   * **为什么要两条路**：canvasToTempFilePath 对**离屏画布**是未文档化用法 —— 官方文档里
+   * canvas 参数要的是「<canvas> 组件实例」，微信 2022 年在开放社区明确回复 iOS 未实现
+   * （报 invalid viewId），安卓与开发者工具则一直好用；社区另说 PC 微信上这个 Promise
+   * 永不 settle。拿「iOS 上这个功能整个不能用」去赌它可用不划算 —— 失败**和**超时都退到
+   * toDataURL（离屏画布文档化支持的能力）+ 写临时文件。
+   * 尺寸显式定死 1080×1440：不传的话真机会按 destWidth = width × 屏幕像素密度 再乘一遍
+   * dpr（dpr 3 上是 3240×4320），文件十几 MB、PNG 编码更慢，与「3:4 适配小红书」的提示也不符。
+   */
+  async _exportOffscreen(off) {
+    const viaTemp = Promise.resolve(wx.canvasToTempFilePath({
+      canvas: off, x: 0, y: 0, width: XHS_W, height: XHS_H, destWidth: XHS_W, destHeight: XHS_H
+    })).then((r) => (r && r.tempFilePath) || null).catch(() => null);
+    const first = await Promise.race([
+      viaTemp,
+      new Promise((r) => { setTimeout(() => r(null), EXPORT_TIMEOUT_MS); })
+    ]);
+    if (first) return { path: first, temp: true };
+    const url = String(off.toDataURL('image/png') || '');
+    const b64 = url.slice(url.indexOf(',') + 1);
+    if (!b64) throw new Error('导出图片失败');
+    const path = `${wx.env.USER_DATA_PATH}/xhs-${Date.now()}.png`;
+    await new Promise((resolve, reject) => wx.getFileSystemManager().writeFile({
+      filePath: path, data: b64, encoding: 'base64', success: resolve, fail: reject
+    }));
+    return { path, temp: false };
   },
 
   /** 4.19.1 空态动作（与 detail 4.18.0 空态同款）：去收自己的第一张票 / 返回 */

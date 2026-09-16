@@ -73,11 +73,12 @@ function pmDate(dateStr) {
 
 /** 那年今日：在全部票根里找「往年同月同日」，取最近年份的一条 */
 function buildTimeMachine(all, isDemo) {
-  const now = new Date();
-  const { m, d } = todayMD();
+  // 日期口径固定北京时间（见 utils/date.js 的 todayMD）：设备时区不是东八区时，
+  // 这里与首页「那年今天」原先会各算各的
+  const { m, d, y } = todayMD();
   const mm = String(m).padStart(2, '0');
   const dd = String(d).padStart(2, '0');
-  const thisYear = String(now.getFullYear());
+  const thisYear = String(y);
 
   const cands = all
     .filter((t) => {
@@ -89,7 +90,7 @@ function buildTimeMachine(all, isDemo) {
 
   if (cands.length) {
     const t = cands[0];
-    const years = now.getFullYear() - Number(t.date.slice(0, 4));
+    const years = y - Number(t.date.slice(0, 4));
     return {
       ticketId: t.id,
       label: `那年今日 · ${t.date.replace(/-/g, '.')}`,

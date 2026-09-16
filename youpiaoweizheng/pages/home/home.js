@@ -121,6 +121,17 @@ Page({
     this.refreshSign();
   },
 
+  /**
+   * 切走时把「飞向详情」的定时器停掉并复位，两个理由缺一不可：
+   * ① 它 150ms 后会在**已隐藏的 tab 页**上发起 navigateTo —— 详情页会突然盖在别的 tab 上；
+   * ② 不复位 _flying，切回来时卡片就永久点不动了（防连点标记卡住）。
+   * 用 onHide 而不是 onUnload：首页是 tab 页，切 tab 只触发 onHide，页面常驻不卸载。
+   */
+  onHide() {
+    if (this._flyTimer) { clearTimeout(this._flyTimer); this._flyTimer = null; }
+    this._flying = false;
+  },
+
   onPullDownRefresh() {
     this.refresh().finally(() => wx.stopPullDownRefresh());
   },
@@ -358,7 +369,8 @@ Page({
     if (!id || this._flying) return;
     this._flying = true;
     this.setData({ flyingId: id });
-    setTimeout(() => {
+    this._flyTimer = setTimeout(() => {
+      this._flyTimer = null;
       wx.navigateTo({
         url: `/pages/detail/detail?id=${id}`,
         // 跳转动画结束后再复位：先复位会在新页盖上来之前闪回原状

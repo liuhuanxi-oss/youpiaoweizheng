@@ -18,6 +18,11 @@ Page({
   onShow() {
     themeUtil.apply(this);
     this.buildIc();
+    // 每次显示都重取。本页数据只来自云，端上没有可依赖的脏标记，而页面栈里确实存在
+    // 会改数据的路径：点自己的票进详情 → 删除 → 自动退回本页。原先只有 onLoad 与下拉会
+    // 重取，删票回来那一行会留在原地，变成「点进去是空态」的幽灵行，页顶总张数也不变。
+    // 首次给骨架，之后静默刷新（旧内容撑到新数据回来，不闪骨架）
+    this.load(!!this._drawn);
   },
   data: {
     theme: "a", legacyTheme: "a",
@@ -44,9 +49,7 @@ Page({
     });
   },
 
-  onLoad() {
-    this.load();
-  },
+  // onLoad 不取数：紧跟着的 onShow 一定会跑，两处都写等于首次进来拉两次
 
   /** 下拉刷新（7.2.0 V9）：本页根节点是普通 view、由页面本身滚动，故走页面级下拉，
       不用 scroll-view 的 refresher。TA 那边刚存了票根时，下拉是唯一的重取入口 ——
@@ -55,8 +58,9 @@ Page({
     this.load().finally(() => wx.stopPullDownRefresh());
   },
 
-  async load() {
-    sk.start(this);
+  /** @param {boolean} silent 静默刷新：不闪骨架、失败也不砸掉已有内容 */
+  async load(silent) {
+    if (!silent) sk.start(this);
     this.setData({ error: '' });
     try {
       const c = await couple.queryCouple();
@@ -83,6 +87,7 @@ Page({
         });
       });
 
+      this._drawn = true;
       this.setData({
         demo: merged.demo,
         total: merged.total,
@@ -91,7 +96,8 @@ Page({
         expandId: ''
       });
     } catch (e) {
-      this.setData({ error: String(e.message || e).slice(0, 60), bindNeeded: false });
+      // 静默刷新失败：留着旧内容 —— 用户刚看完列表返回，网络抖一下不该把整页换成错误页
+      if (!silent) this.setData({ error: String(e.message || e).slice(0, 60), bindNeeded: false });
     } finally {
       sk.end(this);
     }
