@@ -1,6 +1,6 @@
 # 有票为证 · 测试与验收（TEST）
 
-> **版本对齐**：小程序 `7.4.1` ｜ **日期**：2026-09-14 ｜ **当前成绩**：`npm test` **25 套 / 665 条全绿**
+> **版本对齐**：小程序 `7.4.1`（正文未随 7.4.2~8.0.5 复核）｜ **日期**：2026-09-17（测试成绩当日复核）｜ **当前成绩**：`npm test` **35 套 / 824 条全绿**
 > **本文件管什么**：测什么、怎么跑、每套钉住的是什么、哪些必须靠真机看。
 > **不管什么**：模块与接口设计见 [SDD.md](./SDD.md)，架构与链路见 [ARCH.md](./ARCH.md)。
 > **怎么用**：改哪屏先跑哪套；新增功能照 §4 加一套；提审前照 §7 逐屏过真机。
@@ -15,7 +15,7 @@
 | ② 上传前检查 | 上传、提审、发版前 | `node --check` 全量 + `npm test` + 体积粗检（`npm run pipeline:dev` 串起来） | 开发 |
 | ③ 真机验收 | 每个版本收尾、提审前 | 照 §7 清单逐屏勾 | 人（AI 看不了真机） |
 
-> 这套台子的来历：`docs/HEALTH.md` 体检时全仓 0 个测试文件，CHANGELOG 里那句「15 套件 504/504 全绿」**无法复现**。现 11 套全部入库、可一键重跑，就是为了不再出现那种记录。
+> 这套台子的来历：`docs/HEALTH.md` 体检时全仓 0 个测试文件，CHANGELOG 里那句「15 套件 504/504 全绿」**无法复现**。当时那批 11 套全部入库、可一键重跑，就是为了不再出现那种记录（现已长到 35 套）。
 
 ---
 
@@ -23,7 +23,7 @@
 
 ```bash
 cd youpiaoweizheng
-npm test                 # 全部：25 套 / 665 条
+npm test                 # 全部：35 套 / 824 条
 npm test discover        # 只跑文件名含 discover 的那套（字符串包含，非正则、区分大小写）
 npm run preview:deco     # 不开微信开发者工具，把装饰图形先渲成图看一眼
 ```
@@ -39,9 +39,10 @@ npm run preview:deco     # 不开微信开发者工具，把装饰图形先渲�
 
 ## 三、套件清单（条数 = 运行时用例数，即 `npm test` 打印数）
 
-> 下表逐条说明的是 v7.1 那批（11 套）。**7.2.0 起新增的 14 套还没补进这张表**：
-> `daily_sign` / `points` / `badges` / `motion` / `svg_datauri` / `share_invite` / `track_events` / `memory` / `list_banner` / `pull_refresh` / `press_feedback` / `icon_purity` / `subscribe` / `report_stats`。
-> 表中「条数」一列也是 v7.1 当时的数，**以开头那句「25 套 / 665 条」为准**；每套「为什么要有这一套」写在各自文件头（补表留到下次）。
+> 下表逐条说明的是 v7.1 那批（11 套）。**7.2.0 起新增的 24 套还没补进这张表**：
+> v7.2~v7.4 的 14 套 —— `daily_sign` / `points` / `badges` / `motion` / `svg_datauri` / `share_invite` / `track_events` / `memory` / `list_banner` / `pull_refresh` / `press_feedback` / `icon_purity` / `subscribe` / `report_stats`；
+> v8.0 的 10 套 —— `store_cache` / `page_timers` / `bind_concurrency` / `art_job_reclaim` / `cloud_hardening` / `theme_preview` / `xhs_export` / `audit_0803` / `audit_0804` / `audit_fixes`。
+> 表中「条数」一列也是 v7.1 当时的数，**以开头那句「35 套 / 824 条」为准**；每套「为什么要有这一套」写在各自文件头（补表留到下次）。
 
 | 套件 | 条数 | 钉住哪一屏 | 关键断言（含负向） |
 |---|---|---|---|
@@ -129,7 +130,7 @@ npm run preview:deco     # 不开微信开发者工具，把装饰图形先渲�
 ## 八、上传 / 发布前的检查清单
 
 - [ ] `node --check` 全量 JS 过语法（`pages/` + `utils/` + `cloudfunctions/`）
-- [ ] `npm test` 25 套全绿
+- [ ] `npm test` 35 套全绿
 - [ ] `youpiaoweizheng/package.json` 的 `version` **已递增**（同名版本微信拒收）
 - [ ] 云函数有改动 → `npm run deploy:fn` 已部署；新 action 已进 §SDD 4.2 表
 - [ ] `scripts/ci/config.js` 的 `uploadIgnores` 覆盖新增大文件（md / 脚本 / 依赖不进包）

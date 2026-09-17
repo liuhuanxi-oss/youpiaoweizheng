@@ -31,7 +31,7 @@
 | 后端 | **2 个云函数**（`saveTicket` 万能 action 路由 / `recognizeTicket` OCR）、**4 个集合**（tickets / prefs / couples / config）+ 云存储 |
 | 数据层 | `utils/store.js` 双模式（云 / 演示），20 个 utils 模块 |
 | 视觉 | 六套主题（paper 默认 / glass / collage / film / literary / minimal），10 屏按品牌全案精修稿重做 |
-| 测试 | `npm test` **11 套 / 330 条全绿**；真机逐屏验收见 [TEST.md](./TEST.md) §7 |
+| 测试 | `npm test` **35 套 / 824 条全绿**（2026-09-17 复核）；真机逐屏验收见 [TEST.md](./TEST.md) §7 |
 | 合规 | 隐私授权弹窗、内容安全先审后显、AI 生成标注、支付防伪三道闸已就位；ICP 已通过，算法备案材料待推进 |
 | 待办 | **真机验收未做**（7.0.0 / 7.1.0 两个版本都等着）；提审资质项见 PRD 5.3 |
 
@@ -48,7 +48,7 @@
 │   ├── components/     3 个公共组件：数字滚动 / 底部弹层 / 隐私授权
 │   ├── custom-tab-bar/ 自定义底部导航（独立渲染树，主题令牌要自己再声明一遍）
 │   ├── cloudfunctions/ 2 个云函数（saveTicket / recognizeTicket）
-│   ├── tests/          11 套回归测试台（npm test）
+│   ├── tests/          35 套回归测试台（npm test）
 │   ├── scripts/        dev（测试运行器、单屏预览）/ ci（上传、提审、部署云函数、发布）
 │   ├── images/         只有品牌 logo 与地图图钉两张位图，图标全部是代码画出来的
 │   └── CHANGELOG.md    ★ 版本史，最新一条就是最近做了什么
@@ -96,7 +96,7 @@
 | 件 | 现状 |
 |---|---|
 | 版本控制 | 仓库根 git，GitHub 私有库 `liuhuanxi-oss/youpiaoweizheng`；密钥类文件已在 `.gitignore` |
-| 测试 | 11 套回归台（源文本断言 + 纯模块真跑），`npm test` 一键重跑；覆盖缺口见 TEST.md §6 |
+| 测试 | 35 套回归台（源文本断言 + 纯模块真跑），`npm test` 一键重跑；覆盖缺口见 TEST.md §6 |
 | CI 脚本 | `npm run upload` / `audit` / `deploy:fn` / `release`；`pipeline:dev` 串「体积粗检 → 部署 → 上传」 |
 | 版本号 | `youpiaoweizheng/package.json` 的 `version` 即上传版本号，**必须递增**（同名微信拒收） |
 | 文档 | PRD 需求 → ARCH 架构 → SDD 详细设计 → TEST 测试 → 本文件 + FEATURE 功能清单，五份齐 |
@@ -132,7 +132,7 @@
 | [PRD.md](./PRD.md) | 做什么、给谁做、优先级、合规红线 | 立新需求 |
 | [ARCH.md](./ARCH.md) | 分层、页面清单、数据流、云函数 action 总表 | 找「改这个要动哪几个文件」 |
 | [SDD.md](./SDD.md) | 字段级数据模型、模块契约、状态机、降级矩阵、影响面速查 | 动手写代码时 |
-| [TEST.md](./TEST.md) | 11 套测试台清单、覆盖缺口、真机验收清单、发布前检查 | 改完 / 提审前 |
+| [TEST.md](./TEST.md) | 35 套测试台清单、覆盖缺口、真机验收清单、发布前检查 | 改完 / 提审前 |
 | [FEATURE.md](./FEATURE.md) | 功能清单：每个功能的入口、文件、数据、已知限制 | 想确认「某功能到底有没有 / 在哪个文件」 |
 | [HEALTH.md](./HEALTH.md) / [REVIEW.md](./REVIEW.md) | 2026-09-11 的体检与代码审查（历史快照） | 查历史问题来历 |
 
