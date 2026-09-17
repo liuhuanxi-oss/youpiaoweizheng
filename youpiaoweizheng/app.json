@@ -16,7 +16,8 @@
     "pages/theme/theme",
     "pages/setting/setting",
     "pages/art/art",
-    "pages/wall/wall"
+    "pages/wall/wall",
+    "pages/legacy/legacy"
   ],
   "__usePrivacyCheck__": true,
   "permission": {

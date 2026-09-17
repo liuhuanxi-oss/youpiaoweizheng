@@ -10,7 +10,7 @@
 ## 一、全局：三层 + 两个后端
 
 ```
-页面层  pages/            17 个页面（4 个自定义 tab 页 + 13 个功能页）
+页面层  pages/            18 个页面（4 个自定义 tab 页 + 14 个功能页）
           │  ↓ 票根数据只走下面这一层；页面另有 3 类云直连（上传照片 / 取临时链接 / 单次动作），见 SDD 第一节
 数据层  utils/            数据（store）、双人（couple/duoData）、AI（ai）、主题（theme）、
           │               图形（icons/deco/mapArt）、支付（pay）、授权（auth）、埋点（track）…
@@ -28,7 +28,7 @@
 
 ---
 
-## 二、页面清单（16 页，`app.json` 注册）
+## 二、页面清单（18 页，`app.json` 注册）
 
 | 分组 | 页面 | 干什么 | 主要依赖的 utils |
 |---|---|---|---|
@@ -45,6 +45,8 @@
 | 双人 | `pages/bind` | 邀请中转页（分享卡片带 code 进入） | theme, couple, track |
 | 双人 | `pages/timeline` / `pages/report` | 双人时间线（按月分组、同场标记）/ 我们的时光报告（分布、里程、一起场次） | duoData, couple, date, theme, skeleton（report 另有 geo, pay） |
 | 设置 | `pages/setting` / `pages/theme` / `pages/protocol` | 设置（含勋章墙）/ 主题选择 / 协议 | store, couple, env, pay, badges, theme, deco |
+| 拉新 | `pages/wall` | 同场票根墙：某一场上**别人自愿公开**的票根（全项目唯一陌生人可读的出口） | store, theme, track, share |
+| 拉新 | `pages/legacy` | 老票根专场：请用户翻出抽屉里的老票来拍（**静态页**，分享落点） | theme, track, share, icons, deco |
 
 > `tests/page_refs.test.js` 会拦「注册了但没人能进」的孤立页；下线页面时记得看它身上挂的勋章标记、埋点有没有别人依赖。
 
@@ -171,7 +173,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 
 | 类别 | 在哪 | 说明 |
 |---|---|---|
-| 回归测试 | `tests/*.test.js`（36 套 / 861 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
+| 回归测试 | `tests/*.test.js`（37 套 / 886 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
 | 单屏预览 | `scripts/dev/preview-*.js` | 本机把卡面 / 年报 / 装饰图形渲成图或 HTML 先看一眼 |
 | 云函数部署 | `scripts/ci/deploy-fns.js` | `npm run deploy:fn`（CloudBase CLI 非交互） |
 | 上传提审 | `scripts/ci/` | `npm run upload` / `audit` / `audit:status` / `release`；`pipeline:dev` 串起「体积粗检 → 部署 → 上传」 |

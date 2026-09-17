@@ -136,6 +136,7 @@
 | `geo.js` (1) | `haversine(a,b)`、`totalKmOf(sortedTickets)` | 地球半径 6371 km | — |
 | `mapArt.js` (1) | `landSrc`、`routeSrc`、`stampSrc`、`toStage(lng,lat)`、`layoutBubbles`、`markersOf`、`bubbleColor`、`bubbleWidth`、`ART_W` / `ART_H` / `STAGE_W` / `STAGE_H` | 水彩中国投影：经度 73.4–135.1、纬度 17.8–53.6，标准纬线 35°；`ART 640×620` / `STAGE 666×645` | — |
 | `memory.js` (1) | `onThisDay(ts, now)`、`label(hit)`、`row(ts, now)`、`bjDay(now)` | 那年今天：同月同日 + 更早年份，多条取最近那一年；固定 UTC+8；没命中返回 null（不编回忆） | — |
+| `legacy.js` (1) | `row(ts, flags, now)`、`YEARS=5`、`bjYear(now)` | 老票根专场入口那一行该不该显示：云兜底（`flags.netFallback`）不显示、一张票都没有不显示、已有五年前的票不显示；年份口径固定 UTC+8 | — |
 | `svg.js` (1) | `toDataUri(svg)`、`b64(str)` | 图形工厂唯一的出口；**必须 base64** —— 百分号编码在开发者工具里正常、真机上整片不显示 | — |
 | `weather.js` (1) | `weatherText(w)`、`weatherHint(w)` | WMO 码表 28 项；体感分界 5 / 14 / 30 ℃；`w` 为空一律返回空串（不造假） | — |
 | `subscribe.js` (经 sign) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` | 一次性订阅：授权→次日一条，没有「开关」；当前 `TMPL_ID` 为空 = 一次都不请求；`askIfDue` 必须在点击回调里同步发起；被拒后 30 天静默（环境类失败不进静默期） | env |

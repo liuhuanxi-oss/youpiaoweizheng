@@ -76,6 +76,16 @@ const DEMO_DRAFT = {
 
 Page({
 
+  /**
+   * 8.1.0 老票根专场：从活动页过来的（?from=legacy）换一句取景提示。
+   * 本页原先没有 onLoad，是这次为它加的 —— 没有它就拿不到启动参数。
+   * 只做提示，不改任何识别或保存行为：老票认不准是必然的，用户自己会补填
+   * （这条路本来就通：识别失败自动进空表单，见文件头）。
+   */
+  onLoad(options) {
+    if (options && options.from === 'legacy') this.setData({ fromLegacy: true });
+  },
+
   onShow() {
     themeUtil.apply(this);
     this.buildArt();
@@ -175,6 +185,8 @@ Page({
   data: {
     theme: "a",
     isDemo: !USE_CLOUD,
+    // 8.1.0：从老票根专场过来的（取景提示换成「认不出可以直接填」，见 onLoad）
+    fromLegacy: false,
     mode: 'camera',    // camera 取景 / scanning 识别中 / done 确认表单
     imgPath: '',       // 本地临时路径（预览用）
     imgFileID: '',     // 云存储 fileID（入库用）

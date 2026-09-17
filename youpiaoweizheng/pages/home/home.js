@@ -20,6 +20,7 @@ const { iconSrc } = require('../../utils/icons.js');
 const share = require('../../utils/share.js'); // 7.3.0 A6：长按菜单里的「分享」要转发这一张
 const sign = require('../../utils/sign.js');   // 7.4.0 R1：今日时光签（端上只读，判定在服务端）
 const memory = require('../../utils/memory.js'); // 7.4.0 R4：那年今天（没命中就不显示，不造假）
+const legacy = require('../../utils/legacy.js'); // 8.1.0 老票根专场：那一行的显示规则（不是每人都该看到）
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 // —— 尺寸（rpx）：WXSS 里写死的宽高必须与这里一致 ——
@@ -102,7 +103,9 @@ Page({
     // 7.4.0 R1 今日时光签：sign 为 null 时整块不渲染（演示模式 / 云失败都保持这样）
     sign: null, signText: { title: '', sub: '', btn: '' }, signing: false,
     // 7.4.0 R4 那年今天：null = 今天没有可回忆的（新用户常态），整行不显示
-    mem: null
+    mem: null,
+    // 8.1.0 老票根专场：只在「有票、但一张五年前的都没有」时露一次脸（见 utils/legacy.js）
+    legacy: false
   },
 
   _all: [],
@@ -168,7 +171,8 @@ Page({
       }, stampParts(t)));
       // 每次都写（含 null）：上一次亮过横幅、这次恢复正常时必须能收回去
       // 那年今天跟着列表一起算（没命中就是 null，整行不显示 —— 不编一句假的回忆）
-      this.setData({ netBar, mem: memory.row(this._all) });
+      // 老票根专场同理：不该显示就不显示（含云兜底那条路径，理由见 utils/legacy.js）
+      this.setData({ netBar, mem: memory.row(this._all), legacy: legacy.row(this._all, flags) });
       this.applyFilter();
       this.maybeGuide();
     } catch (e) {
@@ -307,6 +311,7 @@ Page({
         search: iconSrc('search', m.text, 0.5, 1.5),
         pin: iconSrc('pin', m.text, 0.5, 1.4),
         memIc: iconSrc('clock', m.text, 0.5, 1.5),   // 7.4.0 R4 那年今天
+        legacyIc: iconSrc('ticket', m.text, 0.5, 1.5), // 8.1.0 老票根专场
         goIc: iconSrc('chevron', m.text, 0.4, 1.5),
         heartOn: iconSrc('heart', '#E8AFA8', 1, 1.5, true),
         heartOff: iconSrc('heart', m.text, 0.35, 1.5),
@@ -356,6 +361,13 @@ Page({
     haptics.tap();
     track.track('home_cta_scan', {});
     wx.navigateTo({ url: '/pages/scan/scan' });
+  },
+
+  /** 8.1.0 老票根专场：翻出抽屉里的票来拍（这一行的显示规则见 utils/legacy.js） */
+  goLegacy() {
+    haptics.tap();
+    track.track('legacy_enter', { from: 'home' });
+    wx.navigateTo({ url: '/pages/legacy/legacy' });
   },
   /**
    * A1 近似共享元素：小程序不支持真共享元素（M4.5 已定论），用两段式近似——

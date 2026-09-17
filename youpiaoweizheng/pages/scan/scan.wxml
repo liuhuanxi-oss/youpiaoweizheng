@@ -53,7 +53,10 @@
            稿内 ⚡/? 在导航栏右侧，但真机上那个位置是微信胶囊按钮，放不下 ——
            故移到取景框内的同一行右侧；胶囊改为占满剩余宽度、文字居中。 -->
       <view class="sc-topbar">
-        <view class="sc-capsule">将票根放入框内，自动识别</view>
+        <!-- 老票根褪色、字迹淡，识别本来就认不准 —— 提前把「可以自己填」说明白，
+             别让用户以为没识别出来就是白拍了（认不出来会进空表单，见 scan.js 文件头）。
+             字数卡在原句同宽：胶囊是 overflow:hidden 的，超了是**悄悄截断**，不报错。 -->
+        <view class="sc-capsule">{{fromLegacy ? '老票根认不准，可以自己填' : '将票根放入框内，自动识别'}}</view>
         <view class="sc-tool pressable {{flash === 'on' ? 'on' : ''}}" hover-class="press-hover" bindtap="toggleFlash"
               aria-role="button" aria-label="闪光灯">
           <image class="sc-tool-ic" src="{{ic.flash}}" mode="aspectFit" aria-hidden="true" />

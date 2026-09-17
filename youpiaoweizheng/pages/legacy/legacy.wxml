@@ -1,0 +1,55 @@
+<!-- pages/legacy/legacy.wxml —— 老票根专场（8.1.0 拉新）
+     这一页同时是两个入口的落点：① 首页那一行；② 分享卡 / 朋友圈（朋友圈走单页模式）。
+     所以它必须**自己站得住**：来的人可能一张票都没有，也可能压根不知道这个 App 是干嘛的。
+     全文案不写「快来分享」「拉好友得奖励」这类话 —— 活动本身不设奖励，写了就是骗。
+     图形一律走 <image src="data:image/svg+xml;base64,...">，wxml 不渲染内联 <svg>。 -->
+<import src="/templates/sp.wxml" />
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '这是「有票为证」的老票根专场'}}" /></block>
+
+<view wx:if="{{!sp}}" class="page theme-{{theme}} fade-up">
+
+    <!-- ===== 头图区：邮戳 + 花枝，压在标题后面当底纹 ===== -->
+    <view class="lg-hero">
+      <image class="lg-hero-pm" src="{{deco.postmark}}" mode="aspectFit" aria-hidden="true" />
+      <image class="lg-hero-sprig" src="{{deco.sprig}}" mode="aspectFit" aria-hidden="true" />
+      <view class="lg-title serif">老票根专场</view>
+      <view class="lg-sub">抽屉里那些，也值得留下来</view>
+    </view>
+
+    <!-- ===== 开场白：先让来的人认出自己 =====
+         不写「十年前」这种硬门槛 —— 有人三年前的票也是第一次翻出来。 -->
+    <view class="lg-card card">
+      <view class="lg-lead">演唱会、电影、话剧、火车票……那些压箱底的票根，纸黄了、字淡了，可是那天你还在。</view>
+      <view class="lg-lead lg-lead-2">翻出来拍一张吧。它们不该只躺在抽屉里等发霉。</view>
+    </view>
+
+    <!-- ===== 三步 ===== -->
+    <view class="lg-steps">
+      <view class="lg-step" wx:for="{{steps}}" wx:key="n">
+        <view class="lg-step-dot"><image class="lg-step-ic" src="{{item.src}}" mode="aspectFit" aria-hidden="true" /></view>
+        <view class="lg-step-body">
+          <view class="lg-step-t">{{item.n}} · {{item.t}}</view>
+          <view class="lg-step-s">{{item.s}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ===== 把「认不出来」提前说清楚 =====
+         老票识别失败率高是必然的（褪色、版式老）。不说清楚，用户会以为白拍了一张。 -->
+    <view class="lg-note">
+      <view class="lg-note-t">老票认不准是正常的</view>
+      <view class="lg-note-s">字看不清，自己对着票面填一遍就好 —— 填什么以你为准，存下来的就是它。票根只存在你自己的收藏册里，别人看不到。</view>
+    </view>
+
+    <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goScan"
+          aria-role="button" aria-label="去拍一张老票根">去拍一张老票根</view>
+
+    <view class="lg-tail">
+      <image class="lg-tail-wave" src="{{deco.wave}}" mode="aspectFit" aria-hidden="true" />
+      <view class="lg-tail-t">让时光有票为证</view>
+    </view>
+
+</view>
+
+<!-- 分享：朋友圈那条的落地页就是本页（朋友圈只能带 query，不能跳页）。
+     单页模式下上面那条按钮点了不会有反应 —— 那正是 sp 落地卡存在的理由。 -->

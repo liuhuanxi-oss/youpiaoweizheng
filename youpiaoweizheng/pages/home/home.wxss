@@ -120,6 +120,29 @@
 }
 .hc-mem-go { width: 24rpx; height: 24rpx; margin-left: 10rpx; flex-shrink: 0; }
 
+/* ===== 8.1.0 老票根专场（一行，比那年今天厚一点：它是个入口，不是一句话） ===== */
+.hc-legacy {
+  display: flex;
+  align-items: center;
+  margin: 22rpx 48rpx 0;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  background: var(--soft, #E9E2D4);
+}
+.hc-legacy-ic { width: 34rpx; height: 34rpx; margin-right: 16rpx; flex-shrink: 0; }
+.hc-legacy-body { flex: 1; min-width: 0; }
+.hc-legacy-t { display: block; font-size: 26rpx; font-weight: 600; color: var(--brown, #6B5B50); }
+.hc-legacy-s {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: var(--text2, #8A7B66);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hc-legacy-go { width: 24rpx; height: 24rpx; margin-left: 10rpx; flex-shrink: 0; }
+
 .hc-search {
   display: flex;
   align-items: center;

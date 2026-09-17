@@ -23,7 +23,8 @@ const invite = require('./invite.js'); // 每条分享 path / query 都要带邀
 const COVERS = {
   ticket: '/images/share/cover-ticket.png',   // 一张微倾的票根 + 邮戳
   annual: '/images/share/cover-annual.png',   // 一叠票根扇形摊开
-  duo:    '/images/share/cover-duo.png'       // 两张竖票根对倾 + 一颗星
+  duo:    '/images/share/cover-duo.png',      // 两张竖票根对倾 + 一颗星
+  legacy: '/images/share/cover-legacy.png'    // 一张泛黄褪色、边角磨损的老票（8.1.0）
 };
 const SLOGAN = '让时光有票为证';
 
@@ -51,6 +52,17 @@ const SCENES = {
     path: () => '/pages/annual/annual',
     query: () => '',
     cover: COVERS.annual
+  },
+  // 老票根专场（8.1.0）：这条分享的落点是**活动页本身**，不是某张票根 ——
+  // 一个人翻出 2015 年的票，多半会发给当年一起去的那个人：他点开看到的必须是
+  // 「你也翻翻抽屉」，而不是一张跟他无关的票。
+  legacy: {
+    // 不写「我翻出了 XX 年那张」——活动页是静态的，拿不到用户翻的是哪一张；
+    // 编一个年份出来，好友点开发现和他朋友无关，比一句朴素的话更糟。
+    title: () => '抽屉里那些老票根，也值得留下来',
+    path: () => '/pages/legacy/legacy',
+    query: () => '',
+    cover: COVERS.legacy
   },
   // 双人空间 / 双人报告（沿用 v5.1 那句「我们」钩子：比功能描述更能唤起绑定）
   duo: {

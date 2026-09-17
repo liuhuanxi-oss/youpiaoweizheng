@@ -140,6 +140,20 @@
     <image class="hc-mem-go" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
   </view>
 
+  <!-- ============ 8.1.0 老票根专场：翻抽屉 ============
+       只在「已经有票、但一张五年前的都没有」时出现（规则在 utils/legacy.js）——
+       新用户该先拍第一张，有老票的人该看回忆，这行对他们是多余的。
+       翻出来一张之后它自己就收了，不需要用户手动关。 -->
+  <view class="hc-legacy pressable" wx:if="{{legacy}}" hover-class="press-hover" bindtap="goLegacy"
+        aria-role="button" aria-label="老票根专场：抽屉里那些也值得留下来">
+    <image class="hc-legacy-ic" src="{{ic.legacyIc}}" mode="aspectFit" aria-hidden="true" />
+    <view class="hc-legacy-body">
+      <text class="hc-legacy-t">老票根专场</text>
+      <text class="hc-legacy-s">抽屉里那些，也值得留下来</text>
+    </view>
+    <image class="hc-legacy-go" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
+  </view>
+
   <!-- ============ 搜索 ============ -->
   <view class="hc-search pressable" bindtap="goSearch" hover-class="press-hover" aria-role="searchbox" aria-label="搜索票根">
     <image class="hc-search-ic" src="{{ic.search}}" mode="aspectFit" aria-hidden="true" />

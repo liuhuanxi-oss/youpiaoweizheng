@@ -219,10 +219,68 @@ function coverDuo() {
     '</svg>';
 }
 
+// ============================================================
+// 版本四 · 老票根专场（8.1.0，给「翻出抽屉里那些老票」用）
+//   一眼要能看出「这是旧票」：纸色泛黄、字迹淡、边上有磨损，但撕票线/条码的结构
+//   和新票一样 —— 让人认得出「这是同一个东西，只是更老了」，而不是另一种票。
+//   标题下那句「认不出字也没关系」，是这版的**主要作用**：老票褪色、印刷体、
+//   票面小字多，OCR 成功率天然低，先把预期说在前面，用户才不会被一次识别失败劝退。
+// ============================================================
+/** 一张老票根（横版，泛黄褪色 + 边缘磨损） */
+function ticketOld(cx, cy, deg, w, h) {
+  const hw = w / 2, hh = h / 2;
+  const split = w - 56;
+  const barX = -hw + split + 8;
+  const PAPER = '#EFE6D4';   // 泛黄的纸（比新票的纯白旧一档）
+  const FADE = '#8A7E6E';    // 褪色的墨：老票上的字不再黑得起来
+  return '<g transform="translate(' + cx + ' ' + cy + ') rotate(' + deg + ')">' +
+    '<rect x="' + -hw + '" y="' + -hh + '" width="' + w + '" height="' + h +
+      '" rx="10" fill="' + PAPER + '" stroke="#DCCFB6" stroke-width="2"/>' +
+    // 内圈细框：老票那种印在纸上的框线
+    '<rect x="' + (-hw + 11) + '" y="' + (-hh + 11) + '" width="' + (w - 22) + '" height="' + (h - 22) +
+      '" rx="5" fill="none" stroke="' + FADE + '" stroke-opacity="0.3" stroke-width="1.5"/>' +
+    // 顶边的磨损缺口（两个大小不一的半圆）：比画整圈毛边省事，也够读出「旧」
+    '<circle cx="' + (-hw + 46) + '" cy="' + -hh + '" r="5" fill="' + BG + '"/>' +
+    '<circle cx="' + (-hw + 64) + '" cy="' + -hh + '" r="3" fill="' + BG + '"/>' +
+    // 撕票孔与虚线：与新票同构，一眼认出是同一类东西
+    '<circle cx="' + (-hw + split) + '" cy="' + -hh + '" r="8" fill="' + BG + '"/>' +
+    '<circle cx="' + (-hw + split) + '" cy="' + hh + '" r="8" fill="' + BG + '"/>' +
+    '<path d="M' + (-hw + split) + ' ' + (-hh + 16) + 'V' + (hh - 16) +
+      '" fill="none" stroke="' + FADE + '" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="6 6"/>' +
+    // 褪色的年份：老票根上最动人的一个字就是这个数字
+    '<text x="' + (-hw + 150) + '" y="' + (hh - 62) + '" font-family="' + SERIF +
+      '" font-size="92" font-weight="700" fill="' + INK + '" fill-opacity="0.16" ' +
+      'text-anchor="middle" letter-spacing="4">2015</text>' +
+    '<rect x="' + (-hw + 30) + '" y="' + (hh - 46) + '" width="' + Math.round((split - 60) * 0.62) +
+      '" height="12" rx="6" fill="' + INK + '" fill-opacity="0.5"/>' +
+    '<rect x="' + (-hw + 30) + '" y="' + (hh - 24) + '" width="' + Math.round((split - 60) * 0.4) +
+      '" height="8" rx="4" fill="' + FADE + '" fill-opacity="0.45"/>' +
+    barcode(barX, -hh + 28, hw - 8 - barX, h - 56, FADE, 0.4) +
+    '</g>';
+}
+
+function coverLegacy() {
+  return head('有票为证 · 转发封面（老票根专场）') +
+    '<text x="375" y="108" font-family="' + SERIF + '" font-size="46" font-weight="700" ' +
+      'fill="' + INK + '" text-anchor="middle" letter-spacing="8">老票根专场</text>' +
+    '<text x="375" y="146" font-family="' + SANS + '" font-size="17" fill="' + GREY + '" ' +
+      'text-anchor="middle" letter-spacing="2">抽屉里那些，也值得留下来</text>' +
+    ticketOld(375, 322, -2, 520, 250) +
+    // 邮戳压在票的右上角上（跟「票根」那版同一种盖章感）：中心 620 + 半径 50 = 670，
+    // 不出安全区 675；半径写 46 时「有票为证」四个字会顶到圈线上（试过）。
+    postmark(620, 180, 50, '有票为证', '再存一张') +
+    '<text x="375" y="512" font-family="' + SANS + '" font-size="18" fill="' + GREY + '" ' +
+      'text-anchor="middle" letter-spacing="3">认不出字也没关系，自己填一遍就好</text>' +
+    '<text x="375" y="556" font-family="' + SERIF + '" font-size="28" fill="' + INK + '" ' +
+      'text-anchor="middle" letter-spacing="12">让时光有票为证</text>' +
+    '</svg>';
+}
+
 const COVERS = [
   { name: 'cover-ticket', build: coverTicket },
   { name: 'cover-annual', build: coverAnnual },
-  { name: 'cover-duo', build: coverDuo }
+  { name: 'cover-duo', build: coverDuo },
+  { name: 'cover-legacy', build: coverLegacy }
 ];
 
 // —— 出图 ——
