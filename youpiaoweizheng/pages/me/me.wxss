@@ -274,6 +274,9 @@
   background: var(--stamp, #C26B5E);
 }
 .me-sign-done { font-size: 24rpx; color: var(--sage, #A9C3A6); }
+/* 8.0.5 积分怎么来：积分行下方一行小字入口（低频动作，视觉重量压到最低） */
+.me-sign-rule { display: flex; margin-top: 12rpx; }
+.me-sign-rule-t { font-size: 22rpx; color: var(--text2, #A5968A); }
 .me-sign-exchange-row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-top: 14rpx; }
 .me-sign-hint { flex: 1; min-width: 0; font-size: 22rpx; color: var(--text2, #A5968A); }
 .me-sign-exchange {

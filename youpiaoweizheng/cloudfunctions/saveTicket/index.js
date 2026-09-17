@@ -1621,6 +1621,20 @@ const POINTS_RULES = {
 };
 const POINTS_PER_ART = 100;        // 100 分 = 1 次 AI 重绘（可调，见 v8.0 方案 R2）
 
+// 8.0.5：对外（端上界面）只公布这三条挣分规则。
+//   share（分享被好友打开 +5）与 invite（好友首次上传 +50）**照发不误**，只是不写进界面 ——
+//   把「分享有奖」摆在明面上，正是微信那条规定里的「以利益诱惑诱导分享」；静默入账时，
+//   总分照样涨，用户感知到的是「用得多就有分」。而此前端上根本不知道分从哪来
+//   （rules 一直在下发，没人用），积分于是成了只涨不解释的数字。
+const PUBLIC_RULE_KEYS = ['sign', 'upload', 'card'];
+
+/** 端上可展示的挣分规则（key / 单次分值 / 日上限）；中文名由端上按 key 配 */
+function publicRules() {
+  return PUBLIC_RULE_KEYS
+    .filter((k) => POINTS_RULES[k])
+    .map((k) => ({ key: k, points: POINTS_RULES[k].points, cap: POINTS_RULES[k].cap }));
+}
+
 /**
  * 按行为记账（B 段唯一的加分入口）。
  * @param {string} reason POINTS_RULES 的键
@@ -1669,7 +1683,7 @@ async function pointsGetAction(OPENID) {
       balance: p.balance || 0,
       lifetime: p.lifetime || 0,
       cost: POINTS_PER_ART,
-      rules: POINTS_RULES
+      rules: publicRules()   // 8.0.5：只给能摆上台面的三条，见 PUBLIC_RULE_KEYS
     };
   } catch (e) {
     return { ok: false, msg: '积分读取失败' };
@@ -1834,7 +1848,12 @@ async function dailySignAction(event, OPENID) {
     // 只看不动：首页横条与我的页进页面时拉状态，不签发（用户没点就不算签到）
     if (event.check) {
       const p = await loadPoints(db, OPENID);
-      return Object.assign({ ok: true, balance: p.balance || 0 }, signView(d, today, yesterday));
+      // 8.0.5：顺手把挣分规则捎回去 —— 「我的」页的「积分怎么来」就摆在这一块里，
+      // 让它为一次弹窗再单开一次云调用不值当（这里是进页面必经的一次读，白搭车）
+      return Object.assign(
+        { ok: true, balance: p.balance || 0, rules: publicRules() },
+        signView(d, today, yesterday)
+      );
     }
 
     if (d && d.ymd === today) {

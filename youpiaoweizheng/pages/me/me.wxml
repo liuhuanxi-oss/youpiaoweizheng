@@ -161,6 +161,12 @@
               hover-class="press-hover" bindtap="onOpenRedeem"
               aria-role="button" aria-label="用积分兑换 1 次 AI 重绘">兑换</view>
       </view>
+      <!-- 8.0.5：终点有了（能换重绘），还差起点 —— 用户此前不知道分从哪来，
+           攒到 100 也不知道是自己做对了什么。规则由服务端下发，这里只负责摆出来 -->
+      <view class="me-sign-rule pressable" hover-class="press-item-hover" bindtap="onPointsRule"
+            aria-role="button" aria-label="查看积分怎么获得">
+        <text class="me-sign-rule-t">积分怎么来</text>
+      </view>
     </view>
 
     <!-- ④ AI 重绘额度（7.2.0 L2：从设置页迁来；取不到服务端额度时整块不渲染） -->

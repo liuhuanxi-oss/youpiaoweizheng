@@ -97,6 +97,7 @@ Page({
     sign: null, signText: { title: '', sub: '', btn: '' }, signing: false,
     signPoints: 0,   // 积分余额（服务端权威，端上只显示）
     pointsHint: '',  // 7.4.0 B 段：积分离「1 次 AI 重绘」还差多少
+  pointsRules: null, // 8.0.5：挣分规则（服务端下发的公开三条，端上只负责展示）
     pointsReady: false, // 攒够 100 分才显示兑换按钮（不够时不摆一个点了会失败的按钮）
     // 兑换确认弹层（7.4.0 B 段 R2）
     redeemShow: false, redeeming: false,
@@ -175,8 +176,14 @@ Page({
   refreshSign() {
     this._signStatus().then((s) => {
       if (!s) return;
-      // 积分与签到取同一次返回值：两处各拉一次会出现「这里 128、那里 118」的自相矛盾
-      this.setData({ sign: s, signText: sign.bannerText(s) });
+      // 积分与签到取同一次返回值：两处各拉一次会出现「这里 128、那里 118」的自相矛盾。
+      // 8.0.5：挣分规则也搭这一趟车（服务端 status 顺带下发），「积分怎么来」就不必
+      // 为一次弹窗再单开一次云调用；这一次拿不到就沿用上次的，不把规则清空
+      this.setData({
+        sign: s,
+        signText: sign.bannerText(s),
+        pointsRules: s.rules || this.data.pointsRules
+      });
       this._applyPoints(s.balance);
     });
   },
@@ -199,6 +206,19 @@ Page({
     const text = sign.rewardText(r);
     if (r.milestone) wx.showModal({ title: '连签有礼', content: text, showCancel: false, confirmText: '收下' });
     else wx.showToast({ title: text, icon: 'none' });
+  },
+
+  /** 8.0.5「积分怎么来」：规则由服务端下发，端上只负责摆出来。
+   *  此前这一页只有余额与「还差多少」—— 用户不知道分从哪来，攒到 100 也只会觉得是运气。
+   *  拿不到规则就直说拿不到：不编一套默认规则顶上（编的那套迟早和实物对不上）。 */
+  onPointsRule() {
+    const text = points.rulesText(this.data.pointsRules);
+    if (!text) {
+      wx.showToast({ title: '规则暂时取不到，稍后再看', icon: 'none' });
+      return;
+    }
+    haptics.tap();
+    wx.showModal({ title: '积分怎么来', content: text, showCancel: false, confirmText: '知道了' });
   },
 
   // ===== 7.4.0 B 段 R2 兑换：100 分 = 1 次 AI 重绘（一天 1 次）=====

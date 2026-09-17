@@ -278,6 +278,55 @@ t('我的页：攒够才出按钮，确认弹层说清花多少/剩多少，成�
 });
 
 // ════════════════════════════════════════════════════════════
+console.log('\n【六、积分怎么来：对外只公布能摆上台面的三条（8.0.5）】');
+
+t('白名单只有签到 / 上传 / 卡片，不含分享与邀请', () => {
+  const wl = /const PUBLIC_RULE_KEYS = \[([^\]]*)\]/.exec(cloud);
+  ok(wl, '没有 PUBLIC_RULE_KEYS —— 规则整体下发出去，界面就等于在说「分享有奖」');
+  const keys = (wl[1].match(/'[a-z]+'/g) || []).map((x) => x.replace(/'/g, ''));
+  ok(keys.indexOf('share') < 0 && keys.indexOf('invite') < 0,
+    '把分享 / 邀请列进了对外规则：微信把「以利益诱惑诱导分享」判成违规，奖励照发但不该吆喝');
+  ['sign', 'upload', 'card'].forEach((k) => {
+    ok(keys.indexOf(k) >= 0, '漏了 ' + k + ' —— 用户少知道一条挣分的途径');
+  });
+});
+
+t('两处下发都走白名单（漏一处 = 全表原样漏给端上）', () => {
+  ok(/rules:\s*publicRules\(\)/.test(fnOf('pointsGetAction')), 'pointsGet 把全表原样回了出去');
+  ok(/rules:\s*publicRules\(\)/.test(fnOf('dailySignAction')),
+    'dailySign 的 check 分支没带规则（或带的是全表）—— 「我的」页那次读才是端上真用的');
+});
+
+t('端上真跑：三条规则 + 兑换终点，且一个「分享 / 邀请」都没有', () => {
+  const txt = points.rulesText([
+    { key: 'sign', points: 5, cap: 1 },
+    { key: 'upload', points: 10, cap: 2 },
+    { key: 'card', points: 2, cap: 2 }
+  ]);
+  ok(/每日签到/.test(txt) && /上传一张票根/.test(txt) && /生成卡片或海报/.test(txt),
+    '三条规则没摆全：' + JSON.stringify(txt));
+  ok(/\+5 分/.test(txt) && /\+10 分/.test(txt) && /\+2 分/.test(txt), '分值没带上 —— 用户得知道一次值多少');
+  ok(/每天最多 2 次/.test(txt), '有日上限的行为没写上限：用户做到第 3 次没加分，只会以为积分坏了');
+  ok(/100 分可兑换 1 次 AI 重绘/.test(txt), '没写终点 —— 攒分得有个看得见的去处');
+  ok(!/分享|邀请/.test(txt), '弹窗里出现了分享 / 邀请：这正是要躲开的那句话');
+});
+
+t('服务端将来加了新 key，端上不认识就不显示（不猜、不编）', () => {
+  const txt = points.rulesText([{ key: 'sign', points: 5, cap: 1 }, { key: 'mystery', points: 99, cap: 0 }]);
+  ok(/每日签到/.test(txt), '认识的 key 被牵连掉了');
+  ok(!/99/.test(txt) && !/mystery/.test(txt), '把不认识的 key 硬编了个名字摆出去');
+});
+
+t('拿不到规则就返回空串，页面上直说拿不到（不编一套默认规则顶上）', () => {
+  ok(points.rulesText(null) === '' && points.rulesText([]) === '' && points.rulesText([{ key: 'x' }]) === '',
+    '拿不到规则却还是编了一套出来 —— 编的那套迟早和实物对不上');
+  const m = /onPointsRule\(\)[\s\S]*?\n  \},/.exec(read('pages/me/me.js'));
+  ok(m, '「积分怎么来」的入口方法不见了');
+  ok(/rulesText\(this\.data\.pointsRules\)/.test(m[0]), '入口没拿服务端下发的规则来渲染');
+  ok(/wx\.showToast/.test(m[0]), '取不到规则时一声不吭 —— 用户点了没反应，只会以为这功能是坏的');
+});
+
+// ════════════════════════════════════════════════════════════
 (async () => {
   for (const [name, fn] of tests) {
     try {

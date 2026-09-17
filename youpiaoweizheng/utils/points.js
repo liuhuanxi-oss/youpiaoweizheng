@@ -81,4 +81,27 @@ function artHint(balance) {
   return { ready: false, text: `再攒 ${POINTS_PER_ART - b} 分可换 1 次 AI 重绘` };
 }
 
-module.exports = { status, earnCard, shareOpened, artHint, redeem, makeReq, POINTS_PER_ART };
+// 8.0.5：挣分规则的展示名。**只认服务端下发的 key** —— 端上不认识的一律不显示。
+// 端上自己编规则，规则一变就成了对用户的假承诺（dailySign 里记过同一条教训：
+// 同一件事两处各写一份，只改一处就是在骗人）。
+const RULE_LABEL = {
+  sign: '每日签到',
+  upload: '上传一张票根',
+  card: '生成卡片或海报'
+};
+
+/** 「积分怎么来」的说明文本（服务端 rules → 弹窗里那几行）。
+ *  拿不到规则就返回空串，由调用方明说拿不到 —— 不编一套默认规则顶上。 */
+function rulesText(rules) {
+  const rows = (rules || []).filter((x) => x && RULE_LABEL[x.key]);
+  if (!rows.length) return '';
+  const lines = rows.map((x) => {
+    const cap = Number(x.cap) || 0;
+    return `· ${RULE_LABEL[x.key]}　+${x.points} 分${cap > 1 ? `（每天最多 ${cap} 次）` : ''}`;
+  });
+  lines.push('');
+  lines.push(`${POINTS_PER_ART} 分可兑换 1 次 AI 重绘，每天最多兑换 1 次。`);
+  return lines.join('\n');
+}
+
+module.exports = { status, earnCard, shareOpened, artHint, redeem, makeReq, rulesText, POINTS_PER_ART };
