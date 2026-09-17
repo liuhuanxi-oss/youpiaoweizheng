@@ -199,6 +199,23 @@
   white-space: nowrap;
 }
 
+/* ===== 8.1.0 同场票根墙：看别人 / 放自己 ===== */
+.dtc-wall {
+  margin: 22rpx 32rpx 0;
+  background: var(--card);
+  border: 1rpx solid var(--border);
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+.dtc-wall-row { display: flex; align-items: center; gap: 18rpx; padding: 24rpx 26rpx; }
+.dtc-wall-row + .dtc-wall-row { border-top: 1rpx solid var(--border); }
+.dtc-wall-ic { flex: 0 0 34rpx; width: 34rpx; height: 34rpx; }
+.dtc-wall-body { flex: 1; min-width: 0; }
+.dtc-wall-name { font-size: 27rpx; color: var(--text); }
+.dtc-wall-desc { margin-top: 6rpx; font-size: 22rpx; line-height: 1.5; color: var(--text2); }
+.dtc-wall-go { flex: 0 0 auto; font-size: 24rpx; color: var(--rose, #D9A0A6); }
+.dtc-wall-switch { flex: 0 0 auto; transform: scale(.85); }
+
 /* ===== AI 时光手记卡（品牌全案·稿屏4：浅绿底 + 左侧竖条 + 徽章） =====
    7.0.0 修：原为页面底色上直排的手写体 + 一颗 ✦，与设计稿的「卡」形态不符 */
 .dtc-memo {

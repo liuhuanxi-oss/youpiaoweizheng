@@ -46,6 +46,7 @@ function buildIcons(themeKey) {
     iPrice: iconSrc('wallet', m.text, 0.5),
     iWeather: iconSrc('moon', m.text, 0.5),
     iSpark: iconSrc('sparkle', m.accent),
+    iUsers: iconSrc('users', m.accent), // 8.1.0 同场票根墙入口
     iHeart: iconSrc('heart', m.text, 0.28),
     iHeartOn: iconSrc('heart', m.accent, 1, 1.6, true),
     iFix: iconSrc('wand', BTN_FIX_FG),
@@ -76,7 +77,8 @@ Page({
     themeUtil.apply(this);
     // 主题可能在「外观主题」页被改过，回到本页要重编图标实色
     const k = themeUtil.getTheme();
-    this.setData({ icons: buildIcons(k), fxTop: topFadeOf(k) });
+    // primary 单独给 <switch> 用：原生组件的 color 只吃色值，不吃 wxss 变量
+    this.setData({ icons: buildIcons(k), fxTop: topFadeOf(k), primary: themeUtil.getThemeMeta(k).primary });
   },
 
   /**
@@ -138,7 +140,9 @@ Page({
     // 7.4.0：删除成功后的退场（主卡收拢淡出后再跳页，不再干等 700ms）
     leaving: false,
     // 7.4.0：AI 生成失败时手记卡抖一下（只弹个窗，用户容易当成「点了没反应」）
-    memoErr: false
+    memoErr: false,
+    // 8.1.0 同场票根墙：这张票有没有被本人主动放进公共墙（默认关，一张票一次选择）
+    wallOn: false
   },
 
   /** 4.12.1 照片解码完成 → 淡入；失败 → 落回纸票样式兜底 */
@@ -207,6 +211,8 @@ Page({
           stampD: ds.slice(8, 10) || '··',
           stampMY: mi ? `${MON[mi - 1]} ${ds.slice(0, 4)}` : '····'
         },
+        // 8.1.0 同场票根墙：开关初值取票根记录上的 wallPublic（默认没有这个字段 = 没上墙）
+        wallOn: !!raw.wallPublic,
         typeText: mock.TYPE_TEXT[raw.type] || '票根',
         weatherText: weatherText(raw.weather), // V1.5：入库时存档的真实天气（null 不显示）
         notFound: false // 4.18.0：命中后显式清空态（防 onLoad 复用时残留）
@@ -272,6 +278,35 @@ Page({
           : `这场演出已被收藏 ${r.count} 次 · 也许有人正和你同场`
       });
     }).catch(() => { /* 统计失败保持默认文案 */ });
+  },
+
+  /** 8.1.0 同场票根墙：本人把这张票公开/撤下（服务端只认本人这张票；失败回滚开关） */
+  async onWallToggle(e) {
+    const t = this.data.t;
+    if (!t) return;
+    const on = !!(e && e.detail && e.detail.value);
+    this.setData({ wallOn: on }); // 先按用户的意思动开关，服务端不认再退回来
+    const r = await store.setWallPublic(t.id, on);
+    if (!r || !r.ok) {
+      this.setData({ wallOn: !on });
+      wx.showToast({ title: (r && r.msg) || '没能保存，请重试', icon: 'none' });
+      return;
+    }
+    haptics.tap();
+    track.track('wall_join', { on, eventKey: t.eventKey || '' });
+    wx.showToast({ title: on ? '已放进票根墙' : '已从墙上撤下', icon: 'none' });
+  },
+
+  /** 8.1.0 同场票根墙：看看这一场都有谁的票根（陌生人可读的出口，只回票名/场馆/日期/图） */
+  goWall() {
+    const t = this.data.t;
+    if (!t || !t.eventKey) return;
+    haptics.tap();
+    wx.navigateTo({
+      url: '/pages/wall/wall?eventKey=' + encodeURIComponent(t.eventKey)
+        + '&venue=' + encodeURIComponent(t.venue || '')
+        + '&date=' + encodeURIComponent(t.date || '')
+    });
   },
 
   // 生成纪念卡片 → card 页（4.11.0：带上同场数，卡片画「同场 N 人收藏」角标）

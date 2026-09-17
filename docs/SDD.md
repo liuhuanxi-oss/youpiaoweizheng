@@ -162,7 +162,7 @@
                                      掉进主流程会真去写 tickets（每天早上一张空票根，且不报错）；
                                      带 OPENID 的调用一律拒（小程序端可伪造 Type:Timer）
 1) event.Event 以 xpay_ 开头        → 支付推送分支（见 4.3）
-2) event.action === 'xxx'          → 34 个 action 分支
+2) event.action === 'xxx'          → 36 个 action 分支
 3) 其余                            → 票根入库主流程
 ```
 
@@ -191,6 +191,8 @@
 | `bind` | `mode: query\|create\|join\|unbind`，`name`（截 12 字），`code` | 双人绑定；`create` 复用未绑定的旧码 |
 | `duoStats` | `full`（bool） | 双人统计（合并票数 / 城市 / 一起场次） |
 | `eventStats` | `eventKey` | 同场收藏人数（匿名聚合；opt-out 用户不入列） |
+| `wallJoin`（8.1.0） | `id`, `on`（bool） | 加入 / 撤下同场票根墙：归属（`_id` + `_openid`）写进 `where`，改不到别人的票；`on=true` 时票必须有 `eventKey` 且**重新过一遍 `secGate`**（入库那次安检可能很久以前），`on=false` 不过安检（撤下必须永远能成功）。写 `tickets.wallPublic` / `wallAt` |
+| `wallList`（8.1.0） | `eventKey` | 某场次的自愿公开票根。**不要求登录**（分享出去的人没登录也要看得到）。`field()` 只取四列 + **出口逐字段重建**，只回 `title / venue / date / img`；**没有 `_id`、`_openid`、座位、票价、坐标、备注**。`img` 非本环境云存储 fileID 一律回空串；单面墙 `WALL_MAX = 50` |
 | `refCode` | — | 我的邀请短码（每人一条，幂等）；新码 6 位、与双人邀请码同表（去 `0O1IL`） |
 | `refBind` | `code`（大写去杂截 8 位，<4 位拒） | 记 `prefs.ref_link`（被邀请人唯一，重复绑返回 `dup`）；绑定时已有票根 → `stale`，只归因不发奖 |
 | `refReward` | — | 结算邀请奖励：被邀请人已有 ≥1 张票根 → 双方各 +1 幅图版与 +50 分；条件更新抢结算权，可反复催 |
@@ -405,6 +407,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 隐私 | 不申请定位权限（城市来自票面识别）；`__usePrivacyCheck__` 开启；摄像头 / 相册按需触发 + 官方隐私弹窗 |
 | 运维接口 | `opsCleanup` / `opsAudit` / `goodsImgSetup` / `opsRecall` 需 `opsToken`（与服务端 AppKey 比对，四个入口共用 `checkOpsToken`） |
 | 订阅消息 | **只在用户主动签到时请求一次授权**，不在启动/进页面时弹（合规红线）；模板 ID 未配置时一次都不请求；发送只在服务端（端上不能指定发给谁） |
+| 同场票根墙（8.1.0） | **全项目唯一一个陌生人可读的出口**，所以隐私面按「只许少、不许加」管：① 默认关闭——上墙是**一张票一次**的主动选择（沿用「同场印记」那个默认参与的开关，等于偷偷扩大用户没同意过的范围）；② `wallPublic` **不在入库白名单**里，端上塞不进墙，唯一入口是 `wallJoin` 且必过安检；③ 出口 `field()` 取四列 + 逐字段重建，只出 `title / venue / date / img`，**`_id` 也给不得**（card 页支持按 id 取票，漏 id 等于白送一条读别人完整票根的旁路）；④ 撤下不过安检（内容后来被判违规的用户不能被永久钉在墙上）。契约见 §4.2，守卫见 `tests/same_wall.test.js` |
 
 ---
 

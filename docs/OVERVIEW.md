@@ -31,7 +31,7 @@
 | 后端 | **2 个云函数**（`saveTicket` 万能 action 路由 / `recognizeTicket` OCR）、**4 个集合**（tickets / prefs / couples / config）+ 云存储 |
 | 数据层 | `utils/store.js` 双模式（云 / 演示）；`utils/` **29 个模块**（store / theme / icons / sign / points / badges / share / subscribe …） |
 | 视觉 | 六套主题（paper 默认 / glass / collage / film / literary / minimal），10 屏按品牌全案精修稿重做 |
-| 测试 | `npm test` **35 套 / 837 条全绿**（2026-09-17 复核）；真机逐屏验收见 [TEST.md](./TEST.md) §7 |
+| 测试 | `npm test` **36 套 / 861 条全绿**（2026-09-17 复核）；真机逐屏验收见 [TEST.md](./TEST.md) §7 |
 | 合规 | 隐私授权弹窗、内容安全先审后显、AI 生成标注、支付防伪三道闸已就位；ICP 已通过；服务类目已通过（2026-09-15）；算法侧手上是**腾讯侧备案截图 + 微信云开发 AI 算法合作协议**（混元助手大模型，备案号 `440305295988701230071`，状态正常、协议有效至 2027-03-04）——以本主体名义是否还要另行备案**待确认**（细节见 [PRD.md](./PRD.md) CP-5） |
 | 待办 | **`8.0.5` 收口**：后台设体验版 → 按 PROJECT §6② 的 8 条走真机回归 → 提审（真机验收自 7.0.0 起一直没做）；MP 后台侧还欠订阅消息模板 ID（召回未通电）、7 个埋点事件登记、流量主等，见 PROJECT §4.2 U1–U8 |
 
@@ -42,14 +42,14 @@
 ```
 有票为证-项目组/                     ← 仓库根
 ├── youpiaoweizheng/                 ★ 小程序工程本体（开发者工具打开它，上传发版也是它）
-│   ├── pages/          16 个页面（每页四个文件：js / wxml / wxss / json）
+│   ├── pages/          17 个页面（每页四个文件：js / wxml / wxss / json）
 │   ├── utils/          29 个模块：数据层 store、六主题 theme、图标 icons、水彩地图 mapArt、
 │   │                   端上大模型 ai、时光签 sign、积分 points、勋章 badges、分享 share…
 │   ├── components/     4 个公共组件：数字滚动 / 底部弹层 / 隐私授权 / 长按菜单
 │   ├── custom-tab-bar/ 自定义底部导航（独立渲染树，主题令牌要自己再声明一遍）
 │   ├── templates/      朋友圈单页模式落地卡（6 个页面 import，别当垃圾删）
 │   ├── cloudfunctions/ 2 个云函数（saveTicket / recognizeTicket）
-│   ├── tests/          35 套回归测试台（npm test）
+│   ├── tests/          36 套回归测试台（npm test）
 │   ├── scripts/        dev（测试运行器、单屏预览）/ ci（上传、提审、部署云函数、发布）
 │   ├── images/         位图只有品牌 logo、地图图钉与 3 张分享封面（images/share/），图标全是代码画的
 │   └── CHANGELOG.md    ★ 版本史，最新一条就是最近做了什么
@@ -97,7 +97,7 @@
 | 件 | 现状 |
 |---|---|
 | 版本控制 | 仓库根 git，GitHub 私有库 `liuhuanxi-oss/youpiaoweizheng`；密钥类文件已在 `.gitignore` |
-| 测试 | 35 套回归台（源文本断言 + 真跑模块与云函数逻辑），`npm test` 一键重跑；覆盖缺口见 TEST.md §6 |
+| 测试 | 36 套回归台（源文本断言 + 真跑模块与云函数逻辑），`npm test` 一键重跑；覆盖缺口见 TEST.md §6 |
 | CI 脚本 | `npm run upload` / `audit` / `deploy:fn` / `release`；`pipeline:dev` 串「体积粗检 → 部署 → 上传」 |
 | 版本号 | **上传真正读的是 `.env` 的 `UPLOAD_VERSION`**，`package.json` 的 `version` 是兜底——**两处一起升、必须递增**（同名微信拒收；只改 package.json 会被拒收） |
 | 文档 | PRD 需求 → ARCH 架构 → SDD 详细设计 → TEST 测试 → 本文件 + FEATURE 功能清单，五份齐 |
@@ -132,7 +132,7 @@
 | [PRD.md](./PRD.md) | 做什么、给谁做、优先级、合规红线 | 立新需求 |
 | [ARCH.md](./ARCH.md) | 分层、页面清单、数据流、云函数 action 总表 | 找「改这个要动哪几个文件」 |
 | [SDD.md](./SDD.md) | 字段级数据模型、模块契约、状态机、降级矩阵、影响面速查 | 动手写代码时 |
-| [TEST.md](./TEST.md) | 35 套测试台清单、覆盖缺口、真机验收清单、发布前检查 | 改完 / 提审前 |
+| [TEST.md](./TEST.md) | 36 套测试台清单、覆盖缺口、真机验收清单、发布前检查 | 改完 / 提审前 |
 | [FEATURE.md](./FEATURE.md) | 功能清单：每个功能的入口、文件、数据、已知限制 | 想确认「某功能到底有没有 / 在哪个文件」 |
 | [MOTION.md](./MOTION.md) | 全站动效标准（三档时长 / 错开 / 降级）与逐页落地清单 | 改动画、验收动效时 |
 | [HEALTH.md](./HEALTH.md) / [REVIEW.md](./REVIEW.md) | 2026-09-11 的体检与代码审查（REVIEW 附二~附六 追记了修复进度） | 查历史问题来历 |

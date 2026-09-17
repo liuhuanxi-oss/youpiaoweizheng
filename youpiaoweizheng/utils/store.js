@@ -372,4 +372,60 @@ async function removeTicket(id) {
   }
 }
 
-module.exports = { USE_CLOUD, listTickets, getTicket, addTicket, setCaption, removeTicket, isMockTicket, getSameOptOut, setSameOptOut, listFlags };
+// —— 8.1.0 同场票根墙 ——
+// 默认关：协议承诺过「匿名场次键只做聚合计数，不展示、不共享任何身份信息」，
+// 所以「公开给陌生人看」必须是用户一张票一次的选择，不能沿用「同场印记」那个开关。
+// 上墙只有 wallJoin 一条路，且服务端会按 openid 验归属 + 当场重过一次内容安全。
+
+/**
+ * 把这张票放进同场票根墙 / 从墙上撤下。
+ * @param {string} id 票根 id（必须是自己名下的）
+ * @param {boolean} on true=放进墙 false=撤下
+ * @returns {Promise<boolean>} 操作后的状态
+ */
+async function setWallPublic(id, on) {
+  if (USE_CLOUD && !isMockTicket(id)) {
+    const res = await wx.cloud.callFunction({
+      name: 'saveTicket',
+      data: { action: 'wallJoin', id, on: !!on }
+    });
+    const r = (res && res.result) || {};
+    if (!r.ok) throw new Error(r.msg || '操作失败，请稍后再试');
+    return !!r.on;
+  }
+  // 演示模式：只改本机记录（数据不出本机，但行为与云端保持一致）
+  writeLocal(readLocal().map((t) => (
+    String(t.id) === String(id) ? { ...t, wallPublic: !!on } : t
+  )));
+  return !!on;
+}
+
+/**
+ * 拉某场次里**别人自愿公开**的票根。返回的是服务端逐字段重建过的脱敏行
+ * （只有 票名/场馆/日期/图）—— 没有身份、座位、票价、坐标，也没有 _id。
+ * @param {string} eventKey 场次键（场馆+日期生成）
+ * @returns {Promise<Array<{title:string,venue:string,date:string,img:string}>>}
+ */
+async function listWallTickets(eventKey) {
+  const key = String(eventKey || '');
+  if (!key) return [];
+  if (USE_CLOUD) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'saveTicket',
+        data: { action: 'wallList', eventKey: key }
+      });
+      const r = (res && res.result) || {};
+      return r.ok ? (r.items || []) : [];
+    } catch (e) {
+      console.warn('[store] 票根墙拉取失败：', e);
+      return [];
+    }
+  }
+  // 演示模式：拿本机标了公开的票当墙（只有自己那几张，够把页面跑通）
+  return readLocal()
+    .filter((t) => t.wallPublic && demoEventKey(t.venue, t.date) === key)
+    .map((t) => ({ title: t.title || '', venue: t.venue || '', date: t.date || '', img: '' }));
+}
+
+module.exports = { USE_CLOUD, listTickets, getTicket, addTicket, setCaption, removeTicket, isMockTicket, getSameOptOut, setSameOptOut, setWallPublic, listWallTickets, listFlags };

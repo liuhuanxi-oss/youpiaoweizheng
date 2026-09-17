@@ -24,7 +24,7 @@
 
 ```bash
 cd youpiaoweizheng
-npm test        # 35 套 Node 回归台，改哪屏跑哪套
+npm test        # 36 套 Node 回归台，改哪屏跑哪套
 npm run preview:deco   # 本机把装饰图形渲成图看一眼，无需微信开发者工具
 ```
 
@@ -33,7 +33,7 @@ npm run preview:deco   # 本机把装饰图形渲成图看一眼，无需微信�
 ## 云开发
 
 - AppID `wx42ef98dfb4ecab23`，云环境 `cloud1-d5gpnyzjw64a60ac7`
-- 云函数两个：`recognizeTicket`（OCR 识别）/ `saveTicket`（万能 action 路由 —— 入库、文案、双人、支付与额度、AI 重绘、积分签到、邀请、订阅召回、运维共 34 个 action，见 [docs/ARCH.md](docs/ARCH.md) §4.1）
+- 云函数两个：`recognizeTicket`（OCR 识别）/ `saveTicket`（万能 action 路由 —— 入库、文案、双人、支付与额度、AI 重绘、积分签到、邀请、订阅召回、运维共 36 个 action，见 [docs/ARCH.md](docs/ARCH.md) §4.1）
 - 密钥类文件已在 `.gitignore` 内（`.env`、`*.key`、`secret/`），**不要提交**；自动上传所需的密钥填 `youpiaoweizheng/.env`（照抄 `.env.ci.example`）
 
 ## 给其他 AI 工具开通访问（豆包 / WorkBuddy / CodeBuddy 等）

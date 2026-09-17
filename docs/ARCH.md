@@ -10,7 +10,7 @@
 ## 一、全局：三层 + 两个后端
 
 ```
-页面层  pages/            16 个页面（4 个自定义 tab 页 + 12 个功能页）
+页面层  pages/            17 个页面（4 个自定义 tab 页 + 13 个功能页）
           │  ↓ 票根数据只走下面这一层；页面另有 3 类云直连（上传照片 / 取临时链接 / 单次动作），见 SDD 第一节
 数据层  utils/            数据（store）、双人（couple/duoData）、AI（ai）、主题（theme）、
           │               图形（icons/deco/mapArt）、支付（pay）、授权（auth）、埋点（track）…
@@ -97,6 +97,7 @@
 | `backfillGeo` | 老票根坐标回填（场馆级优先，退城市中心） | tickets |
 | `artRestyle` / `artQuery` | 启动 AI 重绘 / 轮询进度 | prefs(job)、云存储、tickets.artVersion |
 | `bind` / `duoStats` / `eventStats` | 双人绑定（create/join/query/unbind）/ 双人统计 / 同场计数 | couples（写）、只读 |
+| `wallJoin` / `wallList`（8.1.0） | 同场票根墙：本人把票放进/撤下（只能改自己的票，上墙先过安检）；按场次键拉公开票根（**全项目唯一陌生人可读的出口**，只回票名/场馆/日期/图，见 [SDD.md](./SDD.md) §4.2 与 §8） | tickets（写 wallPublic / wallAt）、只读 |
 | `refCode` / `refBind` / `refReward` | 邀请有礼（7.3.0）：取我的短码 / 绑定邀请人 / 对方上传首票后结算发奖 | prefs |
 | `dailySign` | 每日时光签：签到与查状态（判定与发奖全在服务端，端上只读） | prefs |
 | `pointsGet` / `pointsEarn` / `shareOpen` / `pointsRedeem` | 积分：查余额（含对外挣分规则）/ 端上行为上报（白名单只有「生成卡片」）/ 分享被打开的归因 / 兑换 AI 重绘（100 分、一天 1 次、幂等） | prefs |
@@ -170,7 +171,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 
 | 类别 | 在哪 | 说明 |
 |---|---|---|
-| 回归测试 | `tests/*.test.js`（35 套 / 837 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
+| 回归测试 | `tests/*.test.js`（36 套 / 861 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
 | 单屏预览 | `scripts/dev/preview-*.js` | 本机把卡面 / 年报 / 装饰图形渲成图或 HTML 先看一眼 |
 | 云函数部署 | `scripts/ci/deploy-fns.js` | `npm run deploy:fn`（CloudBase CLI 非交互） |
 | 上传提审 | `scripts/ci/` | `npm run upload` / `audit` / `audit:status` / `release`；`pipeline:dev` 串起「体积粗检 → 部署 → 上传」 |

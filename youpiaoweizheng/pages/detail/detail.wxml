@@ -139,6 +139,31 @@
     <text class="dtc-same-txt">{{sameText}}</text>
   </view>
 
+  <!-- ===== 8.1.0 同场票根墙（拉新）
+       两块是两件事，别合并：上面那块是「看别人」（陌生人自愿公开的票根，服务端只回
+       票名/场馆/日期/图）；下面那块是「放自己」（默认关，一张票一次主动勾选）。
+       合并成一行会让「看」变成「同意公开」——那正好是协议里没答应过的事。 ===== -->
+  <view class="dtc-wall" wx:if="{{t.eventKey}}">
+    <view class="dtc-wall-row pressable" hover-class="press-item-hover"
+          bindtap="goWall" aria-role="button" aria-label="看看这一场都有谁公开了票根">
+      <image class="dtc-wall-ic" src="{{icons.iUsers}}" mode="aspectFit" aria-hidden="true" />
+      <view class="dtc-wall-body">
+        <view class="dtc-wall-name">同场票根墙</view>
+        <view class="dtc-wall-desc">看看这一场都有谁公开了票根</view>
+      </view>
+      <text class="dtc-wall-go">去看看</text>
+    </view>
+
+    <view class="dtc-wall-row">
+      <view class="dtc-wall-body">
+        <view class="dtc-wall-name">把我的这张放上去</view>
+        <view class="dtc-wall-desc">公开后任何人都能看到这张票的票名和照片；不含座位、票价和位置，也不带你的身份。随时可以撤下。</view>
+      </view>
+      <switch class="dtc-wall-switch" checked="{{wallOn}}" color="{{primary}}"
+              bindchange="onWallToggle" aria-label="把我的这张票放进同场票根墙" />
+    </view>
+  </view>
+
   <!-- ===== AI 时光手记（品牌全案·稿屏4：浅绿卡 + 左侧竖条 + 徽章；打字机保留）
        无文案时点按生成 ===== -->
   <!-- hover-class 跟着可点性走：已有文案时 bindtap 为空串（不可点），此时不给按压反馈，

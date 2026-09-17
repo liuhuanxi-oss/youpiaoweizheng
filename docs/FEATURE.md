@@ -44,6 +44,7 @@
 | FR-C5 | 纪念卡片 | 详情页「···」→ 生成纪念卡片 / 长按票根卡（见 §九·A6）→ `pages/card` | `pages/card`、`utils/canvas-deco`、`preview-card.js` | ✅ 五种卡面（默认齿边明信片），存相册与分享；小红书竖版素材三件套见 §九·X3 |
 | FR-C6 | 卡片分享语气 | — | `pages/card` | ⬜ 已下线：v5.1 的三套语气文案已收（卡片页只剩一枚「分享给好友」） |
 | FR-C7 | 同场印记 | 详情页显示计数；开关在「我的 → 设置 → 同场印记」（7.4.0 补回） | `eventStats` action、`utils/store.getSameOptOut` / `setSameOptOut`、`pages/setting` | ✅ 匿名聚合；关掉后**之后**收藏的票根不再计入（已入库的不回头清）；`sp_same_optout` 不进「清除本地数据」清单 |
+| FR-C11（8.1.0 在研） | 同场票根墙 | 详情页「看看这一场都有谁」→ `pages/wall`；详情页开关逐张主动开启 | `wallJoin` / `wallList` action、`utils/store.setWallPublic` / `listWallTickets`、`pages/wall` | ✅ **全项目唯一陌生人可读的出口**，字段只许少不许加（票名 / 场馆 / 日期 / 图；无 `_id`、无身份、无座位票价坐标）；默认关闭、随时撤下；守卫 `tests/same_wall.test.js` |
 | FR-C8 | 天气印记 | 详情页 | `cloudfunctions/saveTicket/weather.js`、`utils/weather.js` | ✅ 取不到就是空白，不造假 |
 | FR-C9 | 删除票根 | 详情页 → 右上「···」更多 → 删除这张票根（二次确认）；长按卡片也有（见 §九·A6） | `pages/detail`、`utils/store.removeTicket` | ✅ 7.1.1 加回；照片与 AI 图版文件随删一并清理（7.4.3 / 8.0.4）；回收站仍未建（删了不可找回） |
 
@@ -119,7 +120,7 @@
 
 ## 十、怎么验（功能 ↔ 测试套件对照）
 
-> 条数为最近一次记录值，权威以 `npm test` 输出为准（当前 **35 套 / 837 条**，见 [TEST.md](./TEST.md) §3）。
+> 条数为最近一次记录值，权威以 `npm test` 输出为准（当前 **36 套 / 861 条**，见 [TEST.md](./TEST.md) §3）。
 
 | 功能 | 自动化 | 真机 |
 |---|---|---|

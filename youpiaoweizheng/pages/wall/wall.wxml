@@ -1,0 +1,30 @@
+<view class="page theme-{{theme}} fade-up">
+
+  <!-- 场次头：场馆 + 日期（都是用户自己填的票面信息，不含任何身份） -->
+  <view class="hd">
+    <view class="hd-venue serif">{{venue || '这一场'}}</view>
+    <view class="hd-sub" wx:if="{{state === 'done'}}">{{date}} · {{items.length}} 张票根</view>
+    <view class="hd-sub" wx:else>{{date}}</view>
+  </view>
+
+  <!-- 票根网格 -->
+  <view class="grid" wx:if="{{state === 'done'}}">
+    <view class="stub" wx:for="{{items}}" wx:key="k">
+      <image class="stub-img" wx:if="{{item.img}}" src="{{item.img}}" mode="aspectFill" aria-hidden="true" />
+      <view class="stub-img stub-none" wx:else></view>
+      <view class="stub-t">{{item.title}}</view>
+    </view>
+  </view>
+
+  <view class="hint" wx:elif="{{state === 'loading'}}">正在打开这一场的票根墙…</view>
+  <view class="hint" wx:elif="{{state === 'error'}}">这一场暂时打不开，稍后再试</view>
+  <view class="hint" wx:else>这场还没有人公开票根 —— 你可以是第一个</view>
+
+  <!-- 底部引导：拉新的落点，别删 -->
+  <view class="cta">
+    <view class="cta-t serif">你也去了这一场？</view>
+    <view class="cta-s">拍下票根，存进自己的时光收藏册</view>
+    <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goScan">拍下我的票根</view>
+  </view>
+
+</view>

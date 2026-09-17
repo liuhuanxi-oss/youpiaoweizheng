@@ -1,0 +1,101 @@
+/* pages/wall/wall.wxss —— 同场票根墙（8.1.0 拉新）
+   六主题变量化：颜色一律走 var(--*)，不写死色值 */
+.page {
+  min-height: 100vh;
+  padding: 40rpx 32rpx 60rpx;
+  box-sizing: border-box;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.serif { font-family: var(--font-title); }
+
+/* ===== 场次头 ===== */
+.hd { padding: 12rpx 12rpx 28rpx; }
+.hd-venue {
+  font-size: 40rpx;
+  letter-spacing: 2rpx;
+  line-height: 1.35;
+}
+.hd-sub {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: var(--text2);
+  letter-spacing: 1rpx;
+}
+
+/* ===== 票根网格（两列，与首页票根墙同构） ===== */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.stub {
+  width: 48.5%;
+  margin-bottom: 26rpx;
+  padding: 14rpx 14rpx 18rpx;
+  box-sizing: border-box;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 24rpx);
+  border: var(--card-border, 1rpx solid var(--border));
+  box-shadow: var(--card-shadow, none);
+}
+.stub-img {
+  width: 100%;
+  height: 220rpx;
+  border-radius: 16rpx;
+  background: var(--bg);
+  display: block;
+}
+/* 没公开照片的票（照片是最大的隐私暴露面，用户可以只公开票名），给一块素色占位 */
+.stub-none {
+  border: 1rpx dashed var(--border);
+  box-sizing: border-box;
+}
+.stub-t {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ===== 空态 / 加载 / 失败 ===== */
+.hint {
+  padding: 90rpx 24rpx;
+  text-align: center;
+  font-size: 25rpx;
+  color: var(--text2);
+  letter-spacing: 1rpx;
+  line-height: 1.7;
+}
+
+/* ===== 底部引导 ===== */
+.cta {
+  margin-top: 20rpx;
+  padding: 40rpx 32rpx 36rpx;
+  text-align: center;
+  background: var(--card-bg, var(--card));
+  border-radius: var(--card-r, 28rpx);
+  border: var(--card-border, 1rpx solid var(--border));
+  box-shadow: var(--card-shadow, none);
+}
+.cta-t { font-size: 32rpx; letter-spacing: 2rpx; }
+.cta-s {
+  margin: 12rpx 0 28rpx;
+  font-size: 23rpx;
+  color: var(--text2);
+  letter-spacing: 1rpx;
+}
+.btn-main {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  background: var(--stamp);
+  color: var(--on-primary);
+  border-radius: var(--btn-r, 28rpx);
+}

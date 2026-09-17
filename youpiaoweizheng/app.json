@@ -15,7 +15,8 @@
     "pages/protocol/protocol",
     "pages/theme/theme",
     "pages/setting/setting",
-    "pages/art/art"
+    "pages/art/art",
+    "pages/wall/wall"
   ],
   "__usePrivacyCheck__": true,
   "permission": {

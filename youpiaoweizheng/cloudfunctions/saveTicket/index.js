@@ -2020,6 +2020,79 @@ async function eventStatsAction(event) {
 }
 
 // ============================================================
+// 8.1.0 同场票根墙：用户**自愿**把票根放进某一场次的公共墙。
+//
+// 【为什么默认不加入】协议原文（protocol「三、信息的使用」）承诺的是「按场馆+日期生成的
+// 匿名场次键只做聚合计数……不展示、不共享任何身份信息」。用户在「设置-同场印记」里按下
+// 那个开关时，同意的是「你可以数人头」，**不是**「把我票根拿给陌生人看」—— 两码事。
+// 沿用旧开关等于偷偷扩大用户没同意过的范围，所以这里是「一张票一次」的选择，默认关。
+//
+// 【展示面】这是全项目唯一一个陌生人可读的出口，字段**只许少、不许加**：
+//     票名 / 场馆 / 日期 / 票根图
+// 明确不展示：身份（_openid）、署名、座位（能定位到具体的人）、票价、坐标、备注、来源。
+// **`_id` 也不给** —— card 页的分享链路支持按 id 取票（好友点分享卡要能看），
+// 把 id 漏出去等于白送一条读别人完整票根的旁路（座位、备注、坐标全在里面）。
+//
+// 【谁也不能偷偷把票塞上墙】入库白名单（sanitizeTicket）里没有 wallPublic，
+// 端上传的这两个字段会被丢弃 —— 上墙只有 wallJoin 这一条路，且必须过安检。
+// ============================================================
+const WALL_MAX = 50; // 一面墙最多展示多少张（再多没人翻，且省流量）
+
+/** 加入 / 撤下同场票根墙（只能操作自己名下的票） */
+async function wallJoinAction(event, OPENID) {
+  const id = String(event.id || '');
+  if (!id) return { ok: false, msg: '缺少票根 id' };
+  if (!OPENID) return { ok: false, msg: '请先登录' };
+  const on = !!event.on;
+  try {
+    const db = cloud.database();
+    const owned = { _id: id, _openid: OPENID }; // 归属写进 where：别人的票命中 0 条，改不动
+    const doc = await db.collection('tickets').where(owned).get();
+    const t = (doc.data || [])[0];
+    if (!t) return { ok: false, msg: '这张票根不在你的名下' };
+    if (on) {
+      // 退出过同场印记的票没有场次键，也就没有「同一场」可挂
+      if (!t.eventKey) return { ok: false, msg: '这张票没有场次信息，放不进去' };
+      // 公开展示 = 先审后发。入库那次安检可能很久以前（甚至当年是服务异常放行的），
+      // 这里以「此刻要给别人看」为准重新过一遍。
+      const gate = await secGate(OPENID, [t.title, t.venue].filter(Boolean).join(' '), '票面文字');
+      if (!gate.ok) return { ok: false, msg: gate.msg };
+    }
+    const res = await db.collection('tickets').where(owned)
+      .update({ data: { wallPublic: on, wallAt: on ? Date.now() : 0 } });
+    if (!res.stats || !res.stats.updated) return { ok: false, msg: '操作失败，请重试' };
+    return { ok: true, on };
+  } catch (e) {
+    return failLog('wallJoin', e, '操作失败，请稍后再试');
+  }
+}
+
+/** 拉某场次的公开票根（陌生人可读；返回体逐字段重建，理由见上方段落） */
+async function wallListAction(event) {
+  const eventKey = String(event.eventKey || '');
+  if (!eventKey) return { ok: false, msg: '缺少场次键' };
+  try {
+    const db = cloud.database();
+    const res = await db.collection('tickets')
+      .where({ eventKey, wallPublic: true })
+      .field({ title: true, venue: true, date: true, img: true })
+      .limit(WALL_MAX)
+      .get();
+    // 显式重建而不是把 field() 的结果原样回出去：将来谁往 field() 里加一个字段，
+    // 出口这里仍然是这四个键 —— 隐私面只在这一处把关，扫一眼就能核。
+    const items = (res.data || []).map((t) => ({
+      title: String(t.title || '未命名票根').slice(0, 60),
+      venue: String(t.venue || '').slice(0, 60),
+      date: String(t.date || '').slice(0, 10),
+      img: CLOUD_FILEID_RE.test(String(t.img || '')) ? t.img : ''
+    }));
+    return { ok: true, items, total: items.length, max: WALL_MAX };
+  } catch (e) {
+    return failLog('wallList', e, '票根墙暂时打不开');
+  }
+}
+
+// ============================================================
 // P2-1 入库白名单：端上传来的是一个整对象，原实现 `add({ data: t })` 整包入库 ——
 // 白名单外的字段（base64 图、任意长度的文案、任意结构）全都写进文档。单文档上限 1MB，
 // 被塞满的那张票此后连读都读不出来（用户视角：这张票坏了，而且不知道为什么会坏）。
@@ -2213,6 +2286,13 @@ exports.main = async (event) => {
   }
   if (event.action === 'eventStats') {
     return eventStatsAction(event);
+  }
+  // 8.1.0 同场票根墙：加入/撤下（只能改自己的票）；拉取公开票根（陌生人可读，出口已脱敏）
+  if (event.action === 'wallJoin') {
+    return wallJoinAction(event, OPENID);
+  }
+  if (event.action === 'wallList') {
+    return wallListAction(event);
   }
   // —— P2-1：先过白名单，其余字段一概丢弃 ——
   const t = sanitizeTicket(event.ticket);
