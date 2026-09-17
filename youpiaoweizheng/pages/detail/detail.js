@@ -425,10 +425,14 @@ Page({
     } catch (e) {
       wx.hideLoading();
       // M4.9.6：原始错误码人话化（正常情况不会再出现，云函数侧已自愈建集合）
-      const raw = String(e.message || e);
+      const raw = String((e && e.errMsg) || e.message || e);
+      console.warn('[detail] 生成文案失败：', raw);
+      // 8.0.4：平台原始报错（cloud.callFunction:fail…）截 80 字摆给用户看 = 等于没说，
+      // 只能截图来问；自己 throw 的人话（「未通过安全检查」）照说。细节进日志。
+      const platform = /:fail|cloud\.|Error:|-\d{6}/i.test(raw);
       const msg = /-502005|collection not exists/i.test(raw)
-        ? '云数据库还没建好：请到云开发控制台创建 tickets 集合后重试'
-        : raw;
+        ? '云端还没准备好，稍后再试一次'
+        : (platform ? 'AI 暂时联系不上，稍后再点一次试试' : raw);
       // 先让手记卡当着用户的面红抖一下，再弹窗说明原因：
       // 弹窗会立刻把整屏压暗，抖在弹窗底下等于没抖。
       haptics.warn();

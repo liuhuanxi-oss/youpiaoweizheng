@@ -59,14 +59,21 @@ async function callModel(messages) {
   getModel();
   let res = null;
   let lastErr = null;
+  // 8.0.4：只在「参数结构不对」时才试第二种包裹写法。两种签名是两套调用约定，结构问题
+  // 换一种可能就通了；而网络超时 / 额度耗尽 / 模型下线换写法一样失败 —— 无条件重发只是把
+  // 用户的每一次点击变成两倍的失败请求（模型额度是真金白银，不是白打的）。
+  const RETRYABLE = /invalid|parameter|param|signature|参数/i;
   try {
     res = await _model.generateText({ model: _modelId, messages });
   } catch (e1) {
     lastErr = e1;
-    try {
-      res = await _model.generateText({ data: { model: _modelId, messages } });
-    } catch (e2) {
-      lastErr = e2;
+    const raw1 = String((e1 && (e1.errMsg || e1.message)) || e1 || '');
+    if (RETRYABLE.test(raw1)) {
+      try {
+        res = await _model.generateText({ data: { model: _modelId, messages } });
+      } catch (e2) {
+        lastErr = e2;
+      }
     }
   }
   if (res == null) {

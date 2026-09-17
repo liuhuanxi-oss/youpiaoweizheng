@@ -100,8 +100,13 @@ async function buyArtPack(onStatus) {
     r = await callAction({ action: 'payCreate', productId: PRODUCT_ID });
   }
   if (!r.ok) {
+    // 8.0.4：NO_CONFIG 时原先把「去云开发控制台建 config 集合」整段操作指引弹给用户 ——
+    // 那是开发者的事，摆到用户面前只有一个效果：看起来像半成品（审核员尤其）。细节进日志。
+    if (r.code === 'NO_CONFIG') {
+      console.warn('[pay] 支付未配置：需在云开发控制台 config 集合新建 _id=pay_secret 文档（offerId/appKey/appSecret/env）');
+    }
     const hint = r.code === 'NO_CONFIG'
-      ? '支付尚未配置：请在微信开发者工具云开发控制台 → 数据库 → config 集合新建 _id=pay_secret 文档（offerId/appKey/appSecret/env）'
+      ? '支付功能还没开放，晚点再来看看'
       : (r.msg || '下单失败，请稍后再试');
     return { ok: false, code: r.code, msg: hint };
   }

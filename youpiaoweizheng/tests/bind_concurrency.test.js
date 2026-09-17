@@ -31,9 +31,18 @@ const constOf = (name) => {
   return m[0];
 };
 
+/**
+ * secGate 桩：8.0.4 起绑定链路多了「称呼过内容安全」这一道（云函数里调 msgSecCheck）。
+ * 它自己的行为不属于这个测试的范围，默认一律放行；要验「称呼被拒时不许绑上」的用例
+ * 自己传一个拒绝版进来（见下面【五】）。
+ * ⚠️ 不注入的话链路上会抛 secGate is not defined：那是测试环境缺桩，不是云函数的问题。
+ */
+const GATE_OK = 'async () => ({ ok: true })';
+
 /** 把云函数里的绑定链路整段取出来真跑（cloud 用桩注入） */
-function makeBind(cloudStub) {
+function makeBind(cloudStub, gateSrc) {
   const src = [
+    'const secGate = ' + (gateSrc || GATE_OK) + ';',
     constOf('CODE_CHARS'),
     fnOf('ensureCollection'),
     fnOf('failLog'),
@@ -219,7 +228,51 @@ t('生成邀请码这条路照旧（我已有 waiting 码就复用，不新开�
 });
 
 // ════════════════════════════════════════════════════════════
-console.log('\n【五、结构：别再退回裸 doc().update】');
+console.log('\n【五、称呼过内容安全（8.0.4）】');
+// 这个称呼是全站唯一「用户手输、展示给第三方」的自由文本（对方在双人空间看得见，
+// 还会进分享卡片的标题），此前偏偏是全站唯一没过安检的输入。
+
+t('称呼被安检拦下 → 不绑上，且给一句人话', async () => {
+  const db = fakeDb([WAITING]);
+  const bind = makeBind(cloudOf(db), 'async () => ({ ok: false })');
+  const r = await bind({ mode: 'join', code: 'ABCD', name: '违规称呼' }, 'openid_a');
+  ok(!r.ok, '称呼没过安检却绑上了 —— 这个称呼会进分享卡片标题，展示给微信聊天里的第三方');
+  ok(/称呼/.test(r.msg || ''), '没告诉用户是称呼的问题：' + r.msg);
+  ok(db._rows()[0].status === 'waiting', '先绑上再拒名字：两个人已经站在同一份关系里了，改不掉');
+});
+
+t('称呼留空 → 用默认值，不白跑一次安检', async () => {
+  const db = fakeDb([WAITING]);
+  let called = 0;
+  const bind = makeBind(cloudOf(db), 'async () => { called++; return { ok: true }; }');
+  const r = await bind({ mode: 'join', code: 'ABCD', name: '' }, 'openid_a');
+  ok(r.ok && r.bound, '留空时绑定失败：' + JSON.stringify(r));
+  ok(called === 0, '名字都没填还去调了一次内容安全接口（默认值「TA」不需要检）');
+});
+
+t('生成邀请码时，称呼同样要过安检', async () => {
+  const db = fakeDb([]);
+  const bind = makeBind(cloudOf(db), 'async () => ({ ok: false })');
+  const r = await bind({ mode: 'create', name: '违规称呼' }, 'openid_a');
+  ok(!r.ok, '称呼没过安检还是把码建出来了：' + JSON.stringify(r));
+  ok(db._rows().length === 0, '码已经落库了 —— 拒了名字却留下一条半截记录');
+});
+
+// ════════════════════════════════════════════════════════════
+console.log('\n【六、自己扫自己的码：不许报「绑定成功」】');
+
+t('自己的 waiting 码 → 明说「这是你自己的」，不能绑上', async () => {
+  const db = fakeDb([MINE_WAITING]);
+  const bind = makeBind(cloudOf(db));
+  const r = await bind({ mode: 'join', code: 'MINE', name: '我' }, 'openid_a');
+  ok(!r.ok, '自己扫自己的码被判成绑定成功 —— 页面说「你们的票根汇入同一条时间线」，双人空间说未绑定');
+  ok(!r.bound, '返回里带着 bound:true，端上会照它显示成功态');
+  ok(/你自己的/.test(r.msg || ''), '没说清是自己人：' + r.msg);
+  ok(db._rows()[0].status === 'waiting', '把自己的 waiting 码改成了 bound —— 它现在谁也进不来了');
+});
+
+// ════════════════════════════════════════════════════════════
+console.log('\n【七、结构：别再退回裸 doc().update】');
 
 t('绑定写入走条件更新（waiting → bound 只能成一次）', () => {
   ok(/where\(\{ _id: doc\._id, status: 'waiting' \}\)\s*\n?\s*\.update\(\{ data: next \}\)/.test(scan),

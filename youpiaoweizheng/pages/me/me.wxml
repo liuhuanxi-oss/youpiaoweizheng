@@ -30,6 +30,14 @@
     </view>
   </view>
 
+  <!-- ①′ 云故障 / 超上限横幅（8.0.4 补齐：此前只有 home / album / discover / annual 挂，
+       这一页拿演示票算统计却不说明；视觉同 album 的 .tm-net）。
+       不自己写 transition：让全局 .pressable 的按压回弹原样生效。 -->
+  <view wx:if="{{netBar}}" class="me-net pressable" hover-class="press-item-hover" bindtap="onNetBarTap"
+        aria-role="button" aria-label="{{netBar.text}}">
+    <text class="me-net-t">{{netBar.text}}</text>
+  </view>
+
   <!-- ② Hero：左侧水彩头像（可授权更换），右侧手写标题 + slogan + 波浪下划线 -->
   <view class="me-hero">
     <view class="me-avatar-wrap">

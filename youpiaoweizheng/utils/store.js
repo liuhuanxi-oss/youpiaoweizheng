@@ -243,8 +243,15 @@ async function listTickets() {
       // M4.9.6：兜底也要套文案覆盖层——演示票上保存过 AI 文案的重进不能丢
       // 4.19.1：兜底链自身防抛（覆盖层读 storage 的 JSON 若损坏会抛 → 页面白屏死透）
       _listFallback = true; // 4.18.0：亮「网络开小差」横幅，说明当前不是真实数据
+      // 8.0.4：兜底这一支同样要过隐藏名单 —— 云故障时删一张演示票，removeTicket 走的是
+      // 「非云库记录」那条路，只往 sp_deleted_ids 里记一笔（见 removeTicket 末尾）。
+      // 名单在这里不生效的话：用户点删除 → toast「已删除」→ 列表刷新 → 票原地复活，
+      // 结论只会是「这 App 的删除是假的」。（演示模式分支 4.18.0 就滤了，云兜底漏了）
       try {
-        return applyCaptionOverrides(mock.tickets.map(normalize)).sort(byOrder);
+        const hidden = readDeleted();
+        return applyCaptionOverrides(
+          mock.tickets.filter((t) => !hidden.includes(String(t.id))).map(normalize)
+        ).sort(byOrder);
       } catch (e2) {
         console.warn('[store] 兜底覆盖层异常，返回裸演示数据：', e2);
         return mock.tickets.map(normalize);
@@ -343,13 +350,18 @@ async function removeTicket(id) {
     // 7.4.3：连照片一起删。原先只删记录，照片永远留在云存储里 —— 用户以为删干净了，
     // 隐私政策也是这么写的：这不是省一次请求的事，是承诺。
     // 先读一次拿 img（记录删掉后就取不到了）；读不到也照样往下删记录。
-    let img = '';
+    // 8.0.4：AI 图版也一起删。图版是这张票的另一份影像（art 页存相册那支用的就是它），
+    // 7.4.3 只补了 img —— 删完票图版仍留在云存储里。用户删票时想的是「这张票没了」，
+    // 隐私政策也是这么承诺的；顺带每幅图版 1~2MB，只增不减是白掏存储。
+    let imgs = [];
     try {
       const r = await ref.get();
-      img = (r && r.data && r.data.img) || '';
+      const d = (r && r.data) || {};
+      imgs = [d.img, d.artVersion && d.artVersion.fileID]
+        .filter((x) => /^cloud:\/\//.test(String(x)));
     } catch (e) { /* 读不到（权限 / 已经被删）就继续 */ }
     await ref.remove();
-    if (/^cloud:\/\//.test(String(img))) await deleteCloudFile(img);
+    for (const f of imgs) await deleteCloudFile(f);
     return;
   }
   writeLocal(readLocal().filter((t) => String(t.id) !== String(id)));

@@ -44,6 +44,23 @@ const SETTLE_MS = 420;
  *  上限比云函数自身的超时宽裕些——云函数先超时会走 catch，那才是更准的报错。 */
 const SCAN_TIMEOUT_MS = 25000;
 
+/** 上传前的长边上限（px）。8.0.4 新增：此前只压质量不压分辨率，高分相机原图 0.5~1.5MB
+ *  一张，而它会被首页墙 / 详情 / 卡片 / 回忆地图反复加载 —— CDN 流量是全项目唯一
+ *  随用户数线性增长的支出。1600 够用：卡片导出画布 1080 宽，详情页全屏也就 1125 物理像素。 */
+const UPLOAD_MAX_SIDE = 1600;
+
+/** 取图片实际宽高（本地文件，无需权限）。拿不到就返回 null —— 调用方按「不压」处理，
+ *  宁可多花一点流量，也不能因为量不出尺寸就把用户的照片弄丢。 */
+function longSideOf(src) {
+  return new Promise((resolve) => {
+    wx.getImageInfo({
+      src,
+      success: (info) => resolve({ w: Number(info && info.width) || 0, h: Number(info && info.height) || 0 }),
+      fail: () => resolve(null)
+    });
+  });
+}
+
 // 演示模式回填的示例草稿（与云函数 parser 输出同结构，实际数据以用户修改为准）
 const DEMO_DRAFT = {
   title: '回春丹巡演 · 武汉站',
@@ -328,9 +345,14 @@ Page({
         const m = String((err && err.errMsg) || '');
         if (/cancel/i.test(m)) return; // 用户主动取消，静默
         if (/not declared in the privacy/i.test(m)) {
+          // 8.0.4：这是「后台隐私指引没声明该接口」——开发者的事。原先把 mp.weixin.qq.com
+          // 的操作路径整段弹给用户，用户看不懂（也没有后台账号），审核员看到像半成品。
+          console.warn('[scan] 后台《用户隐私保护指引》未声明相关接口：需在 mp.weixin.qq.com'
+            + '「设置-服务内容声明-用户隐私保护指引」中声明「选中的照片或视频」「摄像头」'
+            + '「相册（仅写入）」并提交至已生效，无需发版即刻恢复');
           wx.showModal({
-            title: '隐私指引未声明该接口',
-            content: '需在 mp.weixin.qq.com「设置-服务内容声明-用户隐私保护指引」中声明「选中的照片或视频」「摄像头」「相册（仅写入）」并提交至已生效，无需发版即刻恢复。',
+            title: '暂时用不了相册',
+            content: '这个入口还没准备好。先手动填一张？',
             confirmText: '知道了',
             showCancel: false
           });
@@ -379,11 +401,22 @@ Page({
       // 4.9.5：OCR 要求图片 <2M——chooseMedia 的 compressed 在高分相机上仍可能超，再压一层
       let filePath = tempPath;
       try {
+        // 8.0.4：连分辨率一起压。原先只降质量 —— 高分相机出来的 4000×3000 原图，
+        // 质量 60 也还有 0.5~1.5MB，而它会被首页墙、详情、卡片、回忆地图反复加载：
+        // 云存储的 CDN 流量是全项目唯一会随用户数线性烧钱的项（1 万用户进一次首页≈3MB×人）。
+        // 长边 1600 够用：卡片导出画布 1080 宽、详情页全屏也就 1125 物理像素。
+        const opt = { src: tempPath, quality: 60 };
+        const size = await longSideOf(tempPath);
+        if (size && Math.max(size.w, size.h) > UPLOAD_MAX_SIDE) {
+          // 只能给一边：两边同时给会被当成拉伸目标（竖图会被压扁）
+          if (size.w >= size.h) opt.compressedWidth = UPLOAD_MAX_SIDE;
+          else opt.compressedHeight = UPLOAD_MAX_SIDE;
+        }
         const c = await new Promise((resolve, reject) => {
-          wx.compressImage({ src: tempPath, quality: 60, success: resolve, fail: reject });
+          wx.compressImage(Object.assign({ success: resolve, fail: reject }, opt));
         });
         if (c && c.tempFilePath) filePath = c.tempFilePath;
-      } catch (e) { /* 压缩失败用原图，不阻塞 */ }
+      } catch (e) { /* 压缩失败用原图，不阻塞 —— 老基础库不认 compressedWidth 也走这一支 */ }
       if (this._stale(seq)) return;
       const up = await wx.cloud.uploadFile({
         cloudPath: `tickets/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`,
@@ -431,7 +464,11 @@ Page({
     if (/no ?license|not ?open|permission/i.test(raw)) {
       return '识别服务未开通，请在微信公众平台服务市场开通「通用印刷体识别」';
     }
-    return raw.slice(0, 60);
+    // 8.0.4：其余一律给人话。原先默认分支返回 raw.slice(0,60) —— 用户第一次拍票（弱网、
+    // 超时、-404011）看到的第一行是「cloud.callFunction:fail…」，第一印象就是「这 App 坏了」。
+    // 原始串只留给日志，界面上一个字都不露。
+    console.warn('[scan] 识别失败（原始报错）：', raw);
+    return '这张没能识别出来（照片糊了或网络不稳），可以手动补填票面';
   },
 
   // —— 第二步：草稿 → 确认表单 ——
@@ -473,9 +510,13 @@ Page({
       title: '票名', date: '日期（如 2025-10-26）', time: '时间（如 20:00）',
       venue: '场馆', city: '城市', seat: '座位', source: '来源'
     };
+    // 8.0.4：editable 弹窗的「当前值」得走 content —— 原来只填了 placeholderText，
+    // 那是灰字提示、输入框本身是空的：OCR 把日期认成 2025-1O-26 时，用户想改一个字母，
+    // 却必须把整串 2025-10-26 重打一遍。
     wx.showModal({
       title: `修改${labels[key] || ''}`,
       editable: true,
+      content: this.data.form[key] || '',
       placeholderText: this.data.form[key] || '请输入',
       success: (res) => {
         if (res.confirm && res.content != null) {
@@ -489,6 +530,7 @@ Page({
     wx.showModal({
       title: '修改票价（元）',
       editable: true,
+      content: this.data.form.price || '',
       placeholderText: this.data.form.price || '请输入数字',
       success: (res) => {
         if (!res.confirm) return;
@@ -552,9 +594,12 @@ Page({
       this.setData({ saveErr: true });
       this._later(() => this.setData({ saveErr: false }), 380);
       haptics.warn();
+      // 8.0.4：微信云 API 失败时抛的是只有 errMsg 的普通对象，`e.message || e` 会把它
+      // String() 成「[object Object]」摆给用户看（card / annual 早就用 errMsg 优先的写法了）。
+      // 后半句是必须的：表单数据还在，不告诉用户这一点，他不敢再点一次。
       wx.showModal({
         title: '保存失败',
-        content: String(e.message || e),
+        content: String((e && e.errMsg) || e.message || e || '未知错误') + '\n票面信息还在，连上网再点一次即可。',
         showCancel: false
       });
     } finally {

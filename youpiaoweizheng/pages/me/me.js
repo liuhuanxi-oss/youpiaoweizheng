@@ -104,7 +104,9 @@ Page({
     profile: { nickname: '', avatar: '' },
     nickFocus: false,  // 4.22.0：编程聚焦昵称输入框（原生 input 无法 selectComponent 唤起键盘）
     refreshing: false, // 7.2.0 下拉刷新
-    refreshText: '下拉翻册'
+    refreshText: '下拉翻册',
+    // 8.0.4：云故障 / 超上限横幅（{ text, retry }；null = 不显示），同 album 的 netBar
+    netBar: null
   },
 
   /** 下拉刷新：统计数字会变（加过票根之后），下拉是这一页唯一的手动重取入口 */
@@ -125,6 +127,11 @@ Page({
 
   onRestore() {
     this.setData({ refreshText: '下拉翻册' });
+  },
+
+  /** 云故障横幅重试（截断提示不可点，故只认 retry） */
+  onNetBarTap() {
+    if (this.data.netBar && this.data.netBar.retry) this.refresh();
   },
 
   onShow() {
@@ -356,7 +363,16 @@ Page({
     })
       .map((b) => Object.assign(b, { src: iconSrc(b.icon, b.unlocked ? m.accent : m.text, b.unlocked ? 1 : 0.25) }));
     this._trackBadgeUnlock(badges);
+    // 8.0.4：这一页此前是全站唯一「读了列表却不挂横幅」的页面。云库读失败时 store 兜底成
+    // 8 张演示票，统计卡与勋章就全按演示数据算 —— 一个字的提示都没有，首用者会以为
+    // 别人已经替他存过票了。（tests/list_banner.test.js 原来把 me 放在白名单里，
+    // 理由是「偏的是张数不是内容」；对老用户成立，对第一次进来的人不成立。）
+    const flags = store.listFlags();
+    const netBar = flags.netFallback
+      ? { text: '网络开小差了，这页数字暂不可信 · 点我重试', retry: true }
+      : (flags.truncated ? { text: `票根超过 ${flags.cap} 张，统计只算到最近的 ${flags.cap} 张`, retry: false } : null);
     this.setData({
+      netBar,
       stats: {
         total: ts.length,
         shows: ts.filter((t) => t.type === 'show').length,

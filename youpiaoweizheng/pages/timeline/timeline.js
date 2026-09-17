@@ -97,7 +97,7 @@ Page({
       });
     } catch (e) {
       // 静默刷新失败：留着旧内容 —— 用户刚看完列表返回，网络抖一下不该把整页换成错误页
-      if (!silent) this.setData({ error: String(e.message || e).slice(0, 60), bindNeeded: false });
+      if (!silent) this.setData({ error: String((e && e.errMsg) || e.message || e).slice(0, 60), bindNeeded: false });
     } finally {
       sk.end(this);
     }

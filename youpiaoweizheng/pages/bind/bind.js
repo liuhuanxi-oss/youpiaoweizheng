@@ -44,7 +44,7 @@ Page({
           this.setData({ state: 'done', msg: res.couple.partnerName || 'TA' });
         } catch (e) {
           wx.hideLoading();
-          this.setData({ state: 'error', msg: String(e.message || e).slice(0, 80) });
+          this.setData({ state: 'error', msg: String((e && e.errMsg) || e.message || e).slice(0, 80) });
         }
       }
     });

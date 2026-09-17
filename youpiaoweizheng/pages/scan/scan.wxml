@@ -165,7 +165,10 @@
        确认表单态（稿外必要态：识别结果核对后入库），沿用既有结构
        ============================================================ -->
   <block wx:else>
-    <view class="frame slim pressable" hover-class="press-item-hover" bindtap="preview">
+    <!-- 8.0.4：手动录入（识别失败→手动填）时 imgPath 是空的，原来这个带四角标与盖戳的
+         照片框照样渲染 —— 顶着一个空框，点它还没反应（preview 内部判空直接返回）。
+         没有照片就整块不出现，表单直接顶上来。 -->
+    <view wx:if="{{imgPath}}" class="frame slim pressable" hover-class="press-item-hover" bindtap="preview">
       <image class="shot" src="{{imgPath}}" mode="aspectFill" />
       <view class="corner c1"></view>
       <view class="corner c2"></view>

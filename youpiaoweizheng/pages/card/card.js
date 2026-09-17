@@ -1514,7 +1514,10 @@ Page({
    */
   async _saveXhsArt(kind) {
     if (this.data.exporting) return;
-    const TIP = { shot: '生成小红书竖图…', cover: '生成封面图…', steps: '生成步骤图…' };
+    // 8.0.4：对外文案一个字都不点名平台。提审描述里自己写着「不点名具体平台…避免
+    // 审核误判成站外导流」，而审核员在卡片页能直接看见「存小红书素材」—— 自相矛盾。
+    // 三张图的功能与合规红线（不带二维码、不写「微信搜 XX」）一个字没变，只是改叫「竖版长图」。
+    const TIP = { shot: '生成竖版长图…', cover: '生成封面图…', steps: '生成步骤图…' };
     this.setData({ exporting: true });
     wx.showLoading({ title: TIP[kind] || TIP.shot, mask: true });
     let off = null; // 离屏画布：出图后显式释放（见 finally）
@@ -1566,7 +1569,7 @@ Page({
       track.track('poster_save', { style, code: this._qrDrawn ? 1 : 0, xhs: 1, kind });
       wx.hideLoading();
       haptics.confirm();
-      wx.showToast({ title: '已存入相册 · 3:4 适配小红书', icon: 'none' });
+      wx.showToast({ title: '已存入相册 · 3:4 长图', icon: 'none' });
     } catch (e) {
       wx.hideLoading();
       const msg = String((e && e.errMsg) || e.message || e);

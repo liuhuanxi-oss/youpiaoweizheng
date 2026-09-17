@@ -1280,7 +1280,16 @@ async function bindAction(event, OPENID) {
         if (mine.status === 'bound') return { ok: true, bound: true, couple: coupleView(mine, OPENID) };
         return { ok: true, code: mine.code }; // 还在等人 → 复用同一码
       }
-      const name = String(event.name || '').trim().slice(0, 12) || '我';
+      const rawName = String(event.name || '').trim().slice(0, 12);
+      // 8.0.4：这个称呼是全站**唯一会展示给第三方**的自由文本 —— 对方在双人空间看得见，
+      // 还会进分享卡片的标题（utils/share.js）。此前它偏偏是全站唯一没过内容安全的用户输入：
+      // 昵称（profileSave）、AI 文案、票面 title/note 都检了，只有它裸奔。
+      // 审核员可以拿它把违规文本带进微信聊天里的分享卡，这种驳回不会给解释机会。
+      if (rawName) {
+        const gate = await secGate(OPENID, rawName, '称呼');
+        if (!gate.ok) return { ok: false, msg: '这个称呼不太合适，换一个吧' };
+      }
+      const name = rawName || '我';
       for (let i = 0; i < 3; i++) {
         const code = makeInviteCode();
         try {
@@ -1324,14 +1333,28 @@ async function bindAction(event, OPENID) {
         return { ok: false, msg: '邀请码不存在或已被使用' };
       }
       if ((doc.members || []).includes(OPENID)) {
-        return { ok: true, bound: true, couple: coupleView(doc, OPENID) };
+        // 8.0.4：自己扫自己的码。waiting 文档里只坐着我一个人，原来这一支也回「绑定成功」——
+        // 用户从「文件传输助手」点开自己那张邀请卡、点「接受邀请」，页面说「你们的票根从此
+        // 汇入同一条时间线」，回到双人空间却是「未绑定」：同一件事两个页面说法相反。
+        // 只有文档里真的坐着第二个人，才算幂等成功。
+        if ((doc.members || []).length > 1) {
+          return { ok: true, bound: true, couple: coupleView(doc, OPENID) };
+        }
+        return { ok: false, msg: '这是你自己的邀请码，发给 TA 再输给对方吧' };
       }
       if ((doc.members || []).length !== 1) return { ok: false, msg: '这个邀请码刚被别人用了' };
       if (Date.now() - (doc.createdAt || 0) > 7 * 24 * 3600 * 1000) {
         await db.collection('couples').doc(doc._id).remove();
         return { ok: false, msg: '邀请码已过期，让 TA 重新生成' };
       }
-      const name = String(event.name || '').trim().slice(0, 12) || 'TA';
+      // 同 create 分支：称呼要先过安检再往库里写（且必须在 claim 之前 —— 先绑上再拒名字，
+      // 两个人就已经站在同一份关系里了，改不掉）
+      const rawName = String(event.name || '').trim().slice(0, 12);
+      if (rawName) {
+        const gate = await secGate(OPENID, rawName, '称呼');
+        if (!gate.ok) return { ok: false, msg: '这个称呼不太合适，换一个吧' };
+      }
+      const name = rawName || 'TA';
       const next = {
         members: [...doc.members, OPENID],
         names: { ...(doc.names || {}), [OPENID]: name },
@@ -2216,7 +2239,10 @@ exports.main = async (event) => {
   // 三者互不依赖：安全检测只看文本；天气只要有坐标就算数（同城的场馆 POI 与城市中心，
   // 在天气取档的精度之外）；场馆精化没成，落回城市中心本来就是设计内的降级。
   // 并行后总耗时 = 三者里最长的那个。
-  const userText = [t.title, t.note].filter(Boolean).join('\n').trim();
+  // 8.0.4：协议里写的是「票面字段过安检」，实际只检了 title + note —— 场馆 / 城市 / 座位 /
+  // 购票平台同样是用户手输，同样会出现在详情页、分享卡与卡片图上。拼进同一个字段一起检，
+  // 还是那一次调用，不增加往返。
+  const userText = [t.title, t.note, t.venue, t.city, t.seat, t.source].filter(Boolean).join('\n').trim();
   const gateP = userText ? secGate(OPENID, userText, '票面文字') : Promise.resolve({ ok: true });
   // 4.18.1 场馆级精化：配了腾讯位置服务 key 且场馆名可解析 → 精确到 POI 坐标
   //（如「南京奥体中心」），失败/未配 key 保持城市中心；geoSource 标记坐标来源

@@ -40,13 +40,14 @@ pages.forEach((p) => { src[p] = decomment(read(`pages/${p}/${p}.js`)); });
 const usesList = (js) => /store\s*\.\s*listTickets\s*\(/.test(js);
 const usesFlags = (js) => /store\s*\.\s*listFlags\s*\(/.test(js);
 
-// —— 已挂横幅的四页（基准：album 最早有这套；7.2.0 铺到 home / discover / annual） ——
-const COVERED = ['album', 'annual', 'discover', 'home'];
+// —— 已挂横幅的五页（基准：album 最早有这套；7.2.0 铺到 home / discover / annual；8.0.4 补 me） ——
+const COVERED = ['album', 'annual', 'discover', 'home', 'me'];
 
 // —— 读了列表但**故意不挂**横幅的页面，逐条写清为什么 ——
 const ALLOW = {
-  duo: 'renderFree 只把票根当「绑定后长这样」的示意，页面上并没有断言这些是用户的真实记录',
-  me: '只拿列表算总数与勋章，云故障时这些数会偏——但偏的是「张数」不是「内容」，等有了真实点数再补'
+  duo: 'renderFree 只把票根当「绑定后长这样」的示意，页面上并没有断言这些是用户的真实记录'
+  // me 原先在这里，理由是「偏的是张数不是内容」—— 8.0.4 撤了：对老用户成立，
+  // 对第一次进来的人不成立（统计卡与勋章全按 8 张演示票算，他以为别人替他存过票）
 };
 
 /**
@@ -100,7 +101,7 @@ const hasNetBarInSetData = (js) => setDataArgs(stripCatchBlocks(js))
   .some((a) => /\bnetBar\b/.test(a.replace(/netBar\s*:\s*null/g, '')));
 
 console.log('\n【一、每一页渲染票根列表的页面都必须亮出「这不是你的数据」】');
-t('铺开了：album / annual / discover / home 四页都读了 listFlags', () => {
+t('铺开了：album / annual / discover / home / me 五页都读了 listFlags', () => {
   COVERED.forEach((p) => {
     ok(usesList(src[p]), `${p} 已经不读列表了，这条断言该改`);
     ok(usesFlags(src[p]), `${p} 读了 store.listTickets 却没读 store.listFlags —— 云故障时它会在无声地说假话`);

@@ -24,7 +24,7 @@
 
 ```bash
 cd youpiaoweizheng
-npm test        # 11 套 Node 回归台（330 条用例），改哪屏跑哪套
+npm test        # 35 套 Node 回归台，改哪屏跑哪套
 npm run preview:deco   # 本机把装饰图形渲成图看一眼，无需微信开发者工具
 ```
 

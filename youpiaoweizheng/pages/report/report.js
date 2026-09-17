@@ -119,7 +119,7 @@ Page({
         span, bars, cityTop, cityMore, km, together, first, last
       });
     } catch (e) {
-      this.setData({ error: String(e.message || e).slice(0, 60), bindNeeded: false });
+      this.setData({ error: String((e && e.errMsg) || e.message || e).slice(0, 60), bindNeeded: false });
     } finally {
       sk.end(this);
     }

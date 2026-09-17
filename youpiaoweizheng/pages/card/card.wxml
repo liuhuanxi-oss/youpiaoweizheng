@@ -78,9 +78,12 @@
         <text class="cd-link-t">卡片风格</text>
       </view>
       <view class="cd-link-line"></view>
+      <!-- 8.0.4：按钮文案去平台名（原来写「存小红书素材」）—— 微信把「明确指向第三方
+           内容平台」的功能当站外导流，而提审描述自己也承诺不点名平台。出口没变：
+           成品图 / 封面图 / 步骤图三张 3:4 竖图，功能一个字没动 -->
       <view class="cd-link pressable" hover-class="press-item-hover" bindtap="saveXHS"
-            aria-role="button" aria-label="存小红书素材图，可选成品图、封面图、步骤图">
-        <text class="cd-link-t">存小红书素材</text>
+            aria-role="button" aria-label="存竖版素材图，可选成品图、封面图、步骤图">
+        <text class="cd-link-t">存竖版素材</text>
       </view>
     </view>
 

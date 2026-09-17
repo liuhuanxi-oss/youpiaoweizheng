@@ -103,7 +103,7 @@ Page({
       if (c && c.boundAt) await this.renderBound(c);
       else await this.renderFree();
     } catch (e) {
-      wx.showToast({ title: String(e.message || e).slice(0, 40), icon: 'none' });
+      wx.showToast({ title: String((e && e.errMsg) || e.message || e).slice(0, 40), icon: 'none' });
     } finally {
       sk.end(this);
     }
@@ -247,7 +247,7 @@ Page({
       const r = await couple.createCode('');
       this.setData({ myCode: (r && r.code) || '', sheet: true });
     } catch (e) {
-      wx.showToast({ title: String(e.message || e).slice(0, 40), icon: 'none' });
+      wx.showToast({ title: String((e && e.errMsg) || e.message || e).slice(0, 40), icon: 'none' });
     } finally {
       this.setData({ codeBusy: false });
     }
@@ -292,7 +292,7 @@ Page({
           this.refresh();
         } catch (e) {
           wx.hideLoading();
-          wx.showModal({ title: '绑定失败', content: String(e.message || e).slice(0, 80), showCancel: false });
+          wx.showModal({ title: '绑定失败', content: String((e && e.errMsg) || e.message || e).slice(0, 80), showCancel: false });
         } finally {
           this.setData({ codeBusy: false });
         }
@@ -338,7 +338,7 @@ Page({
           wx.showToast({ title: '已解绑', icon: 'none' });
           this.refresh();
         } catch (e) {
-          wx.showToast({ title: String(e.message || e).slice(0, 40), icon: 'none' });
+          wx.showToast({ title: String((e && e.errMsg) || e.message || e).slice(0, 40), icon: 'none' });
         }
       }
     });

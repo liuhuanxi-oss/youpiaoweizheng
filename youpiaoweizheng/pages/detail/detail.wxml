@@ -149,7 +149,9 @@
     <view class="dtc-memo-bar"></view>
     <view class="dtc-memo-badge">
       <image class="dtc-memo-badge-ic" src="{{icons.iSpark}}" mode="aspectFit" aria-hidden="true" />
-      <text>AI 时光手记</text>
+      <!-- 8.0.4：角标原来只写「AI 时光手记」，协议 §四 承诺的是「展示时已标注"AI 生成"」——
+          承诺和实物得对上（《人工智能生成合成内容标识办法》要求显式标识用「AI 生成」这类字样） -->
+      <text>AI 生成 · 时光手记</text>
     </view>
     <!-- 打字机别「啪」地开始：文案落定这一刻整块淡入 200ms。
          只在 t.aiCaption 由无到有时挂载一次，之后逐字 setData 不会重播动画。 -->
