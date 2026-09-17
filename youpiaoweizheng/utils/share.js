@@ -24,7 +24,8 @@ const COVERS = {
   ticket: '/images/share/cover-ticket.png',   // 一张微倾的票根 + 邮戳
   annual: '/images/share/cover-annual.png',   // 一叠票根扇形摊开
   duo:    '/images/share/cover-duo.png',      // 两张竖票根对倾 + 一颗星
-  legacy: '/images/share/cover-legacy.png'    // 一张泛黄褪色、边角磨损的老票（8.1.0）
+  legacy: '/images/share/cover-legacy.png',   // 一张泛黄褪色、边角磨损的老票（8.1.0）
+  map:    '/images/share/cover-map.png'       // 水彩中国 + 一条虚线足迹（8.1.0）
 };
 const SLOGAN = '让时光有票为证';
 
@@ -63,6 +64,17 @@ const SCENES = {
     path: () => '/pages/legacy/legacy',
     query: () => '',
     cover: COVERS.legacy
+  },
+  // 回忆地图（8.1.0 拉新 3/6）：落点就是地图页本身。
+  // 好友（不是票根的主人）点进去看到的是一座**空地图** —— 这正是我们要的：
+  // 「他走过这么多地方，我这儿还空着」，读得懂这句话的人会去收第一张。
+  map: {
+    // 不写具体城市名与年份：这是**分享者**的地图，好友看到的是自己的空地图，
+    // 文案里编一个别人的数字，点进去对不上。张数是分享者自己的，那没问题。
+    title: (d) => (d && d.cities ? `我走过了 ${d.cities} 座城，地图上一站站亮起来` : '我的回忆地图'),
+    path: () => '/pages/discover/discover',
+    query: () => '',
+    cover: COVERS.map
   },
   // 双人空间 / 双人报告（沿用 v5.1 那句「我们」钩子：比功能描述更能唤起绑定）
   duo: {

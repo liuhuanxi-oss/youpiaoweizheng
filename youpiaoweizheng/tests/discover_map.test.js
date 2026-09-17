@@ -163,7 +163,10 @@ t('时间轴列表已整体删除（按用户拍板改成点气泡看票）', ()
   ['dc-time-head', 'dc-time-grp', 'dc-time-card', 'dc-time-more', 'dc-timeline'].forEach((c) => {
     ok(!wxmlClean.includes(c) && !wxss.includes('.' + c), '残留：' + c);
   });
-  ok(!/timeline|toggleShowAll|showAll/.test(js), 'js 里仍有时间轴逻辑');
+  // 8.1.0：「一键成片」接分享后本页多了两处 share_timeline / share.timeline 调用 ——
+  // 那是朋友圈分享，不是时间轴。先把这两处摘掉再查，断言的意思没变（不许有时间轴**逻辑**），
+  // 只是不再被一个合法的字面量撞红。
+  ok(!/timeline|toggleShowAll|showAll/.test(js.replace(/share[._]timeline/g, '')), 'js 里仍有时间轴逻辑');
   ok(!/goMapFull|pages\/map\/map/.test(js), '旧「查看完整地图」入口仍在');
 });
 
@@ -221,7 +224,11 @@ t('wxml 有原生 <map>，绑了图钉 / 自动缩放 / 点标记', () => {
 t('水彩图层在真地图模式下不再重复渲染（wx:if 互斥）', () => {
   ok(/wx:if="\{\{view === 'real'\}\}"/.test(wxmlClean), '真地图没做 wx:if');
   ok(/wx:if="\{\{view !== 'real' && route\}\}"/.test(wxmlClean), '路线图层没跟 view 互斥');
-  ok(/wx:if="\{\{view !== 'real'\}\}"\s+wx:for="\{\{cities\}\}"/.test(wxmlClean), '城市气泡没跟 view 互斥');
+  // 8.1.0：气泡的来源多了一个「播放态」分支 —— 演的时候只画已亮起的那些
+  // （filmLit 就是 cities 的子集，见 discover.js 的 _filmTick）。互斥的意思没变，
+  // 故这里放行两种写法，但**必须**仍然是跟 view 互斥的那一层。
+  ok(/wx:if="\{\{view !== 'real'\}\}"\s+wx:for="\{\{(?:cities|filmOn \? filmLit : cities)\}\}"/.test(wxmlClean),
+    '城市气泡没跟 view 互斥');
 });
 t('切换按钮两个选项都接了 setView，且点击会真的换 view', () => {
   ['art', 'real'].forEach((v) => {

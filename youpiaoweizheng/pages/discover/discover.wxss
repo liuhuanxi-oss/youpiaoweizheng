@@ -284,3 +284,82 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .dc-row-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; }
+
+/* =============================================================
+   8.1.0 拉新 3/6「一键成片」
+   播放**不换页**：演的就是上面那张水彩卡，只是气泡按到访先后一个个亮起。
+   这里只管三件事：入口那一行、播放时把别的东西收起来、底下那条 HUD。
+   ============================================================= */
+
+/* —— 入口行（与「我的」页入口卡同一套：圆底图标 + 两行字 + 右箭头）—— */
+.dc-film {
+  display: flex; align-items: center; gap: 20rpx;
+  margin: 24rpx 24rpx 0;
+  padding: 22rpx 24rpx;
+  border-radius: 28rpx;
+  background: var(--soft, #E9E2D4);
+}
+.dc-film-ic {
+  flex: 0 0 72rpx; width: 72rpx; height: 72rpx;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--stamp, #C26B5E);
+}
+.dc-film-ic-img { width: 34rpx; height: 34rpx; }
+.dc-film-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }
+.dc-film-t { font-size: 29rpx; font-weight: 600; color: var(--text); letter-spacing: 1rpx; }
+.dc-film-s { font-size: 22rpx; color: var(--text2); }
+.dc-film-go { flex: 0 0 26rpx; width: 26rpx; height: 26rpx; }
+
+/* —— 播放态：把地图周围那圈东西收掉 ——
+   卡片留在原地（演的就是它），但标题、换层开关、底部署名、入口、提示都该让位：
+   留着它们，地图卡就被挤小了，眼睛也没有落点。 */
+.dc-filming .dc-head,
+.dc-filming .dc-view,
+.dc-filming .dc-foot,
+.dc-filming .dc-tip,
+.dc-filming .dc-empty,
+.dc-filming .dc-net,
+.dc-filming .dc-film { display: none; }
+.dc-filming .dc-card { margin-top: 36rpx; }
+/* HUD 是固定条，会盖住长页末尾 —— 播放时把它该让的高度补出来 */
+.dc-filming .tk-safe-bottom { height: 460rpx; }
+
+/* —— 播放底条：固定，不随长页滚（滚走了就没法跳过、也没有出口）—— */
+.fl-hud {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding: 24rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: var(--card-bg, var(--card));
+  border-top-left-radius: 34rpx; border-top-right-radius: 34rpx;
+  box-shadow: 0 -8rpx 28rpx rgba(var(--text-rgb, 107, 91, 80), 0.10);
+}
+.fl-head { display: flex; flex-direction: column; align-items: center; gap: 8rpx; padding: 4rpx 0 20rpx; }
+.fl-year { font-size: 54rpx; font-weight: 900; letter-spacing: 6rpx; color: var(--stamp, #C26B5E); }
+.fl-city { font-size: 34rpx; font-weight: 700; color: var(--text); letter-spacing: 2rpx; }
+.fl-n { font-size: 22rpx; color: var(--text2); }
+.fl-bar { height: 6rpx; border-radius: 6rpx; background: var(--soft, #E9E2D4); overflow: hidden; }
+.fl-bar-in {
+  height: 100%; border-radius: 6rpx;
+  background: var(--stamp, #C26B5E);
+  transition: width 320ms ease;
+}
+.fl-acts { display: flex; gap: 20rpx; margin-top: 24rpx; }
+
+/* 两个出口并排：主出口是存长图，次出口是发给朋友。
+   「发给朋友」必须是真 <button open-type="share">（只有它才走 onShareAppMessage），
+   所以这里要把 button 自带的边框、圆角、内边距全抹掉，让它和旁边那个 view 长得一样 */
+.fl-btn {
+  flex: 1; height: 88rpx; padding: 0; margin: 0;
+  display: flex; align-items: center; justify-content: center; gap: 12rpx;
+  border-radius: 44rpx; font-size: 28rpx; letter-spacing: 2rpx; line-height: 1;
+}
+.fl-btn::after { border: none; }
+.fl-btn.is-main { background: var(--stamp, #C26B5E); color: var(--on-primary, #FFFFFF); font-weight: 600; }
+.fl-btn.is-ghost { background: var(--soft, #E9E2D4); color: var(--text); }
+/* 存图中：按钮淡下去，别再让人点第二下（导出一次要几百毫秒） */
+.fl-btn.is-busy { opacity: 0.55; }
+.fl-btn-ic { width: 32rpx; height: 32rpx; }
+
+/* —— 长图的离屏画布：甩到屏幕外（同 art 页的 .cv-off）——
+   这里的盒子尺寸只是占位；真正的像素尺寸由 JS 按 dpr 与版面写进 node.width/height */
+.fl-cv { position: fixed; left: -9999px; top: 0; width: 750px; height: 1200px; }

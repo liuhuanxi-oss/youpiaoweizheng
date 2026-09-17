@@ -2,6 +2,7 @@
   "navigationBarTitleText": " ",
   "usingComponents": {
     "bottom-sheet": "/components/bottom-sheet/index",
-    "animated-number": "/components/animated-number/index"
+    "animated-number": "/components/animated-number/index",
+    "privacy-sheet": "/components/privacy-sheet/index"
   }
 }

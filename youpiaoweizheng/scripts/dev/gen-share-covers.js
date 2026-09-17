@@ -21,6 +21,9 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+// 回忆地图那版封面要把地图页的水彩中国嵌进来 —— 同一个投影、同一份图形
+const mapArt = require('../../utils/mapArt.js');
+const themeUtil = require('../../utils/theme.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const OUT = path.join(ROOT, 'dist', 'share-covers');
@@ -276,11 +279,59 @@ function coverLegacy() {
     '</svg>';
 }
 
+// ============================================================
+// 版本五 · 回忆地图（8.1.0 拉新 3/6「一键成片」的转发封面）
+//   底图直接把地图页那张**水彩中国**嵌进来 —— 好友在卡片上看到的，就是他点进去
+//   会看到的那张地图，一眼认得出是同一件事。landSrc 给的是 base64 data-uri，
+//   无头浏览器能吃 <image href>，这一层是真烘进 PNG 的，不是外链。
+//   上面的路线与落点用 toStage 投影 —— 和地图页落点是**同一个函数**，
+//   所以封面上的点与页面上的点位置一致，不是手摆的。
+// ============================================================
+function coverMap() {
+  const land = mapArt.landSrc(themeUtil.getThemeMeta('paper'));
+  const MX = 175, MY = 150, MW = 400;
+  const MH = Math.round((MW * mapArt.STAGE_H) / mapArt.STAGE_W);
+  const at = (lng, lat) => {
+    const p = mapArt.toStage(lng, lat);
+    return [MX + (p.x / mapArt.STAGE_W) * MW, MY + (p.y / mapArt.STAGE_H) * MH];
+  };
+  // 一条从西走到东的假想足迹（封面不绑用户，是给所有人看的那一张）
+  const ROUTE = [
+    [87.62, 43.83, '#F2CE7E'],  // 乌鲁木齐
+    [116.41, 39.90, '#EFA392'],  // 北京
+    [104.07, 30.57, '#A9C3A6'],  // 成都
+    [113.26, 23.13, '#A9C3A6'],  // 广州
+    [121.47, 31.23, '#EFA392']   // 上海
+  ].map(([lng, lat, c]) => ({ p: at(lng, lat), c: c }));
+
+  const dots = ROUTE.map((r) =>
+    '<circle cx="' + r.p[0] + '" cy="' + r.p[1] + '" r="40" fill="' + r.c + '" fill-opacity="0.22"/>' +
+    '<circle cx="' + r.p[0] + '" cy="' + r.p[1] + '" r="11" fill="none" stroke="' + r.c + '" stroke-width="3.5"/>' +
+    '<circle cx="' + r.p[0] + '" cy="' + r.p[1] + '" r="4.5" fill="#FFFFFF"/>'
+  ).join('');
+
+  return head('有票为证 · 转发封面（回忆地图）') +
+    '<text x="375" y="86" font-family="' + SERIF + '" font-size="42" font-weight="700" ' +
+      'fill="' + INK + '" text-anchor="middle" letter-spacing="8">回忆地图</text>' +
+    '<text x="375" y="120" font-family="' + SANS + '" font-size="17" fill="' + GREY + '" ' +
+      'text-anchor="middle" letter-spacing="2">这些年走过的路，一站一站演给你看</text>' +
+    '<image x="' + MX + '" y="' + MY + '" width="' + MW + '" height="' + MH +
+      '" href="' + land + '"/>' +
+    '<path d="' + ROUTE.map((r, i) => (i ? 'L' : 'M') + r.p[0] + ' ' + r.p[1]).join(' ') +
+      '" fill="none" stroke="' + SEAL + '" stroke-opacity="0.75" stroke-width="3" ' +
+      'stroke-dasharray="9 7" stroke-linecap="round" stroke-linejoin="round"/>' +
+    dots +
+    '<text x="375" y="576" font-family="' + SERIF + '" font-size="28" fill="' + INK + '" ' +
+      'text-anchor="middle" letter-spacing="12">让时光有票为证</text>' +
+    '</svg>';
+}
+
 const COVERS = [
   { name: 'cover-ticket', build: coverTicket },
   { name: 'cover-annual', build: coverAnnual },
   { name: 'cover-duo', build: coverDuo },
-  { name: 'cover-legacy', build: coverLegacy }
+  { name: 'cover-legacy', build: coverLegacy },
+  { name: 'cover-map', build: coverMap }
 ];
 
 // —— 出图 ——

@@ -89,7 +89,7 @@ t('朋友圈：只出 query、不出 path，配图必须自带（不支持异步
 
 // 封面是**图片文件**，改错了路径、拷漏了图、导出成了别的比例，代码全都不会报错——
 // 只在真机转发时才发现卡片是白的或者被裁掉了半张。这条把盘上的文件钉死。
-t('四张封面都在包里，且是 5:4 的 PNG（微信按这个比例显示好友卡片）', () => {
+t('五张封面都在包里，且是 5:4 的 PNG（微信按这个比例显示好友卡片）', () => {
   Object.keys(share.COVERS).forEach((k) => {
     const rel = share.COVERS[k];
     const f = path.join(ROOT, rel.replace(/^\//, ''));
@@ -102,7 +102,7 @@ t('四张封面都在包里，且是 5:4 的 PNG（微信按这个比例显示�
   });
 });
 
-t('四个场景各用各的专属封面，不再共用那张方形应用图标', () => {
+t('五个场景各用各的专属封面，不再共用那张方形应用图标', () => {
   const covers = Object.keys(share.COVERS).map((k) => share.COVERS[k]);
   ok(new Set(covers).size === covers.length, '有两个场景共用了同一张封面');
   ok(covers.every((p) => p.indexOf('brand-logo') < 0),
@@ -369,11 +369,13 @@ t('组件自带 hover 类（自定义组件默认样式隔离，app.wxss 的类�
 });
 
 // ════════════════════════════════════════════════════════════
-console.log('\n【六、S1 朋友圈：7 个分享页，一个都不能漏】');
-const SP_PAGES = ['card', 'art', 'annual', 'duo', 'report', 'me', 'legacy'];   // 走品牌落地卡的那七个
+console.log('\n【六、S1 朋友圈：8 个分享页，一个都不能漏】');
+// 走品牌落地卡的那八个。discover 是 8.1.0 拉新 3/6 加的 —— 回忆地图开始对外分享后，
+// 好友在朋友圈点进来就是单页模式，那里读不到云库、地图必然是一座空城。
+const SP_PAGES = ['card', 'art', 'annual', 'duo', 'report', 'me', 'legacy', 'discover'];
 const SP_JSON = 'templates/sp.wxml';
 
-t('七个分享页都接了 onShareTimeline，且都有单页模式落地卡', () => {
+t('八个分享页都接了 onShareTimeline，且都有单页模式落地卡', () => {
   SP_PAGES.forEach((n) => {
     ok(/onShareTimeline\s*\(/.test(decomment(read(`pages/${n}/${n}.js`))), n + ' 没接朋友圈分享');
     ok(read(`pages/${n}/${n}.wxml`).indexOf(SP_JSON) >= 0, n + '.wxml 没引品牌落地卡');
@@ -389,7 +391,7 @@ t('详情页是特例：它有自己的兜底空态（去拍第一张的按钮�
 });
 
 t('朋友圈分享都记了来源（否则看板只有一个总数，分不出哪一页带来的）', () => {
-  ['card', 'art', 'annual', 'detail', 'duo', 'report', 'me', 'legacy'].forEach((n) => {
+  ['card', 'art', 'annual', 'detail', 'duo', 'report', 'me', 'legacy', 'discover'].forEach((n) => {
     const src = decomment(read(`pages/${n}/${n}.js`));
     ok(/track\.track\('share_timeline'[\s\S]{0,40}from:/.test(src), n + ' 的 share_timeline 没有 from');
   });

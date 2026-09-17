@@ -1,8 +1,16 @@
 <!-- pages/discover/discover.wxml —— 回忆地图（品牌全案 · 稿屏7 一比一）
      结构：标题（星点 + 手写体 + 玫瑰笔触）→ 水彩地图卡（邮票/花枝/星点 + 城市气泡）→ 已走过 N 城
      所有图形一律走 <image src="data:image/svg+xml;base64,...">：小程序 wxml 不渲染内联 <svg>，
-     且 SVG 是独立文档、不认 CSS 变量，故颜色由 discover.js 按当前主题编译成实色。 -->
-<scroll-view class="tk-page theme-{{theme}} dc-page {{enter ? 'fade-up' : ''}}" scroll-y enhanced show-scrollbar="{{false}}"
+     且 SVG 是独立文档、不认 CSS 变量，故颜色由 discover.js 按当前主题编译成实色。
+     8.1.0 拉新 3/6：本页开始对外分享（map 场景，落点就是本页），故补了单页模式落地卡。 -->
+<import src="/templates/sp.wxml" />
+
+<!-- 朋友圈单页模式：这里读不到云库，地图必然是一座空城 —— 换成品牌落地卡，
+     别让好友看见一个空地图配一个点了没反应的「去收第一张」（switchTab 在该模式下会被拒） -->
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '好友的回忆地图在这里，你的从第一张票根开始'}}" /></block>
+
+<scroll-view wx:if="{{!sp}}" class="tk-page theme-{{theme}} dc-page {{enter ? 'fade-up' : ''}} {{filmOn ? 'dc-filming' : ''}}" scroll-y enhanced show-scrollbar="{{false}}"
+             scroll-top="{{scrollTop}}"
              refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onPullDownRefresh">
 
   <!-- ① 标题行：左侧星点 + 「回忆地图」手写体 + 玫瑰笔触，右侧品牌标 -->
@@ -80,7 +88,10 @@
           <view class="dc-sk-b" style="left:48%; top:68%;"></view>
         </view>
 
-        <view wx:if="{{view !== 'real'}}" wx:for="{{cities}}" wx:key="city" class="dc-city" style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
+        <!-- 8.1.0「一键成片」：播放时只画**已经亮起来**的那几个 ——
+             filmLit 就是 cities 的子集（字段原样带着，见 discover.js 的 _filmTick），
+             所以两种状态共用这一份气泡结构，不另造一套。 -->
+        <view wx:if="{{view !== 'real'}}" wx:for="{{filmOn ? filmLit : cities}}" wx:key="city" class="dc-city" style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
 
           <!-- 连接杆：气泡被顶开时才有长度，平时被尾巴盖住看不见 -->
           <view class="dc-stem" style="background:{{item.color}}; {{item.stemPos}};"></view>
@@ -127,6 +138,21 @@
     </view>
   </view>
 
+  <!-- ②' 一键成片（8.1.0 拉新 3/6）：把走过的这些年一站一站演一遍，末尾可以存成一张长图。
+       只在「至少两座有坐标的城、且不是云兜底的演示城市」时出现（见 utils/mapFilm.js 的 canPlay）——
+       一座城播不出旅程，而演示城市不是你去过的，拿它请他回忆是骗人。 -->
+  <view wx:if="{{canFilm && !loading && !error}}" class="dc-film pressable" hover-class="press-hover"
+        bindtap="startFilm" aria-role="button" aria-label="一键成片：把这些年走过的路演一遍">
+    <view class="dc-film-ic">
+      <image class="dc-film-ic-img" src="{{ic.play}}" mode="aspectFit" aria-hidden="true" />
+    </view>
+    <view class="dc-film-tx">
+      <text class="dc-film-t">一键成片</text>
+      <text class="dc-film-s">把这些年走过的路，一站一站演一遍</text>
+    </view>
+    <image class="dc-film-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+  </view>
+
   <!-- ③ 空态：确实一张票都没有时才说这句话（loading 期间与失败时都不许落到这里） -->
   <view wx:if="{{!loading && !error && !total}}" class="dc-empty pressable" hover-class="press-item-hover" bindtap="goHome"
         aria-role="button" aria-label="去收第一张票根">
@@ -153,6 +179,47 @@
 
   <view class="tk-safe-bottom"></view>
 </scroll-view>
+
+<!-- ============================================================
+     ⑧ 播放态（8.1.0 一键成片）：固定底条 + 一张屏幕外的长图画布
+     播放**不换页、不换地图**：演的就是上面那张水彩卡，只是气泡按到访先后一个个亮起
+     （见 discover.js 的 _filmTick）。这里只负责报「走到哪了」和给出口。
+     ============================================================ -->
+<view wx:if="{{filmOn}}" class="fl-hud" aria-role="presentation">
+  <!-- 演完之前：报当前这一站的年份与城市。点一下可以直接跳到结局（有人不想等） -->
+  <view wx:if="{{!filmDone}}" class="fl-head pressable" hover-class="press-item-hover" bindtap="skipFilm"
+        aria-role="button" aria-label="跳过播放">
+    <text wx:if="{{filmNow.year}}" class="fl-year">{{filmNow.year}}</text>
+    <text class="fl-city">{{filmNow.city || '正在出发'}}</text>
+    <text class="fl-n">第 {{filmIdx}} / {{filmTotal}} 站 · 点一下跳过</text>
+  </view>
+  <!-- 演完之后：把话收成一句，出口摆上来 -->
+  <view wx:else class="fl-head">
+    <text class="fl-city">这些年，你走过 {{cityCount}} 座城</text>
+    <text class="fl-n">都在这一张图上</text>
+  </view>
+
+  <view class="fl-bar"><view class="fl-bar-in" style="width:{{filmPct}}%;"></view></view>
+
+  <view class="fl-acts">
+    <block wx:if="{{filmDone}}">
+      <view class="fl-btn is-main pressable {{saving ? 'is-busy' : ''}}" hover-class="press-hover" bindtap="saveFilm"
+            aria-role="button" aria-label="把这段旅程存成长图">
+        <image class="fl-btn-ic" src="{{ic.download}}" mode="aspectFit" aria-hidden="true" />
+        <text>存成长图</text>
+      </view>
+      <!-- open-type="share" 才会走页面的 onShareAppMessage（map 场景），文案见 utils/share.js -->
+      <button class="fl-btn is-ghost pressable" hover-class="press-hover" open-type="share"
+              aria-label="把这段旅程发给朋友">发给朋友</button>
+    </block>
+    <view wx:else class="fl-btn is-ghost pressable" hover-class="press-hover" bindtap="stopFilm"
+          aria-role="button" aria-label="退出播放">先不看了</view>
+  </view>
+</view>
+
+<!-- 长图画布：跟着播放态建/销（省一份常驻的位图内存），位置甩到屏幕外。
+     尺寸由 JS 按 dpr 与版面算好写进 node.width/height，这里的 CSS 盒子只是占位。 -->
+<canvas wx:if="{{filmOn}}" type="2d" id="filmCanvas" class="fl-cv" aria-hidden="true"></canvas>
 
 <!-- ⑤ 城市票根面板：点气泡从底部升起（稿屏7 已删掉时间轴列表，改由这里看某座城的票）。
      动效与防穿透走全局 bottom-sheet（遮罩 200ms / 面板 300ms 滑入）——
@@ -182,3 +249,6 @@
     <view class="tk-safe-bottom"></view>
   </scroll-view>
 </bottom-sheet>
+
+<!-- M5 隐私授权弹窗：8.1.0 起本页要调 saveImageToPhotosAlbum（存长图），同 card / art / annual 挂一份 -->
+<privacy-sheet />

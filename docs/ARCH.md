@@ -34,7 +34,7 @@
 |---|---|---|---|
 | tab ★ | `pages/home` | 票根墙：搜索 / 分类 / 卡片网格 | store, theme, track, deco, icons |
 | tab ★ | `pages/album` | 时光机：按年份的纵向时间轴 | store, mock, skeleton, theme, icons, deco, date |
-| tab ★ | `pages/discover` | 回忆地图：水彩中国 + 真经纬度落点（可切微信原生地图） | store, theme, icons, deco, mapArt |
+| tab ★ | `pages/discover` | 回忆地图：水彩中国 + 真经纬度落点（可切微信原生地图）；8.1.0 起可就地演「一键成片」并存长图 | store, theme, icons, deco, mapArt, mapFilm, saveimg, share, track, canvas-deco |
 | tab ★ | `pages/me` | 我的：统计卡 + 功能入口 | store, theme, env, pay, icons, deco |
 | 录入 | `pages/scan` | 拍照 / 相册 → 识别 → 确认入库 | env, store, ai, theme, icons, deco, track, mock |
 | 详情 | `pages/detail` | 票面信息、AI 时光手记、天气印记 | store, mock, ai, skeleton, theme, weather, date, track, ads, icons |
@@ -165,7 +165,8 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 | **颜色必须在 JS 里拼成实色** | SVG 不认 CSS 变量与 `currentColor`，`var()` 一律失效 |
 
 - **主题**：六套（`paper` 默认 / `glass` / `collage` / `film` 暗色 / `literary` / `minimal`）。令牌在 `app.wxss` 的 `.theme-*` 段，JS 侧元数据与 `apply/getTheme/setTheme` 在 [utils/theme.js](../youpiaoweizheng/utils/theme.js)；页面根节点挂 `theme-{{theme}}`，`onShow` 调 `themeUtil.apply(this)`；tab 栏组件单独重声明令牌。
-- **共用画笔与装饰**：`utils/deco.js`（花枝 / 波浪 / 邮戳 / 齿边 / 和纸胶带）、`utils/canvas-deco.js`（Canvas 画笔，card 与 annual 共用）、`utils/mapArt.js`（水彩中国）。**新页面先翻这三个文件，不要各写一份。**
+- **共用画笔与装饰**：`utils/deco.js`（花枝 / 波浪 / 邮戳 / 齿边 / 和纸胶带）、`utils/canvas-deco.js`（Canvas 画笔，card / annual / 地图成片共用）、`utils/mapArt.js`（水彩中国）、`pages/discover/film.js` 与 `pages/annual/poster.js`（**长图画笔的样板**：纯 Canvas 2D、不碰 wx、不 require wx.*，可在 Node 里真跑）。**新页面先翻这几个文件，不要各写一份。**
+- **存相册**：一律走 `utils/saveimg.js`（`exportCanvas` + `save` + 授权引导）。card / art / annual 里还各留着一份 8.1.0 之前的等价实现（**记名技术债**，下次动那几页时收口），但**新代码不许再抄第五份**。
 
 ---
 
@@ -173,7 +174,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 
 | 类别 | 在哪 | 说明 |
 |---|---|---|
-| 回归测试 | `tests/*.test.js`（37 套 / 886 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
+| 回归测试 | `tests/*.test.js`（38 套 / 923 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
 | 单屏预览 | `scripts/dev/preview-*.js` | 本机把卡面 / 年报 / 装饰图形渲成图或 HTML 先看一眼 |
 | 云函数部署 | `scripts/ci/deploy-fns.js` | `npm run deploy:fn`（CloudBase CLI 非交互） |
 | 上传提审 | `scripts/ci/` | `npm run upload` / `audit` / `audit:status` / `release`；`pipeline:dev` 串起「体积粗检 → 部署 → 上传」 |

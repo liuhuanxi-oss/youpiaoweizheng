@@ -46,6 +46,7 @@
 | FR-C7 | 同场印记 | 详情页显示计数；开关在「我的 → 设置 → 同场印记」（7.4.0 补回） | `eventStats` action、`utils/store.getSameOptOut` / `setSameOptOut`、`pages/setting` | ✅ 匿名聚合；关掉后**之后**收藏的票根不再计入（已入库的不回头清）；`sp_same_optout` 不进「清除本地数据」清单 |
 | FR-C11（8.1.0 在研） | 同场票根墙 | 详情页「看看这一场都有谁」→ `pages/wall`；详情页开关逐张主动开启 | `wallJoin` / `wallList` action、`utils/store.setWallPublic` / `listWallTickets`、`pages/wall` | ✅ **全项目唯一陌生人可读的出口**，字段只许少不许加（票名 / 场馆 / 日期 / 图；无 `_id`、无身份、无座位票价坐标）；默认关闭、随时撤下；守卫 `tests/same_wall.test.js` |
 | FR-C12（8.1.0 在研） | 老票根专场 | 首页一行（**只在「有票、但一张五年前的都没有」时出现**）→ `pages/legacy`；分享卡 / 朋友圈落点也是这一页 | `utils/legacy.js`（那一行该不该显示）、`pages/legacy`、`utils/share.js` 的 `legacy` 场景、扫码页 `?from=legacy` | ✅ 拉新：老票是**已经发生过的事**，比「今天去看一场」门槛低，且票上多半有当年一起去的人。活动页是**静态页**（不读票根、无云调用）；不设奖励、不写诱导分享；扫码页据 `from=legacy` 把提示换成「老票根认不准很正常，可以自己填」（不单开保存分支）；朋友圈单页模式走品牌落地卡。守卫 `tests/legacy_lot.test.js` |
+| FR-C13（8.1.0 在研） | 回忆地图一键成片 | 地图页一行「一键成片」→ **就地演**（不换页、不新开浮层）：水彩卡上的气泡按首次到访一个个亮起，底部报「2019 · 北京 · 第 1/7 站」，可跳过；演完给「存成长图 / 发给朋友」两个出口 | `utils/mapFilm.js`（播放编排 + 长图版面，纯函数）、`pages/discover/film.js`（长图画笔）、`utils/saveimg.js`（相册授权的公共实现，新代码用）、`utils/share.js` 的 `map` 场景 | ✅ 拉新：地图此前是**静的**，看一眼就走、带不走也发不出。站点顺序与地图上那条路线共用 `mapFilm.frames` 一份结果（页面原先另排过一次 `ordered`，本次并入）；同日多城以城市名为第二把钥匙（否则两次播放顺序会飘）；无日期**排最后且不编年份**。长图是**纯 Canvas 重画**的 —— 水彩 SVG 不能喂 `drawImage`（iOS 画不出来），dpr 走 `safeDpr` 回夹（越 4096 在真机上建不起画布）；抬头写**全部**城市数而非图上画得下的。**不到两座有坐标的城、或云兜底时不显示**（演示城市不是用户去过的）。守卫 `tests/map_film.test.js` |
 | FR-C8 | 天气印记 | 详情页 | `cloudfunctions/saveTicket/weather.js`、`utils/weather.js` | ✅ 取不到就是空白，不造假 |
 | FR-C9 | 删除票根 | 详情页 → 右上「···」更多 → 删除这张票根（二次确认）；长按卡片也有（见 §九·A6） | `pages/detail`、`utils/store.removeTicket` | ✅ 7.1.1 加回；照片与 AI 图版文件随删一并清理（7.4.3 / 8.0.4）；回收站仍未建（删了不可找回） |
 
@@ -112,7 +113,7 @@
 | 编号 | 功能 | 入口 | 关键文件 | 状态与已知限制 |
 |---|---|---|---|---|
 | FR-H1（S1） | 朋友圈分享 | 详情 / 卡片 / 图版 / 年报 / 双人 / 双人报告 / 我的 —— 微信右上角「···」转发到朋友圈 | `utils/share.js`（`onShareTimeline`）、`templates/sp.wxml` | ✅ 朋友圈打开是单页模式（拿不到身份、不能跳页）→ 6 个页面统一换品牌落地卡 + 指路微信自带「前往小程序」；详情页保留自己的兜底空态；页面内有引导行指出胶囊位置 |
-| FR-H2（S2） | 分享文案与场景封面 | 各分享出口自动带上 | `utils/share.js` 的 `SCENES` / `COVERS`、`images/share/` | ✅ 四张 5:4 专属封面（票根 / 年度 / 双人 / 老票根专场），内容收在中间 600×600 —— 朋友圈按 1:1 居中裁切也不丢；统一 slogan；分享 path 统一注入邀请短码；不再拿应用图标当封面（7.4.4） |
+| FR-H2（S2） | 分享文案与场景封面 | 各分享出口自动带上 | `utils/share.js` 的 `SCENES` / `COVERS`、`images/share/` | ✅ 五张 5:4 专属封面（票根 / 年度 / 双人 / 老票根专场 / 回忆地图），内容收在中间 600×600 —— 朋友圈按 1:1 居中裁切也不丢；统一 slogan；分享 path 统一注入邀请短码；不再拿应用图标当封面（7.4.4） |
 | FR-H3（R6） | 邀请有礼 | 分享卡片（`?ref=`）/ 双人页邀请面板 / 带短码的海报小程序码 | `utils/invite.js`、`utils/share.js`、`refCode` / `refBind` / `refReward` action | ✅ 好友完成首次上传后双方各 +1 次重绘；防刷四道闸（被邀请人唯一 / 不能自邀 / 老用户只记归因 / 条件更新抢占结算权）；自己点自己的分享不加分 |
 | FR-H4（A6） | 长按快捷菜单 | 长按首页 / 时光机的票根卡 | `components/ticket-menu`、`pages/home`、`pages/album` | ✅ 生成纪念卡片 / 分享给好友 / 删除三行；「分享」是原生 `open-type=share` 按钮（小程序不许代码拉起转发面板），页面按 `data-id` 取被长按的那一张 |
 | FR-H5（X3） | 竖版素材导出 | 卡片页底部「存竖版素材」→ 系统三选一 | `pages/card`（`saveXHS` / `drawXhsCover` / `drawXhsSteps` / `_exportOffscreen`）、`utils/canvas-deco.js` | ✅ 成品图 / 封面图 / 步骤图三张 1080×1440；**一个二维码都不画、不写「微信搜」**；iOS 离屏画布导出失败自动退 `toDataURL`；基础库过低有明确提示 |
@@ -121,7 +122,7 @@
 
 ## 十、怎么验（功能 ↔ 测试套件对照）
 
-> 条数为最近一次记录值，权威以 `npm test` 输出为准（当前 **37 套 / 886 条**，见 [TEST.md](./TEST.md) §3）。
+> 条数为最近一次记录值，权威以 `npm test` 输出为准（当前 **38 套 / 923 条**，见 [TEST.md](./TEST.md) §3）。
 
 | 功能 | 自动化 | 真机 |
 |---|---|---|

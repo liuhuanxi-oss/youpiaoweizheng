@@ -105,19 +105,19 @@
 
 ---
 
-## 三、客户端模块契约（`utils/`，下表 29 个模块）
+## 三、客户端模块契约（`utils/`，下表 30 个模块）
 
-按「被页面直接 require 的次数」排序，括号内为引用页数（8.0.5 实测；`components/` 与 `custom-tab-bar/` 的引用不计入）：
+按「被页面直接 require 的次数」排序，括号内为引用页数（**8.1.0 实测**，只数 `pages/`、`components/` 与 `custom-tab-bar/` 不计入；`(0)` 表示只被 util 内部 require、页面不直接用）：
 
 | 模块 | 主要导出 | 关键口径 | 依赖 |
 |---|---|---|---|
-| `theme.js` (16) | `getTheme`、`setTheme`、`getThemeMeta`、`isDark`、`THEME_KEY`、`THEMES`、`DEFAULT_THEME`、`THEME_META`、`TYPE_SCALE`、`DECO_LABELS`（另出兼容轨 `current`、`set`、`apply`、`META`、`KEY`） | 六主题 paper/glass/collage/film/literary/minimal，默认 `paper`；key `app_theme`，旧 `sp_theme` 兼容保留（深色 Canvas 页仍在读） | — |
-| `haptics.js` (14) | `tap()`、`confirm()`、`warn()` | 触觉只按语义留三档（轻 / 中 / 重），不再逐处写力度；接口缺失或报错一律吞掉，不打断主流程 | — |
-| `icons.js` (14) | `iconSrc(name, color, opacity, width, solid)`、`ICON_PATH`（43 个键）、`_uriCache` | 线性图标转 data-uri SVG；未知键回落 `ticket`；默认描边 1.6、默认色 `#6B5B50`、viewBox 24×24；按全部入参记忆化 | svg |
-| `track.js` (12) | `track(event, data, opts)`、`dump()` | 双通道：`wx.reportEvent` + 本地环形缓冲（key `sp_track_events`，500 条上限，参数截 60 字）；`opts.local === false` 只走官方通道（`page_view` 这类高频事件） | — |
-| `store.js` (11) | `USE_CLOUD`、`listTickets`、`getTicket`、`addTicket`、`setCaption`、`removeTicket`、`isMockTicket`、`getSameOptOut`、`setSameOptOut`、`listFlags` | `PAGE_SIZE=20`、`LIST_MAX=500`；云失败落本地并置 `flags.netFallback`，触顶置 `flags.truncated`（`flags.cap` 是上限值 500）；成功结果 30s TTL 缓存，三个写入口一律置脏 | env、mock |
-| `deco.js` (10) | `decoSrc(name, theme)`、`avatarSrc`、`previewSrc`、`postmarkParts`、`artFrame`、`flowerStamp`、`pinkedPanel` | 25 款手绘装饰；viewBox 默认 `0 0 64 44`，9 款另有专属框 | — |
-| `share.js` (9) | `message(key, d, extra)`、`timeline(key, d)`、`sp()`、`withSlogan`、`SCENES`、`COVERS`、`SLOGAN` | 三场景 ticket / annual / duo，各带标题、落地页与 5:4 封面（内容收在中间安全区，好友卡片与朋友圈 1:1 裁切共用）；每条 path / query 经 `invite.withRef` 带短码；`sp()` 认朋友圈单页模式（scene 1154） | invite |
+| `theme.js` (18) | `getTheme`、`setTheme`、`getThemeMeta`、`isDark`、`THEME_KEY`、`THEMES`、`DEFAULT_THEME`、`THEME_META`、`TYPE_SCALE`、`DECO_LABELS`（另出兼容轨 `current`、`set`、`apply`、`META`、`KEY`） | 六主题 paper/glass/collage/film/literary/minimal，默认 `paper`；key `app_theme`，旧 `sp_theme` 兼容保留（深色 Canvas 页仍在读） | — |
+| `haptics.js` (15) | `tap()`、`confirm()`、`warn()` | 触觉只按语义留三档（轻 / 中 / 重），不再逐处写力度；接口缺失或报错一律吞掉，不打断主流程 | — |
+| `icons.js` (15) | `iconSrc(name, color, opacity, width, solid)`、`ICON_PATH`（43 个键）、`_uriCache` | 线性图标转 data-uri SVG；未知键回落 `ticket`；默认描边 1.6、默认色 `#6B5B50`、viewBox 24×24；按全部入参记忆化 | svg |
+| `track.js` (15) | `track(event, data, opts)`、`dump()` | 双通道：`wx.reportEvent` + 本地环形缓冲（key `sp_track_events`，500 条上限，参数截 60 字）；`opts.local === false` 只走官方通道（`page_view` 这类高频事件） | — |
+| `store.js` (12) | `USE_CLOUD`、`listTickets`、`getTicket`、`addTicket`、`setCaption`、`removeTicket`、`isMockTicket`、`getSameOptOut`、`setSameOptOut`、`listFlags` | `PAGE_SIZE=20`、`LIST_MAX=500`；云失败落本地并置 `flags.netFallback`，触顶置 `flags.truncated`（`flags.cap` 是上限值 500）；成功结果 30s TTL 缓存，三个写入口一律置脏 | env、mock |
+| `deco.js` (11) | `decoSrc(name, theme)`、`avatarSrc`、`previewSrc`、`postmarkParts`、`artFrame`、`flowerStamp`、`pinkedPanel` | 25 款手绘装饰；viewBox 默认 `0 0 64 44`，9 款另有专属框 | — |
+| `share.js` (12) | `message(key, d, extra)`、`timeline(key, d)`、`sp()`、`withSlogan`、`SCENES`、`COVERS`、`SLOGAN` | 五场景 ticket / annual / duo / legacy / map，各带标题、落地页与 5:4 封面（内容收在中间安全区，好友卡片与朋友圈 1:1 裁切共用）；每条 path / query 经 `invite.withRef` 带短码；`sp()` 认朋友圈单页模式（scene 1154） | invite |
 | `couple.js` (6) | `queryCouple`、`cachedCouple`、`createCode(name)`、`joinByCode(code, name)`、`unbind` | 走 `bind` action 的 mode=query/create/join/unbind；缓存 key `sp_couple_cache` | env |
 | `skeleton.js` (6) | `start(page)`、`end(page)` | 300ms 内完成不闪骨架 | — |
 | `pay.js` (5) | `PRODUCT_ID`、`PACK_PRICE_LABEL`、`humanizePayErr`、`getQuota`、`buyArtPack(onStatus)`、`getProfile`、`saveProfile`、`clearProfile`、`quotaLabel` | 商品 `ART_PACK_10`（¥6 / 10 幅）；`payConfirm` 即时到账，失败落轮询 15 次 × 1.5s（首轮 600ms）；免费额度 3 幅/月 | env、auth、track |
@@ -137,7 +137,9 @@
 | `mapArt.js` (1) | `landSrc`、`routeSrc`、`stampSrc`、`toStage(lng,lat)`、`layoutBubbles`、`markersOf`、`bubbleColor`、`bubbleWidth`、`ART_W` / `ART_H` / `STAGE_W` / `STAGE_H` | 水彩中国投影：经度 73.4–135.1、纬度 17.8–53.6，标准纬线 35°；`ART 640×620` / `STAGE 666×645` | — |
 | `memory.js` (1) | `onThisDay(ts, now)`、`label(hit)`、`row(ts, now)`、`bjDay(now)` | 那年今天：同月同日 + 更早年份，多条取最近那一年；固定 UTC+8；没命中返回 null（不编回忆） | — |
 | `legacy.js` (1) | `row(ts, flags, now)`、`YEARS=5`、`bjYear(now)` | 老票根专场入口那一行该不该显示：云兜底（`flags.netFallback`）不显示、一张票都没有不显示、已有五年前的票不显示；年份口径固定 UTC+8 | — |
-| `svg.js` (1) | `toDataUri(svg)`、`b64(str)` | 图形工厂唯一的出口；**必须 base64** —— 百分号编码在开发者工具里正常、真机上整片不显示 | — |
+| `saveimg.js` (1) | `exportCanvas(canvas)`、`save(filePath)`、`guideAuth()` | 相册授权的**公共实现**（8.1.0 起新代码一律走这里，不许再抄一份）：被拒 → 弹「去设置」并 `openSetting`；用户主动取消 → 静默；真失败 → 给人话。失败对象带 `shown` 标记，调用方据此决定要不要再弹自己的 toast（不叠两个提示） | — |
+| `mapFilm.js` (1) | `canPlay(cities, flags)`、`frames(cities)`、`span(fs)`、`sheet(rows)`、`yearOf(date)`、`MIN_STOPS` / `FRAME_MS` / `MAX_ROWS` / `SHEET_W` / `MAP_W` / `MAP_H` | 一键成片的**唯一编排**：站点顺序按首次到访升序、同日以城市名为第二把钥匙（否则两次播放顺序会飘）、无日期排最后且不编年份；不足两站或云兜底（`flags.netFallback`）不给播；长图版面纯算高度（12 城 750×1870，dpr 2 不越 iOS 单边 4096）。`pages/discover/film.js` 是配套画笔，与 `pages/annual/poster.js` 同一写法（纯 Canvas、不碰 wx） | mapArt |
+| `svg.js` (0) | `toDataUri(svg)`、`b64(str)` | 图形工厂唯一的出口；**必须 base64** —— 百分号编码在开发者工具里正常、真机上整片不显示 | — |
 | `weather.js` (1) | `weatherText(w)`、`weatherHint(w)` | WMO 码表 28 项；体感分界 5 / 14 / 30 ℃；`w` 为空一律返回空串（不造假） | — |
 | `subscribe.js` (经 sign) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` | 一次性订阅：授权→次日一条，没有「开关」；当前 `TMPL_ID` 为空 = 一次都不请求；`askIfDue` 必须在点击回调里同步发起；被拒后 30 天静默（环境类失败不进静默期） | env |
 | `auth.js` (经 pay) | `ensureSession(force)`、`isFresh`、`LS_AUTH_TIME`、`FRESH_MS` | key `sp_auth_time`；24h 新鲜度；模块内并发去重；`wx.login` 成功后必须立刻 `authLogin` 覆盖服务端，两步不拆 | env |
@@ -441,6 +443,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 积分规则 / 上限 | `POINTS_RULES` + `SIGN_MILESTONES` + `POINTS_PER_ART` + `CLIENT_EARN_REASONS` + **`PUBLIC_RULE_KEYS`**（只公开 sign / upload / card；share 与 invite 照发不误但不对外展示）+ 端上 `points.js` 的 `RULE_LABEL`（两处同时改，否则界面上摆的是假规则） |
 | 邀请码 / 短码 | 端上 `invite.js`（三个 `sp_ref_*` key 与分享 path 的 `?ref=`）+ `saveTicket` 的 R6 段四道防刷闸 + `couples` 的 4 位码与 7 天惰性过期 + `wxacode` 要收 `ref`（漏传则归因永远算不到邀请人头上）+ 分享卡的 `shareOpen` 归因（码属于分享人） |
 | 坐标 / 地图 | §6.2 三级来源 + `mapArt.js`（水彩与真地图同源，两处都要动）+ `tests/discover_map.test.js` |
+| 一键成片 | `mapFilm.js`（编排与版面，纯函数）+ `pages/discover/film.js`（长图画笔）+ `tests/map_film.test.js`。**水彩 SVG 不能喂 `drawImage`**（iOS 画不出来），长图是纯 Canvas 重画的；dpr 走 `canvas-deco.safeDpr` |
 | 主题令牌 | `app.wxss` 的 `.theme-*` 段 + `theme.js` 元数据 + `custom-tab-bar` **自己的 wxss**（组件是独立渲染树） |
 | 图形 / 图标 | `icons.js` / `deco.js`：只能 data-uri SVG，颜色在 JS 拼实色，**图形里不写中文** |
 | 页面新增 / 下线 | `app.json` 注册 + 入口可达（`tests/page_refs.test.js` 会拦孤立页）+ 挂在它身上的勋章标记 / 埋点由谁接手 |

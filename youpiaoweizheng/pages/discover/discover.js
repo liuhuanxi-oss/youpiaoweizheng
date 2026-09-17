@@ -18,6 +18,13 @@ const mapArt = require('../../utils/mapArt.js');
 const sk = require('../../utils/skeleton.js');
 const enter = require('../../utils/enter.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
+// 8.1.0 拉新 3/6「一键成片」：播放编排（纯逻辑，可真跑）、长图画笔、存相册
+const mapFilm = require('../../utils/mapFilm.js');
+const film = require('./film.js');
+const saveimg = require('../../utils/saveimg.js');
+const track = require('../../utils/track.js');
+const { safeDpr } = require('../../utils/canvas-deco.js');
+const share = require('../../utils/share.js');
 
 /** 地图上最多画几座城（超出的仍计入统计，只是不落点，否则气泡会糊成一片） */
 const MAX_CITIES = 12;
@@ -39,6 +46,8 @@ const SWAP_MS = 180;
 Page({
   data: {
     theme: 'paper',
+    // 朋友圈单页模式：那模式下拿不到身份、也跳不了页，本页会空得只剩空态 —— 换成品牌落地卡
+    sp: false,
     // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
     enter: true,
     refreshing: false, // 下拉刷新收口（scroll-view 的 refresher-triggered 读它）
@@ -71,10 +80,27 @@ Page({
     markers: [],     // 原生地图的图钉（一城一枚）
     mapPts: [],      // include-points：让原生地图自动缩放到装下全部图钉
     mapLat: 35,      // 没数据时的中心（中国中部）
-    mapLng: 105
+    mapLng: 105,
+
+    /* ===== 8.1.0 拉新 3/6「一键成片」=====
+       播放不是换一个页面，而是把**同一张地图卡**换个演法：气泡按到访先后一个接一个亮起。
+       所以这里没有第二份图形数据 —— 亮出来的就是 cities 里那几个（见 _filmTick）。 */
+    filmOn: false,   // 播放态：整页收起，只剩地图与底部那条 HUD
+    canFilm: false,  // 入口显不显示（规则见 utils/mapFilm.js 的 canPlay）
+    filmTotal: 0,    // 一共几站
+    filmIdx: 0,      // 已经走到第几站（0 = 还没开始）
+    filmNow: null,   // 当前这一站 {city, year, count, n}
+    filmLit: [],     // 已经亮起来的城（就是 cities 的子集，字段原样带着）
+    filmRoute: '',   // 已经走过的线（每亮一站重算一次，线是「一段段长出来」的）
+    filmPct: 0,      // 进度条百分比
+    filmDone: false, // 播完停在最后一帧（此时底部换成「存成长图」）
+    saving: false,   // 存图中（防连点：导出一次要几百毫秒）
+    scrollTop: 0     // 播放时把长页拉回顶部（卡片在顶上，不拉回去就播在半空里）
   },
 
   onLoad() {
+    // 8.1.0：本页开始对外分享（回忆地图的落点就是本页），单页模式判定由启动参数决定、全程不变
+    this.setData({ sp: share.sp() });
     // 「减弱动态效果」探测：只影响换层（别的动效在 CSS 里降级）。
     // 探测不到（老基础库）按「没开」处理：换层多一次淡变代价很小，
     // 反过来把动效当降级，用户看到的才是「点了半天不换」。
@@ -88,7 +114,15 @@ Page({
 
   onUnload() {
     if (this._swapT) { clearTimeout(this._swapT); this._swapT = null; }
+    this._stopFilmTimer();
     if (this._mqo) { try { this._mqo.disconnect(); } catch (e) { /* 忽略 */ } this._mqo = null; }
+  },
+
+  /** 本页是 tab 页：切走只触发 onHide、永远不触发 onUnload —— 播放必须在这里收口。
+   *  不收的话，切到别的 tab 它还在一站一站往下走（setData 到一张看不见的页上），
+   *  切回来时已经播完了 —— 用户看到的是「我还没看呢，它就演完了」。 */
+  onHide() {
+    this.stopFilm();
   },
 
   onShow() {
@@ -127,7 +161,10 @@ Page({
         close: iconSrc('close', m.text, 0.6),
         chevron: iconSrc('chevron', m.text, 0.4),
         empty: iconSrc('map', m.text, 0.28),
-        refresh: iconSrc('refresh', m.text, 0.28)
+        refresh: iconSrc('refresh', m.text, 0.28),
+        // 8.1.0 一键成片：play 压在玫瑰实底（--stamp 六主题同值）上恒白，download 画在浅底上取正文色
+        play: iconSrc('play', '#FFFFFF'),
+        download: iconSrc('download', m.text, 0.7)
       },
       deco: {
         sprig: deco.decoSrc('sprig', m),
@@ -204,9 +241,15 @@ Page({
       // 用 Map 不用普通对象：城市名叫 "constructor" 之类会在原型链上撞出脏值。
       this._byCity = new Map(cities.map((c) => [c.city, c.list]));
 
-      // 路线按「首次到访」先后串 —— 地图讲的是走过的顺序，不是票数
-      const ordered = cities.slice().sort((a, b) => String(a.first).localeCompare(String(b.first)));
-      const route = mapArt.routeSrc(ordered.map((c) => ({ lng: c.lng / c.count, lat: c.lat / c.count })));
+      // 路线按「首次到访」先后串 —— 地图讲的是走过的顺序，不是票数。
+      // 8.1.0「一键成片」的播放顺序与这条线**共用同一个编排**（mapFilm.frames）：
+      // 两处各排一次，迟早会出现「线是这么连的、片是那么演的」这种对不上的事。
+      const station = mapFilm.frames(cities);
+      const geoOf = new Map(cities.map((c) => [c.city, { lng: c.lng / c.count, lat: c.lat / c.count }]));
+      const route = mapArt.routeSrc(station.map((s) => geoOf.get(s.city)).filter(Boolean));
+      // 这两个都放实例字段：它们只驱动播放，不必进 data 白占 setData 的名额
+      this._station = station;
+      this._geo = geoOf;
 
       /* 原生地图的图钉：与水彩图同源（都吃真实经纬度），点标记也走同一套面板 */
       const markers = mapArt.markersOf(cities, themeUtil.getThemeMeta(themeUtil.getTheme()));
@@ -242,15 +285,20 @@ Page({
         // （气泡本来就写着城市名，它是重复信息，拥挤时先让位给气泡）
         pinLabels: cities.length <= PIN_LABEL_MAX,
         mapTip: mapTip,
+        // 「一键成片」的入口：少于两座城、或刚好是云兜底的演示城市，都不该露（见 mapFilm.canPlay）
+        canFilm: mapFilm.canPlay(cities, flags),
         netBar
       });
     } catch (e) {
       // 拉取失败：清空数据并立 error 标。页面据此显示「重试」——
       // 不能让它落进空态，空态说的是「你没有票根」，那是另一个意思
       // netBar 一并清掉：失败态自己已经带一个「重试」按钮，两条重试入口叠着显示只会让人犯迷糊
+      this._station = [];
       this.setData({
         cities: [], markers: [], mapPts: [], route: '',
-        total: 0, cityCount: 0, mapTip: '', error: true, netBar: null
+        total: 0, cityCount: 0, mapTip: '', error: true, netBar: null,
+        // 失败时地图上一座城都没有：成片入口必须跟着收掉，否则点进去是一段空旅程
+        canFilm: false
       });
     } finally {
       this.setData({ loading: false });
@@ -322,5 +370,148 @@ Page({
   },
 
   /** 空态：去票根墙收第一张 */
-  goHome() { wx.switchTab({ url: '/pages/home/home' }); }
+  goHome() { wx.switchTab({ url: '/pages/home/home' }); },
+
+  /* ============================================================
+     8.1.0 拉新 3/6「一键成片」
+     ------------------------------------------------------------
+     演的是同一张地图：气泡按**首次到访**的先后一个接一个亮起，线一段段接上，
+     底部一条 HUD 报「2019 · 北京 · 第 1 站」。演完停在最后一帧，给两个出口：
+     存长图 / 发给朋友。编排（顺序、跨度、长图版面）全在 utils/mapFilm.js ——
+     纯函数、可真跑，因为这三样错了都不报错（那边文件头写了为什么）。
+     ============================================================ */
+
+  /** 开演。减弱动态效果的用户直接给结局：一站一站闪过去反而更晃 */
+  startFilm() {
+    const station = this._station || [];
+    if (station.length < mapFilm.MIN_STOPS) return;
+    haptics.tap();
+    track.track('map_film', { stops: station.length });
+    this._stopFilmTimer();
+    this.setData({
+      filmOn: true, filmTotal: station.length, filmIdx: 0, filmNow: null,
+      filmLit: [], filmRoute: '', filmPct: 0, filmDone: false,
+      // 真地图那层是原生组件、画不了气泡：播放必须在「水彩」这层上演。
+      // 顺带把长页拉回顶部 —— 卡片在最上面，不拉回去就演在半空里。
+      view: 'art', scrollTop: 0
+    });
+    if (this._reduce) { this._filmTick(station.length); return; }
+    this._filmTick();
+    this._filmT = setInterval(() => this._filmTick(), mapFilm.FRAME_MS);
+  },
+
+  /** 走一站：亮出第 n 站，并重算已经走过的那条线 */
+  _filmTick(force) {
+    const station = this._station || [];
+    const n = force || this.data.filmIdx + 1;
+    if (n > station.length) { this._stopFilmTimer(); this.setData({ filmDone: true }); return; }
+    const lit = new Set(station.slice(0, n).map((s) => s.city));
+    const geoOf = this._geo || new Map();
+    // 线按到访先后连，只连已经亮起来的 —— 与 refresh 里那条完整路线同一个函数、同一份坐标
+    const route = mapArt.routeSrc(station.slice(0, n).map((s) => geoOf.get(s.city)).filter(Boolean));
+    this.setData({
+      filmIdx: n,
+      filmNow: station[n - 1],
+      // 亮出来的就是 cities 的子集（字段原样带着）—— 不另造一套气泡数据
+      filmLit: this.data.cities.filter((c) => lit.has(c.city)),
+      filmRoute: route,
+      filmPct: Math.round((n / station.length) * 100),
+      filmDone: n >= station.length
+    });
+    if (n >= station.length) this._stopFilmTimer();
+  },
+
+  /** 跳过播放：直接给结局。有人不想一站一站等，替他点完比让他干等强 */
+  skipFilm() {
+    if (!this.data.filmOn || this.data.filmDone) return;
+    haptics.tap();
+    this._stopFilmTimer();
+    this._filmTick((this._station || []).length);
+  },
+
+  /**
+   * 收掉播放。定时器必须清 —— 本页是 tab 页，切走只触发 onHide、永远不触发 onUnload，
+   * 不清的话切到别的 tab 它还在一站一站往下走（setData 到一张看不见的页上），
+   * 切回来已经演完了。onUnload 里也调一次（真被销毁时同理）。
+   */
+  stopFilm() {
+    this._stopFilmTimer();
+    if (!this.data.filmOn) return;
+    this.setData({
+      filmOn: false, filmIdx: 0, filmNow: null, filmLit: [],
+      filmRoute: '', filmPct: 0, filmDone: false
+    });
+  },
+
+  _stopFilmTimer() {
+    if (this._filmT) { clearInterval(this._filmT); this._filmT = null; }
+  },
+
+  /** 把这一段旅程存成一张长图（画法与版面见 pages/discover/film.js 与 utils/mapFilm.js） */
+  async saveFilm() {
+    if (this.data.saving) return;
+    const station = this._station || [];
+    if (!station.length) return;
+    this.setData({ saving: true });
+    wx.showLoading({ title: '生成图片中…', mask: true });
+    try {
+      const canvas = await this._ensureFilmCanvas();
+      if (!canvas) throw Object.assign(new Error('画布没建起来'), { msg: '生成失败，请重试' });
+      const fit = mapFilm.sheet(station.length);
+      // dpr 交给 canvas-deco.safeDpr 回夹：12 城那张长图逻辑高 1870，
+      // dpr 3 会得到 5610 —— 越过 iOS 单边 4096 就直接建不起画布（表现为保存失败）
+      const dpr = safeDpr(fit.w, fit.h, (wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2);
+      canvas.width = fit.w * dpr;
+      canvas.height = fit.h * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      film.render(ctx, {
+        fit,
+        total: this.data.cityCount,   // **全部**城市数，不是图上画得下的那几座（同底部署名的口径）
+        cities: station,
+        span: mapFilm.span(station),
+        tip: this.data.mapTip,        // 没落点/没画上来的城那句实话，长图照说
+        slogan: share.SLOGAN
+      });
+      const path = await saveimg.exportCanvas(canvas);
+      await saveimg.save(path);
+      wx.hideLoading();
+      haptics.confirm();
+      wx.showToast({ title: '已存入相册', icon: 'success' });
+      track.track('map_film_save', { stops: station.length, dpr });
+    } catch (e) {
+      wx.hideLoading();
+      // shown = 授权/取消那两种，saveimg 已经自己弹过窗了，再 toast 一个是叠着两个提示
+      if (!e || !e.shown) wx.showToast({ title: (e && e.msg) || '保存失败，请重试', icon: 'none' });
+    } finally {
+      this.setData({ saving: false });
+    }
+  },
+
+  /** 取长图的画布节点。节点由 wx:if 跟着播放态建，偶发取不到时重试几次（同 card 的做法） */
+  _ensureFilmCanvas(tryN) {
+    const n = tryN || 0;
+    return new Promise((resolve) => {
+      this.createSelectorQuery().select('#filmCanvas').fields({ node: true }).exec((res) => {
+        const node = res && res[0] && res[0].node;
+        if (node) return resolve(node);
+        if (n >= 3) return resolve(null);
+        // 这里碰的是画布节点，不是页面栈或弹窗，不受 page_timers 那条规则约束
+        setTimeout(() => this._ensureFilmCanvas(n + 1).then(resolve), 120);
+      });
+    });
+  },
+
+  /* ===== 分享：把这段旅程发给朋友（文案与封面见 utils/share.js 的 map 场景）===== */
+
+  onShareAppMessage() {
+    track.track('share_click', { from: 'map' });
+    return share.message('map', { cities: this.data.cityCount });
+  },
+
+  // 朋友圈只能带 query、落点固定本页；单页模式下由 spGate 落地卡接住（那模式下空地图是死的）
+  onShareTimeline() {
+    track.track('share_timeline', { from: 'map' });
+    return share.timeline('map', { cities: this.data.cityCount });
+  }
 });
