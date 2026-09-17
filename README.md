@@ -7,7 +7,7 @@
 |---|---|
 | `youpiaoweizheng/` | **小程序工程本体** —— 微信开发者工具打开这个目录，上传发版也是它 |
 | `有票为证最新品牌全案设计/` | 品牌全案与精修 10 屏设计稿（`精修/` 子目录），改版按它对稿 |
-| `docs/` | 需求 `PRD.md` ＋ 架构 `ARCH.md` ＋ 详细设计 `SDD.md` ＋ 测试与验收 `TEST.md` ＋ 项目总览 `OVERVIEW.md` ＋ 功能清单 `FEATURE.md`（另有两份历史快照：体检报告 `HEALTH.md`、代码审查 `REVIEW.md`） |
+| `docs/` | 需求 `PRD.md` ＋ 架构 `ARCH.md` ＋ 详细设计 `SDD.md` ＋ 测试与验收 `TEST.md` ＋ 项目总览 `OVERVIEW.md` ＋ 功能清单 `FEATURE.md` ＋ 动效标准 `MOTION.md`（另有两份历史快照：体检报告 `HEALTH.md`、代码审查 `REVIEW.md`） |
 | 根目录其余文件 | 品牌素材（logo / 海报 / 参考图）与早期方案文档，**不计入小程序包** |
 
 ## 接手先读（顺序别乱）
@@ -33,7 +33,7 @@ npm run preview:deco   # 本机把装饰图形渲成图看一眼，无需微信�
 ## 云开发
 
 - AppID `wx42ef98dfb4ecab23`，云环境 `cloud1-d5gpnyzjw64a60ac7`
-- 云函数两个：`recognizeTicket`（识别）/ `saveTicket`（入库、排序、文案、双人合并）
+- 云函数两个：`recognizeTicket`（OCR 识别）/ `saveTicket`（万能 action 路由 —— 入库、文案、双人、支付与额度、AI 重绘、积分签到、邀请、订阅召回、运维共 34 个 action，见 [docs/ARCH.md](docs/ARCH.md) §4.1）
 - 密钥类文件已在 `.gitignore` 内（`.env`、`*.key`、`secret/`），**不要提交**；自动上传所需的密钥填 `youpiaoweizheng/.env`（照抄 `.env.ci.example`）
 
 ## 给其他 AI 工具开通访问（豆包 / WorkBuddy / CodeBuddy 等）
@@ -52,5 +52,5 @@ npm run preview:deco   # 本机把装饰图形渲成图看一眼，无需微信�
 
 ## 约定
 
-- 一屏/一批改完 → 一个提交 → CHANGELOG 加一条（版本史不落队）
-- 上传发版时 `youpiaoweizheng/package.json` 的 `version` 就是小程序版本号（`scripts/ci/config.js` 读它），**必须递增**
+- 一屏/一批改完 → 一个提交 → CHANGELOG 加一条 → **`docs/` 各页头的「版本对齐」跟着换**（版本史与文档都不落队）
+- 上传发版时小程序版本号读的是 `youpiaoweizheng/.env` 的 `UPLOAD_VERSION`，`package.json` 的 `version` 只是兜底（`scripts/ci/config.js`）—— **两处一起改，且必须递增**（同名版本微信拒收）

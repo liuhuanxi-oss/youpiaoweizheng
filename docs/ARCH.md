@@ -1,6 +1,6 @@
 # 有票为证 · 架构与数据流（ARCH）
 
-> **版本对齐**：小程序 `7.1.0` ｜ **日期**：2026-09-12
+> **版本对齐**：小程序 `8.0.5` ｜ **日期**：2026-09-17
 > **本文件管什么**：这套小程序由哪几块组成、数据从哪来到哪去、改东西该动哪个文件。
 > **不管什么**：要做什么（见 [PRD.md](./PRD.md)）、怎么改不能碰（见 [`youpiaoweizheng/CODEBUDDY.md`](../youpiaoweizheng/CODEBUDDY.md) 项目宪法）。
 > **怎么用**：接手先看本文件的第 1、2 节；要动手改某条链路，直接跳到对应小节，路径都是现成的。
@@ -54,7 +54,7 @@
 
 ## 三、数据层：`utils/store.js`（读写票根的唯一入口）
 
-导出 9 项：`USE_CLOUD`、`listTickets`、`getTicket`、`addTicket`、`setCaption`、`removeTicket`、`isMockTicket`、`getSameOptOut`、`listFlags`。
+导出 10 项：`USE_CLOUD`、`listTickets`、`getTicket`、`addTicket`、`setCaption`、`removeTicket`、`isMockTicket`、`getSameOptOut`、`setSameOptOut`、`listFlags`。
 
 | 关注点 | 事实 |
 |---|---|
@@ -76,6 +76,10 @@
 | `sp_couple_cache` | utils/couple | 绑定关系缓存 |
 | `sp_track_events` | utils/track | 埋点环形缓冲（500 条） |
 | `sp_auth_time` | utils/auth | 会话时间戳（24h 新鲜度） |
+| `sp_ref_from` / `sp_ref_code` / `sp_ref_wait` | utils/invite | 邀请有礼（7.3.0）：待绑定的邀请人短码 / 我自己的短码 / 已绑定等对方传首票（结算一次即清） |
+| `sp_sub_state` | utils/subscribe | 订阅消息：哪天问过、被拒的时间戳（7.4.0；拒后静默 30 天） |
+| `sp_badge_seen` | pages/me | 上次已上报的勋章 id 列表——`badge_unlock` 埋点据此去重（7.4.0） |
+| `sp_guide_done` | pages/home | 新用户三步引导「只看一次」的已读标记（也进 setting 的清除清单） |
 | `fav_ids`、`sp_cap_style`、`sp_share_count`、`sp_first_saved`、`sp_art_quota`、`sp_art_total`、`sp_invite_sent`、`sp_poster_ab` | 各页面 | 收藏 / 卡面风格 / 分享计数 / 首次入库 / 重绘额度 / 邀请标记 / 海报 A/B |
 | `sp_map_visited` | pages/discover | 「足迹地图」勋章解锁依据（v7.0 由已下线的 pages/map 移交） |
 
@@ -93,12 +97,18 @@
 | `backfillGeo` | 老票根坐标回填（场馆级优先，退城市中心） | tickets |
 | `artRestyle` / `artQuery` | 启动 AI 重绘 / 轮询进度 | prefs(job)、云存储、tickets.artVersion |
 | `bind` / `duoStats` / `eventStats` | 双人绑定（create/join/query/unbind）/ 双人统计 / 同场计数 | couples（写）、只读 |
+| `refCode` / `refBind` / `refReward` | 邀请有礼（7.3.0）：取我的短码 / 绑定邀请人 / 对方上传首票后结算发奖 | prefs |
+| `dailySign` | 每日时光签：签到与查状态（判定与发奖全在服务端，端上只读） | prefs |
+| `pointsGet` / `pointsEarn` / `shareOpen` / `pointsRedeem` | 积分：查余额（含对外挣分规则）/ 端上行为上报（白名单只有「生成卡片」）/ 分享被打开的归因 / 兑换 AI 重绘（100 分、一天 1 次、幂等） | prefs |
+| `recallSave` | 订阅消息召回：授权成功后挂一条次日提醒（**真正发送在定时触发器里**，见下） | prefs |
 | `authLogin` | code2Session 换会话 | prefs |
 | `payCreate` / `payQuery` / `payConfirm` / `quotaGet` / `artRewardGrant` | 下单 / 查单对账 / 支付后发货 / 额度视图 / 激励视频奖励入账 | prefs（订单、额度） |
 | `profileGet` / `profileSave` / `profileClear` | 署名资料（昵称走内容安全） | prefs |
 | `wxacode` | 生成海报小程序码并缓存 | 云存储 + prefs |
-| `goodsImgSetup` / `opsCleanup` / `opsAudit` | 运维：道具图上传 / 上线前清理 / 只读巡检（需 opsToken） | 云存储、tickets、couples、prefs |
+| `goodsImgSetup` / `opsCleanup` / `opsAudit` / `opsRecall` | 运维：道具图上传 / 上线前清理 / 只读巡检 / 手动发一轮召回（需 opsToken，前端不调用） | 云存储、tickets、couples、prefs |
 | `reorder` / `reorderGroups` / `getGroupOrder` | 排序（客户端已不再调用，**为线上旧版保留**） | tickets / prefs |
+
+**定时触发器**是第三条入口：`saveTicket` 挂了一个每小时整点的 `recallTick`（7.4.0 订阅消息召回）。`miniprogram-ci` 的 `uploadFunction` 只传代码、不管触发器 —— 触发器没建**不报错也不留痕，只是永远不发**，所以 `scripts/ci/deploy-fns.js` 部署完会读各云函数 `config.json` 的 `triggers` 并调 `createTimeTrigger` 确保建成。
 
 **微信支付回调**是另一条入口（非 action）：`xpay_*` 事件。安全约束——带 `OPENID` 的调用一律拒绝（微信服务端推送不带用户上下文），发货前必须回查微信侧真实订单。改动这条链路等于动钱，见宪法第四节。
 
@@ -142,11 +152,12 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 
 ---
 
-## 六、视觉系统（三条硬规矩）
+## 六、视觉系统（四条硬规矩）
 
 | 规矩 | 原因 |
 |---|---|
 | **图标只能走 `utils/icons.js`** | 微信 WXML 不渲染内联 `<svg>`（子元素全丢，图标整组消失）；唯一可行方式是拼 data-uri SVG 塞进 `<image src>` |
+| **图形一律交 `utils/svg.js` 出 base64 data-uri** | 百分号编码（`data:image/svg+xml,` + `encodeURIComponent`）**开发者工具能看、真机整片不显示** —— 7.4.1 事故。`svg.js` 自己实现 base64 编码（真机不支持 `btoa`） |
 | **图形里不写中文** | `<image>` 里的 SVG 是独立文档，中文在 iOS/Android 字形回落不一致；邮戳、弧形城市名一律「图形走 SVG + 文字用真文本叠上去」 |
 | **颜色必须在 JS 里拼成实色** | SVG 不认 CSS 变量与 `currentColor`，`var()` 一律失效 |
 
@@ -159,11 +170,11 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 
 | 类别 | 在哪 | 说明 |
 |---|---|---|
-| 回归测试 | `tests/*.test.js`（35 套 / 824 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
+| 回归测试 | `tests/*.test.js`（35 套 / 837 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
 | 单屏预览 | `scripts/dev/preview-*.js` | 本机把卡面 / 年报 / 装饰图形渲成图或 HTML 先看一眼 |
 | 云函数部署 | `scripts/ci/deploy-fns.js` | `npm run deploy:fn`（CloudBase CLI 非交互） |
 | 上传提审 | `scripts/ci/` | `npm run upload` / `audit` / `audit:status` / `release`；`pipeline:dev` 串起「体积粗检 → 部署 → 上传」 |
-| 版本号 | `package.json` 的 `version` | 上传时由 `scripts/ci/config.js` 读取，**同名版本微信会拒收，必须递增** |
+| 版本号 | `.env` 的 `UPLOAD_VERSION`（`package.json` 的 `version` 只是兜底） | `scripts/ci/config.js` 读的是 `process.env.UPLOAD_VERSION \|\| 包版本` —— **只改 `package.json` 会在上传时被同名版本拒收**，两处一起升 |
 | 上传忽略 | `scripts/ci/config.js` 的 `uploadIgnores` | node_modules / .git / scripts / .env / **/*.md 等不进包 |
 | 密钥 | `.env`（照抄 `.env.ci.example`） | AppSecret、上传私钥、腾讯云密钥**不入仓库**；根 `.gitignore` 已挡 `.env`、`*.key`、`secret/` |
 
@@ -175,7 +186,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 2. **数据只从 `utils/store.js` 进出**，页面里不直接 `wx.cloud`。
 3. **双模式都要能跑**：云模式 + 演示模式（`USE_CLOUD=false`）。
 4. **不写假数据 / 假按钮**：演示内容必须标注「演示」（宪法第四节）。
-5. **改完要跑**：`node --check` 过语法 → `npm test` 全绿 → 同步 `CHANGELOG.md` 一条 + `package.json` 版本递增。
+5. **改完要跑**：`node --check` 过语法 → `npm test` 全绿 → 同步 `CHANGELOG.md` 一条 + 版本号递增（`.env` 的 `UPLOAD_VERSION` 与 `package.json` 的 `version` **两处一起**）→ **`docs/` 各页头的「版本对齐」跟着换**（这一条以前漏了，五份文档的页头因此停在 7.1.0 很久）。
 6. **禁区**（AppID / 云环境 / 支付订单逻辑 / 云数据库删改 / 密钥入库 / 关隐私检查）——详见 [CODEBUDDY.md](../youpiaoweizheng/CODEBUDDY.md) 第四节，动之前必须人工确认。
 
 ---
