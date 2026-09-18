@@ -458,8 +458,8 @@ Page({
       const canvas = await this._ensureFilmCanvas();
       if (!canvas) throw Object.assign(new Error('画布没建起来'), { msg: '生成失败，请重试' });
       const fit = mapFilm.sheet(station.length);
-      // dpr 交给 canvas-deco.safeDpr 回夹：12 城那张长图逻辑高 1870，
-      // dpr 3 会得到 5610 —— 越过 iOS 单边 4096 就直接建不起画布（表现为保存失败）
+      // dpr 交给 canvas-deco.safeDpr 回夹：12 城那张长图逻辑高 1928，
+      // dpr 3 会得到 5784 —— 越过 iOS 单边 4096 就直接建不起画布（表现为保存失败）
       const dpr = safeDpr(fit.w, fit.h, (wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2);
       canvas.width = fit.w * dpr;
       canvas.height = fit.h * dpr;

@@ -165,14 +165,30 @@ t('没有年份的城市不编年份（行首退成破折号）', () => {
   ok(svg.indexOf('——') >= 0, '无年份的行没有兜底符号');
   ok(svg.indexOf('乌鲁木齐') >= 0, '无年份的城被丢了');
 });
-t('城市一多就不在图上写城市名（名字在下面的年表里一个不少）', () => {
-  const many = mapFilm.frames(Array.from({ length: 12 }, (_, i) =>
-    city('城' + i, '20' + (10 + i) + '-01-01', 1, 100 + i * 40, 150 + i * 30)));
-  const svgMany = run({ total: 12, cities: many, span: mapFilm.span(many) });
-  const svgFew = run({ total: 4, cities: FOUR, span: mapFilm.span(FOUR) });
-  ok(svgMany.indexOf('城0') >= 0, '年表里都没写城市名，断言的前提不成立');
-  ok(svgFew.indexOf('>北京<') >= 0, '城少时图上应当写城市名');
+t('图上不写城市名（落点还在，名字只在年表里）', () => {
+  const svg = run({ total: 4, cities: FOUR, span: mapFilm.span(FOUR) });
+  // 年表里各写一次；图上再写一遍就是两次
+  const n = (s) => (svg.match(new RegExp('>' + s + '<', 'g')) || []).length;
+  ok(n('北京') >= 1, '年表里都没写城市名，断言的前提不成立');
+  // 写过一版：小字按落点固定偏移，正好压在折线上（8.1.0 撤掉）。回来了就红。
+  ok(n('北京') === 1 && n('乌鲁木齐') === 1,
+    '图上又把城市名写回来了 —— 它没有避让，会压在折线上');
   ok(mapFilm.MAX_ROWS >= 12, 'MAX_ROWS 比上游的 12 城还小，会有城画不上');
+});
+t('陆地（水彩中国）真的画出来了，且与页面上那张同一份国界', () => {
+  const geo = mapArt.stageLand();
+  ok(geo.border.length >= 90, '国界点数不对，可能被谁简化过：' + geo.border.length);
+  ok(geo.regions.length >= 10 && geo.isles.length === 2, '色块或两座岛的几何没出来');
+  ok(geo.border.every((p) => Number.isFinite(p[0]) && Number.isFinite(p[1])),
+    '国界里算出了非数（投影没兜住）');
+  ok(/^#[0-9a-fA-F]{6}$/.test(geo.pulp) && /^#[0-9a-fA-F]{6}$/.test(geo.rim),
+    '纸浆色或内沿色没配好：' + geo.pulp + ' / ' + geo.rim);
+  // 真画出来才算数：国界是这张图里唯一一条上百个拐点的闭合路径
+  const svg = run({ total: 4, cities: FOUR, span: mapFilm.span(FOUR) });
+  const ds = [...svg.matchAll(/ d="([^"]+)"/g)].map((m) => m[1]);
+  const big = ds.filter((d) => (d.match(/L/g) || []).length >= 90 && /Z$/.test(d));
+  ok(big.length > 0, '长图上没有那条国界路径 —— 陆地又没画');
+  ok(ds.length > 40, '路径总数太少，陆地大概只画了个底：' + ds.length);
 });
 t('没有版面就不画（不猜一个尺寸出来）', () => {
   let threw = false;

@@ -321,6 +321,40 @@ function landSrc(theme) {
     base + bleed + isles);
 }
 
+/**
+ * 陆地几何 → 舞台坐标 + 已配好的颜色（8.1.0「一键成片」的长图用）。
+ *
+ * 【为什么要有这个出口】长图画在 `<canvas>` 上，而 `landSrc()` 产出的是 SVG
+ *   data-uri —— **SVG 不能喂给 canvas**（iOS 上画不出来，安卓与开发者工具又画得出来，
+ *   典型的「工具里看着好、真机空白」）。
+ *   但陆地从来就是**纯数据**：`BORDER` 是 96 个经纬度点、两座岛是各自的闭合环、
+ *   色块是椭圆参数。投影完 canvas 直接能画，不必再画一份 —— 于是长图与页面上的水彩
+ *   中国是**同一份国界**：以后改国界只改这一个文件，不会「页面上改了、长图还是老的」。
+ *
+ * 颜色一并配好（纸浆 / 内沿）：`shade(pulp, lum…)` 那一句判深浅的写法只有一份。
+ */
+function stageLand() {
+  const k = STAGE_W / ART_W;                                  // 用户单位 → 舞台 rpx
+  const pt = (p) => { const q = toStage(p[0], p[1]); return [q.x, q.y]; };
+  const blob = (r) => {
+    const q = toStage(r.lng, r.lat);
+    return { x: q.x, y: q.y, rx: r.rx * k, ry: r.ry * k, rot: r.rot, fill: r.fill, op: r.op };
+  };
+  const pulp = PULP_FALLBACK;
+  return {
+    pulp: pulp,
+    rim: shade(pulp, lum(pulp) > 0.55 ? -0.22 : 0.26),
+    border: BORDER.map(pt),
+    regions: REGIONS.map(blob),
+    isles: [[HAINAN_RING, HAINAN], [TAIWAN_RING, TAIWAN]].map(([ring, blk]) => ({
+      ring: ring.map(pt),
+      blob: blob(blk)
+    })),
+    RIM: RIM,
+    BLEED: BLEED
+  };
+}
+
 /** 保留两位小数（透明度用） */
 function round2(n) { return Math.round(n * 100) / 100; }
 
@@ -565,6 +599,7 @@ function toUri(w, h, body) {
 
 module.exports = {
   landSrc,
+  stageLand,
   routeSrc,
   stampSrc,
   toStage,

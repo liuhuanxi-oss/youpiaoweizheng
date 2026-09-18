@@ -5,12 +5,21 @@
 //   不碰 wx、不碰 setData，可以在 Node 里用一支「录画笔」真跑一遍（tests/map_film.test.js），
 //   版式改坏、算出一个 NaN 的坐标，测试当场就红，而不是等用户存出来一张花图。
 //
-// 【图上画什么】三块：抬头（走过多少座城）、轨迹图、年表。
-//   轨迹图**不是**地图页那张水彩中国的翻拍 —— 那张中国轮廓是 mapArt 拼出来的 SVG，
-//   而 SVG **不能**喂给 canvas 的 drawImage（iOS 上画不出来，安卓/工具上又画得出来，
-//   典型的「工具里看着好、真机空白」）。这里改用 canvas 自己的笔重画：
-//     每座到过的城落一团同色的水彩晕（位置就是它在地图上那个落点），
-//     再用一条线按到访先后把它们串起来。颜色在哪儿，你就去过哪儿 —— 说的是同一件事。
+// 【图上画什么】三块：抬头（走过多少座城）、地图、年表。
+//   地图 = **同一份水彩中国**（国界与色块都是 mapArt 的数据，见下）+ 每座到过的城
+//   一团同色水彩晕 + 一条按到访先后串起来的虚线 + 白芯落点。颜色在哪儿，你就去过哪儿。
+//
+// 【陆地怎么来的 —— 8.1.0 修】原先这里没画陆地，只有一堆圆环飘在空白纸上，
+//   存下来的图看不出是哪儿。当初不画的理由是「SVG 不能喂给 canvas 的 drawImage」
+//   —— 这条是对的（iOS 上画不出来，安卓/工具上又画得出来，典型的「工具里看着好、
+//   真机空白」），但**结论下错了**：不能喂的是 landSrc() 产出的 SVG 字符串，
+//   而陆地本身在 mapArt 里就是纯数据（96 个经纬度点 + 两座岛的闭合环 + 椭圆的色块）。
+//   投影完 canvas 直接能画，于是改成画路径 —— 长图与页面用的是同一份国界。
+//
+// 【图上不写城市名】8.1.0 起不写。写过一版：小字按落点固定偏移，压在折线上，
+//   城一挤就是一层白底碎字（页面上的气泡有 layoutBubbles 避让，那套是给气泡算的，
+//   尺寸形状都不同，抄不过来）。城市名与年份、张数在下面的年表里一个不少 ——
+//   图上只留落点，反而干净。
 //
 // 【调色不跟主题走】与年报海报一致（见 pages/annual/poster.js 的 C 那段）：
 //   存进相册的图要质感统一，六套主题各出一个版本没有意义。这两份色值刻意各自持有一份。
@@ -25,9 +34,10 @@ const C = {
   leaf: '#A9C3A6'
 };
 const PAD = 66;                 // 左右留白（与 mapFilm.sheet 的 750 宽配套）
-const CITY_LABEL_MAX = 8;       // 轨迹图上最多给几座城写名字：城一多，小字就是糊住线的碎字
-                                // （与地图页 PIN_LABEL_MAX 同一个道理，那边是怕压气泡）
 const SPRIG_PAL = { leaf: C.leaf, petal: C.petal, gold: C.gold };
+// 陆地几何是**静态**的（国界、色块都写死在 mapArt 里），算一次就够 ——
+// 每存一张图重算 96 个投影点没有意义。
+const LAND = mapArt.stageLand();
 
 /** 十六进制 → rgba(...)：水彩晕要半透明，而 bubbleColor 给的是实色 */
 function withAlpha(hex, a) {
@@ -68,7 +78,6 @@ function render(ctx, v) {
 
   masthead(ctx, d, fit, W);
   trail(ctx, cities, fit.map);
-  if (cities.length <= CITY_LABEL_MAX) cityLabels(ctx, cities, fit.map);
   ledger(ctx, cities, d, fit);
   foot(ctx, d, fit, W);
 
@@ -107,6 +116,9 @@ function trail(ctx, cities, box) {
 
   // 底子：先铺一团浅色水彩代表「这片地方」
   watercolorBlob(ctx, box.x + box.w / 2, box.y + box.h / 2, box.w * 0.66, 'rgba(226,184,92,0.10)');
+
+  // 陆地：水彩中国（与页面上那张同源），画在晕与线下面
+  land(ctx, box);
 
   // 每座城一团自己的颜色（就是地图上那颗气泡的颜色）
   pts.forEach((p) => {
@@ -147,24 +159,77 @@ function trail(ctx, cities, box) {
 }
 
 /**
- * 落点旁的城市名。只在城不多时画 —— 名字在下面的年表里一个不少，
- * 轨迹图上再写一遍，城一多就是压住线的一层碎字。
+ * 一团椭圆水彩：外层大而淡、内层小而浓，边界于是「化」开而不是一刀切
+ * （页面上 mapArt.regionSvg 就是这么两层的，这里同构）。
+ * 椭圆与旋转靠画布变换实现 —— canvas-deco.watercolorBlob 只画正圆。
  */
-function cityLabels(ctx, cities, box) {
-  const k = box.w / mapArt.STAGE_W;
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.font = '22px sans-serif';
-  cities.forEach((c) => {
-    const x = box.x + c.x * k;
-    const y = box.y + c.y * k + 34;     // 写在落点下方，避开圆环
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    const w = ctx.measureText(c.city).width;
-    ctx.fillRect(x - w / 2 - 6, y - 20, w + 12, 28);
-    ctx.fillStyle = C.soft;
-    ctx.fillText(c.city, x, y);
+function blobAt(ctx, r, box, k) {
+  const rx = r.rx * k, ry = r.ry * k;
+  if (!(rx > 0) || !(ry > 0)) return;
+  [[1.16, 0.45], [0.88, 1]].forEach((pair) => {
+    ctx.save();
+    ctx.translate(box.x + r.x * k, box.y + r.y * k);
+    ctx.rotate(((r.rot || 0) * Math.PI) / 180);
+    ctx.scale(1, ry / rx);
+    watercolorBlob(ctx, 0, 0, rx * pair[0], withAlpha(r.fill, r.op * pair[1]));
+    ctx.restore();
   });
+}
+
+/**
+ * 陆地：外晕（沿国界往外描两道淡边）→ 纸浆底 → 色块（裁在国界里）→ 内沿积色。
+ * 几何与配色全部来自 mapArt.stageLand()，这里只负责画 —— 界在哪儿、色配成什么，
+ * 与页面上那张水彩中国是同一份，不是各写一套。
+ */
+function land(ctx, box) {
+  const k = box.w / mapArt.STAGE_W;
+  const X = (p) => box.x + p[0] * k;
+  const Y = (p) => box.y + p[1] * k;
+  const trace = (pts) => {
+    ctx.beginPath();
+    ctx.moveTo(X(pts[0]), Y(pts[0]));
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(X(pts[i]), Y(pts[i]));
+    ctx.closePath();
+  };
+  /** 内沿：颜料被水推到边沿积成的那道深圈 —— 「一眼看出这是块陆地」靠的是它 */
+  const rim = (pts) => LAND.RIM.forEach((r) => {
+    trace(pts);
+    ctx.strokeStyle = withAlpha(LAND.rim, r.op);
+    ctx.lineWidth = r.w * k;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  });
+
+  ctx.save();
+  ctx.lineJoin = 'round';
+  LAND.BLEED.forEach((b) => {
+    trace(LAND.border);
+    ctx.strokeStyle = withAlpha(LAND.pulp, 0.2 * b.op);
+    ctx.lineWidth = b.w * k;
+    ctx.stroke();
+  });
+  trace(LAND.border);
+  ctx.fillStyle = withAlpha(LAND.pulp, 0.9);
+  ctx.fill();
+  trace(LAND.border);
+  ctx.clip();
+  LAND.regions.forEach((r) => blobAt(ctx, r, box, k));
+  rim(LAND.border);
   ctx.restore();
+
+  // 两座岛各自带自己的裁剪圈：它们的经纬度落在国界路径**以外**，
+  // 跟着大陆一起裁就是「代码里有、图上一个像素都没有」（页面上踩过这个坑）
+  LAND.isles.forEach((isle) => {
+    ctx.save();
+    ctx.lineJoin = 'round';
+    trace(isle.ring);
+    ctx.fillStyle = withAlpha(LAND.pulp, 0.9);
+    ctx.fill();
+    ctx.clip();
+    blobAt(ctx, isle.blob, box, k);
+    rim(isle.ring);
+    ctx.restore();
+  });
 }
 
 /** 年表：一年一座城一行，年份 · 城市 · 张数；末尾交代没画上来的城 */
@@ -237,4 +302,4 @@ function foot(ctx, d, fit, W) {
   ctx.fillText('每一座城，都有一张票为证', W / 2, f.y + 116);
 }
 
-module.exports = { render, C, withAlpha, safeDpr, CITY_LABEL_MAX };
+module.exports = { render, C, withAlpha, safeDpr };

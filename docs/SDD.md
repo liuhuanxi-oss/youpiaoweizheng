@@ -134,11 +134,11 @@
 | `sign.js` (2) | `status`、`checkIn`、`bannerText`、`rewardText` | 端上只读：判定与发奖都在服务端；`checkIn` 第一句是**同步发起**订阅授权；基础分数字只认服务端随状态下发的 `base`；演示模式 `status` 返回 null，整块不渲染 | env、subscribe |
 | `badges.js` (1) | `computeBadges(ts, coupleInfo, shareCount, mapVisited, inviteSent, server)` | 16 枚勋章阈值见 §6.5；后三枚读服务端（`server = {streak, lifetime}`），取不到时只说门槛、不编进度 | mock |
 | `geo.js` (1) | `haversine(a,b)`、`totalKmOf(sortedTickets)` | 地球半径 6371 km | — |
-| `mapArt.js` (1) | `landSrc`、`routeSrc`、`stampSrc`、`toStage(lng,lat)`、`layoutBubbles`、`markersOf`、`bubbleColor`、`bubbleWidth`、`ART_W` / `ART_H` / `STAGE_W` / `STAGE_H` | 水彩中国投影：经度 73.4–135.1、纬度 17.8–53.6，标准纬线 35°；`ART 640×620` / `STAGE 666×645` | — |
+| `mapArt.js` (1) | `landSrc`、`stageLand`、`routeSrc`、`stampSrc`、`toStage(lng,lat)`、`layoutBubbles`、`markersOf`、`bubbleColor`、`bubbleWidth`、`ART_W` / `ART_H` / `STAGE_W` / `STAGE_H` | 水彩中国投影：经度 73.4–135.1、纬度 17.8–53.6，标准纬线 35°；`ART 640×620` / `STAGE 666×645`。`landSrc` 出的是 **SVG 字符串**（给 `<image>` 用），`stageLand` 出的是**同一份几何的舞台坐标 + 配好色的纯数据**（给 Canvas 用）：国界、色块、两座岛、纸浆色与内沿。**不能喂给 `drawImage` 的是 SVG 字符串，不是这份陆地** | — |
 | `memory.js` (1) | `onThisDay(ts, now)`、`label(hit)`、`row(ts, now)`、`bjDay(now)` | 那年今天：同月同日 + 更早年份，多条取最近那一年；固定 UTC+8；没命中返回 null（不编回忆） | — |
 | `legacy.js` (1) | `row(ts, flags, now)`、`YEARS=5`、`bjYear(now)` | 老票根专场入口那一行该不该显示：云兜底（`flags.netFallback`）不显示、一张票都没有不显示、已有五年前的票不显示；年份口径固定 UTC+8 | — |
 | `saveimg.js` (1) | `exportCanvas(canvas)`、`save(filePath)`、`guideAuth()` | 相册授权的**公共实现**（8.1.0 起新代码一律走这里，不许再抄一份）：被拒 → 弹「去设置」并 `openSetting`；用户主动取消 → 静默；真失败 → 给人话。失败对象带 `shown` 标记，调用方据此决定要不要再弹自己的 toast（不叠两个提示） | — |
-| `mapFilm.js` (1) | `canPlay(cities, flags)`、`frames(cities)`、`span(fs)`、`sheet(rows)`、`yearOf(date)`、`MIN_STOPS` / `FRAME_MS` / `MAX_ROWS` / `SHEET_W` / `MAP_W` / `MAP_H` | 一键成片的**唯一编排**：站点顺序按首次到访升序、同日以城市名为第二把钥匙（否则两次播放顺序会飘）、无日期排最后且不编年份；不足两站或云兜底（`flags.netFallback`）不给播；长图版面纯算高度（12 城 750×1870，dpr 2 不越 iOS 单边 4096）。`pages/discover/film.js` 是配套画笔，与 `pages/annual/poster.js` 同一写法（纯 Canvas、不碰 wx） | mapArt |
+| `mapFilm.js` (1) | `canPlay(cities, flags)`、`frames(cities)`、`span(fs)`、`sheet(rows)`、`yearOf(date)`、`MIN_STOPS` / `FRAME_MS` / `MAX_ROWS` / `SHEET_W` / `MAP_W` / `MAP_H` | 一键成片的**唯一编排**：站点顺序按首次到访升序、同日以城市名为第二把钥匙（否则两次播放顺序会飘）、无日期排最后且不编年份；不足两站或云兜底（`flags.netFallback`）不给播；长图版面纯算高度（上游按 12 城封顶，12 城 750×1928，dpr 2 = 3856 不越 iOS 单边 4096；`MAX_ROWS=20` 是保险丝，真到那一步宁可图软也不崩）。`pages/discover/film.js` 是配套画笔，与 `pages/annual/poster.js` 同一写法（纯 Canvas、不碰 wx） | mapArt |
 | `svg.js` (0) | `toDataUri(svg)`、`b64(str)` | 图形工厂唯一的出口；**必须 base64** —— 百分号编码在开发者工具里正常、真机上整片不显示 | — |
 | `weather.js` (1) | `weatherText(w)`、`weatherHint(w)` | WMO 码表 28 项；体感分界 5 / 14 / 30 ℃；`w` 为空一律返回空串（不造假） | — |
 | `subscribe.js` (经 sign) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` | 一次性订阅：授权→次日一条，没有「开关」；当前 `TMPL_ID` 为空 = 一次都不请求；`askIfDue` 必须在点击回调里同步发起；被拒后 30 天静默（环境类失败不进静默期） | env |
@@ -335,6 +335,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 - 产物尺寸：插画 `ART_W×ART_H = 640×620`，舞台 `STAGE_W×STAGE_H = 666×645`；
 - **国界 101 个控制点**（`BORDER`，8.0.5 实测；99d0e68 的提交说明写 96，代码为准）+ 海南 / 台湾两条独立轮廓环（8 点 / 9 点）。点少到 48 时，Catmull-Rom 过点平滑会把蒙古的凹陷、渤海与辽东 / 山东半岛、雷州半岛与西双版纳的尖角**修圆成丘陵**——这三处正是「一眼认出中国」的地方。两块岛**必须画在大陆裁剪域之外**：它们的坐标本就在大陆轮廓外，放进 `<g clip-path="url(#cn)">` 会被静默裁掉（v7.0–7.4.0 的海南就是这么消失的）。改这一处请开 `node scripts/dev/preview-map.js` 看一眼；
 - **边缘沉积**：国界描粗、裁剪在陆地**内侧**，只让内缘一圈变深（真实水彩的边界比中心深）。浅色主题（`minimal` 的 #F5F5F5 落在 #FFFFFF 卡片上）靠它才看得见，底色不透明度 0.9；
+- **同一份几何的第二个出口 `stageLand()`**（8.1.0 加）：`landSrc()` 出的是 SVG 字符串（给 `<image>`），`stageLand()` 出的是**舞台坐标 + 配好色的纯数据**（`border` / `regions` / `isles` / `pulp` / `rim` / `RIM` / `BLEED`），给 Canvas 用（一键成片的长图）。**不能喂 `drawImage` 的是 SVG 字符串，不是这份陆地** —— 长图由此与页面上那张共用同一份国界，改投影两边一起变；
 - `toStage(lng, lat)` 对脏值返回 `null`，**绝不返回 NaN**（NaN 进 data-uri 会整图崩）；
 - 气泡避让（`layoutBubbles`）：只推气泡（push / below 两条出路），**绝不挪落点**；避让算法用数值加法，禁止 `toFixed` 参与坐标计算（返回字符串会拼出 `"391"+16="39116"`——v7.0 修过的真实 bug）；
 - 避让的落位判据是**重叠面积**而不是「压没压住」：满图 12 城时东部沿海物理上就塞不下（105°E 以东 5 座城，横排只够 2 颗），是非题只能回答「哪个位置都不行」→ 随便选一个 → 整块糊住。量面积才能挑出「糊得最轻」的位置（最惨一处从整颗气泡的 53% 降到 24%）。**气泡宽度由 JS 下发到行内 style**：气泡绝对定位、父级 0 尺寸，收缩宽度会被 `min-width` 钉死，避让会量到一个不存在的盒子（四字名折行，实测与算法差 8×26rpx）；
@@ -443,7 +444,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 积分规则 / 上限 | `POINTS_RULES` + `SIGN_MILESTONES` + `POINTS_PER_ART` + `CLIENT_EARN_REASONS` + **`PUBLIC_RULE_KEYS`**（只公开 sign / upload / card；share 与 invite 照发不误但不对外展示）+ 端上 `points.js` 的 `RULE_LABEL`（两处同时改，否则界面上摆的是假规则） |
 | 邀请码 / 短码 | 端上 `invite.js`（三个 `sp_ref_*` key 与分享 path 的 `?ref=`）+ `saveTicket` 的 R6 段四道防刷闸 + `couples` 的 4 位码与 7 天惰性过期 + `wxacode` 要收 `ref`（漏传则归因永远算不到邀请人头上）+ 分享卡的 `shareOpen` 归因（码属于分享人） |
 | 坐标 / 地图 | §6.2 三级来源 + `mapArt.js`（水彩与真地图同源，两处都要动）+ `tests/discover_map.test.js` |
-| 一键成片 | `mapFilm.js`（编排与版面，纯函数）+ `pages/discover/film.js`（长图画笔）+ `tests/map_film.test.js`。**水彩 SVG 不能喂 `drawImage`**（iOS 画不出来），长图是纯 Canvas 重画的；dpr 走 `canvas-deco.safeDpr` |
+| 一键成片 | `mapFilm.js`（编排与版面，纯函数）+ `pages/discover/film.js`（长图画笔）+ `tests/map_film.test.js`。**水彩 SVG 不能喂 `drawImage`**（iOS 画不出来），陆地走 `mapArt.stageLand()` 出纯数据、长图拿 Canvas 路径重画（**与页面上那张同一份国界**，改一边两边都变）；dpr 走 `canvas-deco.safeDpr`。改动后**必须先出图肉眼看一眼**（`scripts/dev/preview-film.js`）—— 图上少画一块、地名压线、地图偏小这三类错**都不报错也不掉测试** |
 | 主题令牌 | `app.wxss` 的 `.theme-*` 段 + `theme.js` 元数据 + `custom-tab-bar` **自己的 wxss**（组件是独立渲染树） |
 | 图形 / 图标 | `icons.js` / `deco.js`：只能 data-uri SVG，颜色在 JS 拼实色，**图形里不写中文** |
 | 页面新增 / 下线 | `app.json` 注册 + 入口可达（`tests/page_refs.test.js` 会拦孤立页）+ 挂在它身上的勋章标记 / 埋点由谁接手 |
