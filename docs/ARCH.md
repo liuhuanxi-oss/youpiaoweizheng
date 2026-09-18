@@ -107,7 +107,7 @@
 | `authLogin` | code2Session 换会话 | prefs |
 | `payCreate` / `payQuery` / `payConfirm` / `quotaGet` / `artRewardGrant` | 下单 / 查单对账 / 支付后发货 / 额度视图 / 激励视频奖励入账 | prefs（订单、额度） |
 | `profileGet` / `profileSave` / `profileClear` | 署名资料（昵称走内容安全） | prefs |
-| `wxacode` | 生成海报小程序码并缓存 | 云存储 + prefs |
+| `wxacode` | 生成小程序码并缓存。默认是海报码（落首页，可带邀请短码）；传 `kind: 'sign'`（8.1.0）出**线下立牌码**：scene = `b=sign`、落地页 `pages/scan/scan` **写死在函数里**（客户端指定不了 page） | 云存储 + prefs |
 | `goodsImgSetup` / `opsCleanup` / `opsAudit` / `opsRecall` | 运维：道具图上传 / 上线前清理 / 只读巡检 / 手动发一轮召回（需 opsToken，前端不调用） | 云存储、tickets、couples、prefs |
 | `reorder` / `reorderGroups` / `getGroupOrder` | 排序（客户端已不再调用，**为线上旧版保留**） | tickets / prefs |
 

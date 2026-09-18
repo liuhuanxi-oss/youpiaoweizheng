@@ -22,7 +22,7 @@
 |---|---|---|
 | 上传照片 | `pages/scan`、`pages/me` | `uploadFile` → 票根图 `tickets/{时间戳}-{6 位随机}.jpg`、头像 `avatar/a{时间戳}{随机}.{ext}`，再把 fileID 交给云函数 |
 | 取临时链接 | `pages/annual`、`pages/art`、`pages/card` | 只对 `cloud:` 开头的 fileID 调 `getTempFileURL`（链接 24 小时有效） |
-| 直调云函数 | `pages/scan`（recognizeTicket）/ `pages/art`（artRestyle、artQuery）/ `pages/card`（wxacode）/ `pages/detail`（checkText、eventStats） | 单次动作，不经过数据层 |
+| 直调云函数 | `pages/scan`（recognizeTicket）/ `pages/art`（artRestyle、artQuery）/ `pages/card`、`pages/sign`（wxacode）/ `pages/detail`（checkText、eventStats） | 单次动作，不经过数据层 |
 
 碰云的 utils 共 10 个：`store`（票根，含删票时删云存储照片）、`couple` 与 `duoData`（双人）、`pay` 与 `auth`（支付、登录会话）、`ai`（端上大模型，走 `wx.cloud.extend.AI`，不调云函数）、`invite`（邀请归因）、`points`（积分）、`sign`（时光签）、`subscribe`（订阅授权回报）。
 
@@ -85,6 +85,7 @@
 | `groupOrder` | 分组排序序 | `labels` |
 | `wxacode_poster` | 海报小程序码缓存 | `fileID`（全局一份，不带 `_openid`） |
 | `wxacode_ref` | 带邀请短码的码缓存（按码各一份） | `code`、`fileID` |
+| `wxacode_sign` | 线下立牌码缓存（全局一份，8.1.0） | `fileID` |
 | `ref_code` | 我的邀请短码（每人一条，幂等） | `code`、`createdAt` |
 | `ref_link` | 邀请归因（谁邀请了谁，`_openid` = 被邀请人，每人一条） | `code`、`inviter`、`status`（`pending` → `settled`；绑定时已有票根则直接 `stale` 只归因不发奖）、`hadTickets`、`settledAt` |
 | `daily_sign` | 每日时光签（7.4.0 A 段） | `ymd`、`streak`、`best`、`total` —— 判定与发奖在服务端，按北京时间换天 |
@@ -100,7 +101,7 @@
 
 ### 2.5 云存储
 
-- 票根原图路径 `tickets/{Date.now()}-{6 位随机}.jpg`；头像 `avatar/a{Date.now()}{4 位随机}.{ext}`；AI 重绘产物 `art/art-{时间戳}-{随机}.png`；海报小程序码 `wxacode/poster-{码或 all}-{时间戳}.png`；
+- 票根原图路径 `tickets/{Date.now()}-{6 位随机}.jpg`；头像 `avatar/a{Date.now()}{4 位随机}.{ext}`；AI 重绘产物 `art/art-{时间戳}-{随机}.png`；海报小程序码 `wxacode/poster-{码或 all}-{时间戳}.png`；线下立牌码 `wxacode/sign-{时间戳}.png`（8.1.0）；
 - **删票根会连照片一起删**（`utils/store.js` 的 `removeTicket` → `deleteCloudFile`，7.4.3 补 `img`、8.0.4 补 `artVersion.fileID`）：先 `get()` 拿两个 fileID 再删记录，最后逐个 `wx.cloud.deleteFile`。删除失败只落 `console.warn` 留孤儿图，不让收尾动作把「删票成功」变成报错（已知债，见 `docs/HEALTH.md` §5.3）。
 
 ---
@@ -180,7 +181,7 @@
 | `reorder` | `orders[{id, sortAt}]`（截 200 条） | 组内重排，写 `sortAt`；**为线上旧版保留** |
 | `reorderGroups` | `labels[]` | 写 `prefs.groupOrder`；同上 |
 | `getGroupOrder` | — | 读 `prefs.groupOrder` |
-| `wxacode` | `ref`（我的邀请短码，可空） | 生成海报小程序码 → 云存储 + 缓存（无 `ref` 存 `prefs.wxacode_poster` 全局一份；带 `ref` 存 `wxacode_ref` 按码一份，scene = `b=poster&r={ref}` 供落地页归因） |
+| `wxacode` | `ref`（我的邀请短码，可空）、`kind`（`'sign'` = 线下立牌码，可空） | 生成小程序码 → 云存储 + 缓存（无 `ref` 存 `prefs.wxacode_poster` 全局一份；带 `ref` 存 `wxacode_ref` 按码一份，scene = `b=poster&r={ref}` 供落地页归因）。**`kind='sign'`**（8.1.0）走立牌码：scene = `b=sign`、缓存 `prefs.wxacode_sign` 全局一份、**落地页 `pages/scan/scan` 写死在云函数里** —— 码的 `page` 一旦由客户端决定，谁都能拿它生成一张跳到任意页面的码 |
 | `backfillGeo` | — | 老票根坐标回填（场馆级优先，退城市中心），批量写 `tickets` |
 | `artRestyle` | `ticketId` | 建 `art_job`（先 `reserving` 占位，CAS 抢占转 `running`）→ 出图 → `tickets.artVersion`；额度不足返回不可用；同票已有 `running` 不重复发起，僵尸 job 由下一次调用回收（见 §5.2） |
 | `artQuery` | `ticketId` | `{ok, status:'none'\|'running'\|'done'\|'failed', fileID?, msg?}` |
@@ -445,6 +446,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 邀请码 / 短码 | 端上 `invite.js`（三个 `sp_ref_*` key 与分享 path 的 `?ref=`）+ `saveTicket` 的 R6 段四道防刷闸 + `couples` 的 4 位码与 7 天惰性过期 + `wxacode` 要收 `ref`（漏传则归因永远算不到邀请人头上）+ 分享卡的 `shareOpen` 归因（码属于分享人） |
 | 双人邀请 / 绑定落地 | `pages/bind`（三态：confirm / done / error，done 再分「有票 / 没票」两支）+ `couple.joinByCode`（**称呼选填**，空则云端默认 TA）+ `pages/duo` 的 `_mineCount` → `share.js` 的 duo 三档文案 + `tests/duo_invite.test.js`。两条口径别写反：**「先不填」仍然往下走**（不是中止）；**云兜底的演示票根不算用户的**（既不能据此推「去收第一张」，也不能算进 `mine` 报出去） |
 | 坐标 / 地图 | §6.2 三级来源 + `mapArt.js`（水彩与真地图同源，两处都要动）+ `tests/discover_map.test.js` |
+| 场馆立牌 | `signBoard.js`（版面与文案，纯函数）+ `pages/sign/board.js`（立牌画笔）+ `tests/sign_board.test.js` + `saveTicket` 的 `wxacode` 要收 `kind='sign'`。码的落地页**写死在云函数里**（`pages/scan/scan`），端上指定不了 —— 有别于分享码落首页；`pages/scan` 的入档返回必须有 `fail` 兜底（页面栈里只有它一页时 `navigateBack` 静默失败）。改动后**必须先出图看一眼**（`node scripts/dev/preview-sign.js [标题]`，码位是灰方块占位）—— 标题被裁边、码压住号召语、页脚冲出纸边这三类错**都不报错也不掉测试** |
 | 一键成片 | `mapFilm.js`（编排与版面，纯函数）+ `pages/discover/film.js`（长图画笔）+ `tests/map_film.test.js`。**水彩 SVG 不能喂 `drawImage`**（iOS 画不出来），陆地走 `mapArt.stageLand()` 出纯数据、长图拿 Canvas 路径重画（**与页面上那张同一份国界**，改一边两边都变）；dpr 走 `canvas-deco.safeDpr`。改动后**必须先出图肉眼看一眼**（`scripts/dev/preview-film.js`）—— 图上少画一块、地名压线、地图偏小这三类错**都不报错也不掉测试** |
 | 主题令牌 | `app.wxss` 的 `.theme-*` 段 + `theme.js` 元数据 + `custom-tab-bar` **自己的 wxss**（组件是独立渲染树） |
 | 图形 / 图标 | `icons.js` / `deco.js`：只能 data-uri SVG，颜色在 JS 拼实色，**图形里不写中文** |

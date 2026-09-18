@@ -175,12 +175,17 @@ t('勋章只在「我的」算一次（设置页不再残留）', () => {
   ok(!/computeBadges/.test(stJs), 'setting.js 仍在算勋章');
   ok(!/LS_SHARE/.test(stJs), 'setting.js 仍读分享计数');
 });
-t('设置页只剩真正的设置：协议 / 关于 / 清除', () => {
+t('设置页只留「不常点、但找得到」的东西：协议 / 关于 / 立牌 / 清除', () => {
   ok(!/listTickets/.test(stJs), 'setting.js 还在拉票根列表 —— 那说明有内容没迁走');
   const rows = /const ROWS = \[([\s\S]*?)\n\];/.exec(stJs);
   ok(rows, '找不到 ROWS');
   const keys = [...rows[1].matchAll(/key: '(\w+)'/g)].map((m) => m[1]);
-  ok(JSON.stringify(keys) === JSON.stringify(['privacy', 'terms', 'about', 'clear']), '实际：' + keys.join('/'));
+  // 8.1.0 加了一行 sign（合作场馆立牌）：它是**运营工具**，只有作者本人用，
+  // 放进「我的」那两个常驻入口会白占一格 —— 但 7.2.0 那条原则的精神没变：
+  // 这里放的是「不需要被看见」的东西，额度与勋章那种要先被看见的仍然不许回来。
+  ok(JSON.stringify(keys) === JSON.stringify(['privacy', 'terms', 'about', 'sign', 'clear']),
+    '实际：' + keys.join('/'));
+  ok(keys[keys.length - 1] === 'clear', '清除不在最后（破坏性操作要垫底）：' + keys.join('/'));
   // 这两个曾经是「点了一直弹『开发中』」的死入口，已随 L1/L2 清掉
   ok(!/回收站/.test(stJs), '回收站入口仍在（功能没做，只留一句「开发中」）');
 });

@@ -207,7 +207,11 @@ t('入档成功后仍走「盖章 → 抬起 → 返回」的时序', () => {
   // 两个时机都走 this._later（登记在册、onUnload 统一清掉）：
   // 用户在这 900ms 内自己按了返回，裸 setTimeout 会**再退一层**
   ok(/this\._later\(\(\) => this\.setData\(\{ liftOff: true \}\), 600\)/.test(js), '缺抬起时机');
-  ok(/this\._later\(\(\) => wx\.navigateBack\(\), 900\)/.test(js), '缺返回时机');
+  // 8.1.0 起返回这一步带 fail 兜底（立牌码直达本页时页面栈只有 scan 一页，
+  // navigateBack 静默失败会把用户卡在入档动画上）。时序与兜底各自独立断言。
+  ok(/this\._later\(\(\) => wx\.navigateBack\(\{/.test(js), '缺返回时机');
+  ok(/delta: 1,[\s\S]{0,40}fail: \(\) => wx\.switchTab\(\{ url: '\/pages\/album\/album' \}\)/.test(js),
+    '返回没有 fail 兜底（立牌码进来的用户会卡住）');
   ok(!/setTimeout\(\(\) => wx\.navigateBack/.test(js),
     '返回时机又写回裸 setTimeout —— onUnload 清不掉，用户自己返回时会多退一层');
 });

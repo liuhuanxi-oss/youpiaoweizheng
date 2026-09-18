@@ -205,15 +205,23 @@ async function getGroupOrderAction(OPENID) {
 // 7.3.0 R6：海报上的码升级为**带邀请人短码**的 scene 码（scene='b=poster&r=XXXXXX'，
 //   扫码进入落在 options.query.scene → utils/invite.js 解出 ref 完成归因）。
 //   不传 ref 时仍走原来的全局码（一次生成全员复用）；带 ref 的按码各缓存一份。
+// 8.1.0 拉新 4/6：kind='sign' → 立牌码（scene='b=sign'，page 写死 pages/scan/scan）。
+//   不传 kind 时本分支的行为**一字不变** —— 线上卡片页正在用这个 action。
 // ============================================================
+// 8.1.0 拉新 4/6 立牌码：kind='sign' → scene='b=sign'，且**落地页由这里写死**
+//   （pages/scan/scan）。为什么不接受端上传 page：小程序码的 page 一旦由客户端决定，
+//   谁都能拿来生成一张「跳到任意页面」的码 —— 这是官方文档明确警告过的用法。
+//   立牌也不带邀请码：站在场馆里扫码的人与「谁邀请的」无关，他要的是立刻把票存下来。
 async function wxacodeAction(event) {
-  const ref = String((event && event.ref) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
-  const scene = ref ? `b=poster&r=${ref}` : 'b=poster';
-  const type = ref ? 'wxacode_ref' : 'wxacode_poster';
+  const isSign = String((event && event.kind) || '') === 'sign';
+  const ref = isSign ? '' : String((event && event.ref) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  const scene = isSign ? 'b=sign' : (ref ? `b=poster&r=${ref}` : 'b=poster');
+  const type = isSign ? 'wxacode_sign' : (ref ? 'wxacode_ref' : 'wxacode_poster');
+  const path = isSign ? 'wxacode/sign-' : `wxacode/poster-${ref || 'all'}-`;
   try {
     const db = cloud.database();
     // 缓存：全局码一份（与用户无关、永久有效，任何人生成过一次即全员复用）；
-    // 带邀请码的按 code 各一份（同一个人反复进卡片页只生成一次）。
+    // 带邀请码的按 code 各一份（同一个人反复进卡片页只生成一次）；立牌码同样全局一份。
     try {
       const hit = await db.collection('prefs').where(ref ? { type, code: ref } : { type }).limit(1).get();
       if (hit.data && hit.data[0] && hit.data[0].fileID) {
@@ -221,7 +229,11 @@ async function wxacodeAction(event) {
       }
     } catch (e) { /* 缓存读取失败 → 走生成 */ }
 
-    const wxa = await cloud.openapi.wxacode.getUnlimited({
+    const wxa = await cloud.openapi.wxacode.getUnlimited(isSign ? {
+      scene,
+      page: 'pages/scan/scan',
+      width: 430
+    } : {
       scene,
       width: 430
     });
@@ -230,7 +242,7 @@ async function wxacodeAction(event) {
     if (!buf || !buf.length) return { ok: false, msg: '码生成失败' };
 
     const up = await cloud.uploadFile({
-      cloudPath: `wxacode/poster-${ref || 'all'}-${Date.now()}.png`,
+      cloudPath: `${path}${Date.now()}.png`,
       fileContent: buf
     });
     if (!up || !up.fileID) return { ok: false, msg: '码上传失败' };

@@ -599,7 +599,15 @@ Page({
       this.setData({ stamped: true, liftOff: false });
       this._playCheckIn();
       this._later(() => this.setData({ liftOff: true }), 600); // 400ms 绘制 + 200ms 驻留
-      this._later(() => wx.navigateBack(), 900);               // lift-off 200ms 完成后回首页（onShow 自动刷新）
+      // lift-off 200ms 完成后回去（上一页的 onShow 会自动刷新）。
+      // 8.1.0：必须有 fail 兜底 —— 立牌上的码直接把用户送进本页（云函数 wxacode 的
+      //   kind='sign' 把 page 写死成 pages/scan/scan），这时页面栈里**只有本页**，
+      //   navigateBack 必定失败。原来那样写不报错、不弹窗，用户就卡在刚存完的动画上。
+      //   退不回去就落收藏册：刚收下的那一张就在那儿，比落首页更接得住他。
+      this._later(() => wx.navigateBack({
+        delta: 1,
+        fail: () => wx.switchTab({ url: '/pages/album/album' })
+      }), 900);
     } catch (e) {
       wx.hideLoading();
       // v6.6.0 动效4：失败不播成功动画——保存按钮红色抖动一次（保留原弹窗说明原因）

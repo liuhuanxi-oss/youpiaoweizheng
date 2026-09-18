@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "场馆立牌",
+  "navigationBarBackgroundColor": "#FBF2EC",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "privacy-sheet": "/components/privacy-sheet/index"
+  }
+}

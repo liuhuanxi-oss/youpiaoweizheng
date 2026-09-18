@@ -30,6 +30,10 @@ const ROWS = [
   { key: 'privacy', name: '隐私政策',     icon: 'lock' },
   { key: 'terms',   name: '用户协议',     icon: 'doc' },
   { key: 'about',   name: '关于有票为证', icon: 'help' },
+  // 8.1.0 拉新 4/6：合作场馆立牌。这是一件**运营工具**，本来不该待在「设置」里 ——
+  // 但它的使用者只有你自己（去谈场馆时印一张），放进「我的」的常驻入口会白占一格，
+  // 而这里本来就是「不常点、但找得到」的那一栏。clear 永远排最后（破坏性操作垫底）。
+  { key: 'sign',    name: '合作场馆立牌', icon: 'ticket' },
   { key: 'clear',   name: '清除本地数据', icon: 'trash' }
 ];
 
@@ -83,7 +87,8 @@ Page({
     haptics.tap();
     const JUMP = {
       privacy: '/pages/protocol/protocol?type=privacy',
-      terms: '/pages/protocol/protocol?type=terms'
+      terms: '/pages/protocol/protocol?type=terms',
+      sign: '/pages/sign/sign'
     };
     if (JUMP[key]) { wx.navigateTo({ url: JUMP[key] }); return; }
     if (key === 'about') this.about();

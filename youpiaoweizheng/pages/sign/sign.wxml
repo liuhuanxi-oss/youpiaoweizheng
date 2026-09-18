@@ -1,0 +1,45 @@
+<!-- pages/sign/sign.wxml —— 合作场馆立牌（8.1.0 拉新 4/6）
+     结构：说明 → （演示模式横幅）→ 画布预览 → 两个输入 → 提示 → 主按钮
+     预览就是那张画布本身：改一个字就重画一遍，用户看到什么，印出来就是什么。 -->
+<view class="tk-page theme-{{theme}} sg-page">
+
+  <view class="sg-head">
+    <view class="sg-t serif">合作场馆立牌</view>
+    <view class="sg-lead">填上场馆或活动名，存一张竖版海报去图文店打印。摆在取票口或入口，散场的人扫码就能把手里那张票收进收藏册。</view>
+  </view>
+
+  <!-- 演示模式：这张图印出来是**扫不动**的，必须说在前面，不能等他印完才发现 -->
+  <view wx:if="{{isDemo}}" class="sg-demo">
+    演示模式没有小程序码 —— 这张图印出来扫不了。接入云环境后才能生成真码。
+  </view>
+
+  <!-- 预览画布：尺寸由 sign.js 按 dpr 写进 node.width/height，
+       这里的 CSS 盒子按 750×1060 等比（600 × 848rpx）—— 只能改宽度，高度要同步改 -->
+  <view class="sg-pv">
+    <canvas type="2d" id="sgCanvas" class="sg-cv" disable-scroll="{{true}}"></canvas>
+  </view>
+
+  <view class="card sg-form">
+    <view class="sg-f">
+      <view class="sg-k">场馆 / 活动名<text class="sg-tag is-req">必填</text></view>
+      <input class="sg-in" value="{{title}}" maxlength="{{titleMax}}" placeholder="如：广州大剧院"
+             placeholder-class="sg-ph" bindinput="onTitle" confirm-type="done" />
+    </view>
+
+    <view class="sg-f is-last">
+      <view class="sg-k">一句话<text class="sg-tag">留空就用默认那句</text></view>
+      <input class="sg-in" value="{{sub}}" maxlength="{{subMax}}" placeholder="{{subPh}}"
+             placeholder-class="sg-ph" bindinput="onSub" confirm-type="done" />
+    </view>
+  </view>
+
+  <view class="sg-note">存下来是一张 {{fitW}} × {{fitH}} 的竖图，A4 比例，按 A4 或 A3 打印都合适。</view>
+  <view wx:if="{{qrFail}}" class="sg-note is-warn">小程序码没取到 —— 检查网络后重进本页再试。</view>
+
+  <view class="btn-main pressable" hover-class="press-hover" bindtap="save">存到相册</view>
+
+  <view class="tk-safe-bottom"></view>
+</view>
+
+<!-- 本页要存相册，隐私授权弹窗必须挂上（同 card / art / annual / discover） -->
+<privacy-sheet />

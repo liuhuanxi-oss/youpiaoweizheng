@@ -297,8 +297,12 @@ t('入账失败要把结算权还回去（否则这单奖励永久丢失）', ()
 });
 
 t('海报码升级为带邀请人短码的 scene 码，且缓存按码分开', () => {
-  ok(/const scene = ref \? `b=poster&r=\$\{ref\}` : 'b=poster'/.test(cloud), 'scene 没带上邀请人短码');
-  ok(/const type = ref \? 'wxacode_ref' : 'wxacode_poster'/.test(cloud), '带码的图没单独一类（会命中旧缓存）');
+  // 8.1.0 起这行前面多了个 `isSign ? ... :` 的岔路（立牌码 scene=b=sign，见 sign_board.test.js）。
+  // 三条岔路都要在，且**不传 kind 时**仍然走原来的全局码 / 带码两档。
+  ok(/isSign \? 'b=sign' : \(ref \? `b=poster&r=\$\{ref\}` : 'b=poster'\)/.test(cloud),
+    'scene 没带上邀请人短码');
+  ok(/isSign \? 'wxacode_sign' : \(ref \? 'wxacode_ref' : 'wxacode_poster'\)/.test(cloud),
+    '带码的图没单独一类（会命中旧缓存）');
 });
 
 t('云函数路由不吞参数：要 event 的处理函数，调用点必须把 event 传进去', () => {

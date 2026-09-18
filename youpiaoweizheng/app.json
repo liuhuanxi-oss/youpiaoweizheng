@@ -17,7 +17,8 @@
     "pages/setting/setting",
     "pages/art/art",
     "pages/wall/wall",
-    "pages/legacy/legacy"
+    "pages/legacy/legacy",
+    "pages/sign/sign"
   ],
   "__usePrivacyCheck__": true,
   "permission": {

@@ -1,0 +1,72 @@
+/* pages/sign/sign.wxss —— 合作场馆立牌（8.1.0 拉新 4/6）
+   预览画布的盒子尺寸与 750×1060 严格等比：**改宽度必须同步改高度**，
+   否则 canvas 会被拉伸 —— 而拉伸的画布看起来只是「有点怪」，不报错。 */
+.sg-page { padding: 0 0 40rpx; }
+
+/* —— 页头 —— */
+.sg-head { padding: 40rpx 36rpx 0; }
+.sg-t { font-size: 40rpx; letter-spacing: 4rpx; }
+.sg-lead {
+  margin-top: 14rpx;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--text2, var(--ink-soft));
+}
+
+/* —— 演示模式横幅：这张图印出来扫不了 —— 用最显眼的做法，不藏在灰字里 —— */
+.sg-demo {
+  margin: 24rpx 36rpx 0;
+  padding: 20rpx 24rpx;
+  border-radius: var(--r-item, 16rpx);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 2rpx solid rgba(var(--accent-rgb), 0.35);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--accent);
+}
+
+/* —— 预览 —— */
+.sg-pv {
+  display: flex;
+  justify-content: center;
+  margin: 28rpx 36rpx 0;
+  padding: 20rpx;
+  border-radius: var(--r-card, 24rpx);
+  background: var(--softbg);
+  box-shadow: var(--card-shadow);
+}
+/* 600 × 848rpx = 750 × 1060 等比（0.7075）。宽度一改，高度按同一个比例跟着改 */
+.sg-cv { width: 600rpx; height: 848rpx; }
+
+/* —— 表单 —— */
+.sg-form { margin: 28rpx 36rpx 0; padding: 8rpx 0; }
+.sg-f { padding: 24rpx 28rpx; border-bottom: 2rpx solid var(--line); }
+.sg-f.is-last { border-bottom: none; }
+.sg-k {
+  display: flex;
+  align-items: baseline;
+  font-size: var(--fs-md);
+  color: var(--text, var(--ink));
+}
+.sg-tag {
+  margin-left: 12rpx;
+  font-size: var(--fs-xs);
+  color: var(--text3, var(--ink-faint));
+}
+.sg-tag.is-req { color: var(--accent); }
+.sg-in {
+  margin-top: 16rpx;
+  height: 60rpx;
+  font-size: var(--fs-lg);
+  color: var(--text, var(--ink));
+}
+.sg-ph { color: var(--text3, var(--ink-faint)); }
+
+/* —— 说明 —— */
+.sg-note {
+  margin: 20rpx 36rpx 0;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--text3, var(--ink-faint));
+}
+.sg-note.is-warn { color: var(--accent); }
