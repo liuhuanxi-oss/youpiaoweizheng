@@ -286,10 +286,15 @@ Page({
     if (!t) return;
     const on = !!(e && e.detail && e.detail.value);
     this.setData({ wallOn: on }); // 先按用户的意思动开关，服务端不认再退回来
-    const r = await store.setWallPublic(t.id, on);
-    if (!r || !r.ok) {
+    // store 的约定是「失败抛错、成功不回值」——与 setCaption / addTicket 同一条规矩。
+    // 这里原先按 { ok, msg } 接，于是**成功也走失败分支**：开关弹回、报「没能保存」，
+    // 而票其实已经上墙了（失败时更糟：抛出的异常没人接，开关停在错误位置还一声不吭）。
+    // 判断成败**只看有没有抛错**，不看返回值。见 tests/wall_toggle.test.js
+    try {
+      await store.setWallPublic(t.id, on);
+    } catch (err) {
       this.setData({ wallOn: !on });
-      wx.showToast({ title: (r && r.msg) || '没能保存，请重试', icon: 'none' });
+      wx.showToast({ title: (err && err.message) || '没能保存，请重试', icon: 'none' });
       return;
     }
     haptics.tap();

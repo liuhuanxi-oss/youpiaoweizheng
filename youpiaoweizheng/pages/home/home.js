@@ -24,15 +24,26 @@ const legacy = require('../../utils/legacy.js'); // 8.1.0 老票根专场：那�
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
 // —— 尺寸（rpx）：WXSS 里写死的宽高必须与这里一致 ——
-const CARD_W = 310, CARD_H = 240;   // 一张票根卡（(750 - 48×2 - 34) / 2 的列宽）
+// 8.1.1：卡高 240 → 256，多出来的 16rpx 给了照片（132 → 144）与地点行（22 → 26）——
+// 照片是这张卡唯一「有内容」的部分；地点行原先 22rpx 的行高连 22rpx 的字都兜不住。
+const CARD_W = 310, CARD_H = 256;   // 一张票根卡（(750 - 48×2 - 34) / 2 的列宽）
 const PM_R = 48;                    // 邮戳半径（卡片右上角那枚，直径 96）
 
+/** 分类筛选。8.1.1 起这四枚不再自己占一行胶囊（见 home.wxml .hc-find），
+ *  而是「筛选」按钮点开的那份清单 —— 所以这里只留 key 与显示名。
+ *  图标不在这里写：没照片时的兜底图标由下面 TYPE_ICONS 那份管，两处各写一份必漏一处。 */
 const FILTERS = [
-  { key: 'show', name: '演出', ico: 'mask' },
-  { key: 'movie', name: '电影', ico: 'film' },
-  { key: 'traffic', name: '交通', ico: 'train' },
-  { key: 'travel', name: '旅行', ico: 'plane' }
+  { key: 'show', name: '演出' },
+  { key: 'movie', name: '电影' },
+  { key: 'traffic', name: '交通' },
+  { key: 'travel', name: '旅行' }
 ];
+
+/** key → 显示名（'' 或认不出的 key 都回空串，按钮上会兜底成「全部」） */
+function filterName(key) {
+  const f = FILTERS.find((x) => x.key === key);
+  return f ? f.name : '';
+}
 
 /** 类型 → 没照片时的兜底图标名 */
 const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train', travel: 'plane' };
@@ -57,7 +68,6 @@ const GUIDE = [
 
 const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const FAV_KEY = 'fav_ids';
-const WHITE = '#FFF8F2';   // 压在玫瑰实底上的白
 /** 滚过这么多（px）就认为品牌行已经吸顶。给一点点余量，免得上下一抖就闪边框 */
 const HEAD_STICK_AT = 8;
 
@@ -83,11 +93,11 @@ Page({
     // 列表淡入开关：骨架替成真数据、切分类时重播一次（节点没重建，动画不会自己重来）
     listIn: true,
     loading: true,
-    filters: [],
-    // 空 = 不过滤（「全部」，四个胶囊都不亮）。原为 'show'（默认亮着「演出」）：
+    // 空 = 不过滤（「全部」）。原为 'show'（默认亮着「演出」）：
     // 那样只有电影票 / 车票的用户进首页看到的是「这里还没贴上票根」——
     // 有票却被说成一张都没有，这是假空态；分类是筛选，不该决定首屏能不能看到自己的票。
     active: '',
+    activeName: '',      // 筛选按钮上那句当前分类（空 = 全部，WXML 里兜底）
     colA: [],
     colB: [],
     total: 0,
@@ -237,15 +247,31 @@ Page({
     this.setData({ colA, colB, total: list.length, hasAny: this._all.length > 0, loading: false });
   },
 
-  onFilter(e) {
-    const key = e.currentTarget.dataset.key || '';
-    // 再点一下亮着的胶囊 = 取消筛选。默认显示「全部」时必须有这条路回家，
-    // 否则点进一个空分类就再也回不到全部票根了
-    const next = key === this.data.active ? '' : key;
+  /** 8.1.1 筛选：点开一份原生清单（「全部」+ 四个分类）。
+   *  原先这四个是常驻胶囊，自己占一行 90rpx —— 而这一页的主角是墙，
+   *  筛选只是个偶尔动一下的动作，收进按钮里，还把「现在在哪个分类」写在按钮上。
+   *  用 showActionSheet 而不是自绘弹层：系统原生的，零 UI 代码，5 项也没到它的 6 项上限
+   *  （全项目已有多处在用，见 detail.js onMore）。 */
+  onFilterOpen() {
+    const names = ['全部'].concat(FILTERS.map((f) => f.name));
+    wx.showActionSheet({
+      itemList: names,
+      success: (res) => {
+        // 0 号是「全部」→ 空 key（不过滤）；其余按 FILTERS 的次序往后挪一位
+        this.onFilter(res.tapIndex === 0 ? '' : FILTERS[res.tapIndex - 1].key);
+      }
+    });
+  },
+
+  /** 切到某个分类；空 key = 回到全部。
+   *  「全部」这条路必须有 —— 否则点进一个空分类就再也回不到全部票根了。
+   *  也保留原来的规矩：同一个 key 再选一次不重算，免得整面墙白闪一下。 */
+  onFilter(key) {
+    const next = String(key || '');
     if (next === this.data.active) return;
     haptics.tap();
     track.track('home_filter', { key: next });
-    this.setData({ active: next });
+    this.setData({ active: next, activeName: filterName(next) });
     this.applyFilter();
     this._replayListIn();
   },
@@ -300,16 +326,18 @@ Page({
   /** 主题切换 / 换页回来都要重编一遍图形（data-uri 里的颜色是编译时写死的） */
   buildArt() {
     const m = themeUtil.getThemeMeta(themeUtil.getTheme());
-    if (this._ink === m.text && this.data.art.card) { this.buildChips(m); return; }
+    if (this._ink === m.text && this.data.art.card) return;
     this._ink = m.text;
     const pm = deco.postmarkParts(m);
-    const white = WHITE;
-    // 选中态是玫瑰实底 → 图标反白；未选态用正文色。SVG 不认 CSS 变量，只能按主题镜像一份。
+    // 图标一律按主题的正文色编（SVG 不认 CSS 变量）—— 所以主题一变就得整批重编
     this.setData({
       ic: {
         brand: iconSrc('user', m.text, 0.72, 1.6),
         search: iconSrc('search', m.text, 0.5, 1.5),
         pin: iconSrc('pin', m.text, 0.5, 1.4),
+        // 8.1.1 今天卡：签到那行没收下是日历（今天这件事），收下了换对勾（今天已了结）
+        signIc: iconSrc('calendar', m.text, 0.5, 1.5),
+        signDone: iconSrc('check', m.text, 0.5, 1.5),
         memIc: iconSrc('clock', m.text, 0.5, 1.5),   // 7.4.0 R4 那年今天
         legacyIc: iconSrc('ticket', m.text, 0.5, 1.5), // 8.1.0 老票根专场
         goIc: iconSrc('chevron', m.text, 0.4, 1.5),
@@ -332,20 +360,6 @@ Page({
         // wavelines 取的是 primary（不是 accent），传错键会静默落回戳红，颜色就不对了
         wave: deco.decoSrc('wavelines', Object.assign({}, m, { primary: '#E9B3AA' }))
       }
-    });
-    this.buildChips(m, white);
-  },
-
-  /** 分类胶囊的图标：选中反白 / 未选正文色，两个地址都得备一份 */
-  buildChips(m, white) {
-    const on = white || WHITE;
-    this.setData({
-      filters: FILTERS.map((f) => ({
-        key: f.key,
-        name: f.name,
-        srcOn: iconSrc(f.ico, on, 1, 1.8),
-        srcOff: iconSrc(f.ico, m.text, 1, 1.8)
-      }))
     });
   },
 

@@ -142,7 +142,7 @@
 | `mapFilm.js` (1) | `canPlay(cities, flags)`、`frames(cities)`、`span(fs)`、`sheet(rows)`、`yearOf(date)`、`MIN_STOPS` / `FRAME_MS` / `MAX_ROWS` / `SHEET_W` / `MAP_W` / `MAP_H` | 一键成片的**唯一编排**：站点顺序按首次到访升序、同日以城市名为第二把钥匙（否则两次播放顺序会飘）、无日期排最后且不编年份；不足两站或云兜底（`flags.netFallback`）不给播；长图版面纯算高度（上游按 12 城封顶，12 城 750×1928，dpr 2 = 3856 不越 iOS 单边 4096；`MAX_ROWS=20` 是保险丝，真到那一步宁可图软也不崩）。`pages/discover/film.js` 是配套画笔，与 `pages/annual/poster.js` 同一写法（纯 Canvas、不碰 wx） | mapArt |
 | `svg.js` (0) | `toDataUri(svg)`、`b64(str)` | 图形工厂唯一的出口；**必须 base64** —— 百分号编码在开发者工具里正常、真机上整片不显示 | — |
 | `weather.js` (1) | `weatherText(w)`、`weatherHint(w)` | WMO 码表 28 项；体感分界 5 / 14 / 30 ℃；`w` 为空一律返回空串（不造假） | — |
-| `subscribe.js` (经 sign) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` | 一次性订阅：授权→次日一条，没有「开关」；当前 `TMPL_ID` 为空 = 一次都不请求；`askIfDue` 必须在点击回调里同步发起；被拒后 30 天静默（环境类失败不进静默期） | env |
+| `subscribe.js` (经 sign) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` | 一次性订阅：授权→次日一条，没有「开关」；`TMPL_ID` 空着时一次都不请求、不留假入口（**8.1.1 已回填** `LoBUuHkTvYuHw1Q2Nt-MlqKLwwXQgNLg33LA62jxYB8`）；`askIfDue` 必须在点击回调里同步发起；被拒后 30 天静默（环境类失败不进静默期）。**服务端**发消息的字段名（`recall.js` 的 `dataOf`）必须与后台模板逐字一致 —— `phrase1`（上限 5 个汉字）/ `number2`（只吃数字字符串），对不上 `send` 回 47003 而端上毫无提示 | env |
 | `auth.js` (经 pay) | `ensureSession(force)`、`isFresh`、`LS_AUTH_TIME`、`FRESH_MS` | key `sp_auth_time`；24h 新鲜度；模块内并发去重；`wx.login` 成功后必须立刻 `authLogin` 覆盖服务端，两步不拆 | env |
 
 ### 页面 → 数据层的最小约定

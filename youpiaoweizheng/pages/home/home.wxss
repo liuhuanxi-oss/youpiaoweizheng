@@ -1,7 +1,12 @@
 /* pages/home/home.wxss —— 票根墙（品牌全案 · 稿屏2，六主题变量化）
    颜色一律读 --*；写死的十六进制只允许出现在 var(--x, #兜底) 里。
    齿边卡片的 viewBox 尺寸由 home.js 编译，与这里的盒子必须一致：
-   .hc-card 310×240。 */
+   .hc-card 310×256（8.1.1 起是 256，原先 240 —— 多出来的 16 全给了照片）。
+
+   8.1.1 排版收口：字号只剩五档（40 品牌 / 34 问候 / 30 区块标题 / 26 正文 / 22 辅助），
+   块与块之间一律 20rpx。原先这里混着 20 / 22 / 26 / 30 四种外边距、七种字号，
+   光「问候语到搜索框」之间就三套间距 —— 每多一档就多一次「这个该用哪个」。
+   间距、字号各只留一档，看完这行就不用再往下猜了。 */
 
 /* —— 品牌行 —— */
 /* 品牌行：往下滚吸顶。
@@ -16,7 +21,7 @@
   z-index: 30;
   display: flex;
   align-items: center;
-  padding: 32rpx 48rpx 0;
+  padding: 20rpx 48rpx 0;
   transition: background-color 200ms ease-out, box-shadow 200ms ease-out;
 }
 .hc-head.is-stuck {
@@ -34,9 +39,11 @@
   justify-content: center;
 }
 .hc-logo-img { width: 100%; height: 100%; display: block; }
+/* 52 → 40：它是个品牌标，不是标题。52rpx 时它比整页任何东西都抢眼，
+   而用户每次进首页第一眼该落在自己的票上 */
 .hc-brand {
   margin-left: 24rpx;
-  font-size: 52rpx;
+  font-size: 40rpx;
   font-weight: 700;
   letter-spacing: 4rpx;
   color: var(--brown, #6B5B50);
@@ -52,145 +59,142 @@
 .hc-user-ic { width: 38rpx; height: 38rpx; }
 
 /* —— 问候语：左边一枝白花、右上金星、右下波浪 —— */
+/* 那句招呼 42 → 34，两行照旧。
+   原方案打算压成一行，做的时候发现压不动：这一行 16 个字按 34rpx 排要 544rpx，
+   而左边要让出花枝（88）、右边压着波浪（108），一行排下来句尾会钻到波浪底下。
+   两行是这枝花、这颗星、这道波的落位依据，动它仨不如留着第二行 ——
+   何况这一版省下来的高度已经够把票根墙提到首屏第二行了。 */
 .hc-greet {
   position: relative;
-  margin: 30rpx 48rpx 0;
-  min-height: 122rpx;
+  margin: 20rpx 48rpx 0;
+  min-height: 96rpx;
 }
 .hc-greet-daisy { position: absolute; left: -18rpx; top: -6rpx; width: 84rpx; height: 109rpx; z-index: 1; }
 .hc-greet-txt { position: relative; z-index: 2; padding-left: 88rpx; }
 .hc-greet-l1 {
   display: block;
-  font-size: 42rpx;
+  font-size: var(--fs-xl, 34rpx);
   line-height: 1.42;
   color: var(--brown, #6B5B50);
 }
 .hc-greet-l2 { display: flex; align-items: center; }
 .hc-greet-t {
-  font-size: 42rpx;
+  font-size: var(--fs-xl, 34rpx);
   line-height: 1.42;
   color: var(--brown, #6B5B50);
 }
-/* 星抬到字的上沿（稿里它挂在句尾右上角） */
-.hc-greet-star { width: 32rpx; height: 24rpx; margin-left: 12rpx; margin-bottom: 26rpx; flex-shrink: 0; }
+/* 星抬到字的上沿（稿里它挂在句尾右上角）。抬多高是跟着字号走的：42 那会儿是 26，
+   按同比例缩到 34 就是 21 —— 写死 26 的话字小了、星还挂在老地方。 */
+.hc-greet-star { width: 32rpx; height: 24rpx; margin-left: 12rpx; margin-bottom: 22rpx; flex-shrink: 0; }
 .hc-greet-wave { position: absolute; right: -10rpx; top: 8rpx; width: 108rpx; height: 47rpx; z-index: 1; }
 
-/* —— 搜索 —— */
-/* ===== 7.4.0 R1 今日时光签（虚线齿孔边 = 一张待撕的签）===== */
-.hc-sign {
-  display: flex;
-  align-items: center;
-  margin: 26rpx 48rpx 0;
-  padding: 22rpx 26rpx;
+/* ===== 8.1.1「今天」卡：今日时光签 / 那年今天 / 老票根专场三行并一张 =====
+   三行原本各是一块，各带各的底色与边距（一共 280rpx）。合成一张卡之后：
+   · 只有一个外边距、一个底色，行与行之间用细描边分开；
+   · 行高统一 64rpx —— 三行各自「自然高」会排出参差的节奏，
+     统一行高之后不管今天露几行，这张卡的高度都是整齐的。 */
+.hc-today {
+  margin: 20rpx 48rpx 0;
+  padding: 10rpx 24rpx;
   border-radius: 24rpx;
   background: var(--soft, #F4EFE7);
-  border: 2rpx dashed var(--border, #E2D9C7);
+  border: 2rpx solid var(--border, #E2D9C7);
   box-sizing: border-box;
 }
-/* 收下之后不再是「待撕」的：实线边框 = 这件事今天已经了结 */
-.hc-sign.is-done { border-style: solid; }
-.hc-sign-txt { flex: 1; min-width: 0; }
-.hc-sign-t { display: block; font-size: 28rpx; font-weight: 600; color: var(--brown, #6B5B50); }
-.hc-sign-s { display: block; margin-top: 6rpx; font-size: 22rpx; color: var(--text2, #8A7B66); }
-.hc-sign-btn {
-  flex-shrink: 0;
-  margin-left: 20rpx;
-  padding: 0 28rpx;
-  height: 60rpx;
-  line-height: 60rpx;
-  border-radius: 30rpx;
-  font-size: 25rpx;
-  color: var(--on-primary, #FFF8F2);
-  background: var(--stamp, #C26B5E);
-}
-
-/* ===== 7.4.0 R4 那年今天（不是一块卡，是一行指路的字）===== */
-.hc-mem { display: flex; align-items: center; margin: 20rpx 48rpx 0; padding: 0 6rpx; }
-.hc-mem-ic { width: 30rpx; height: 30rpx; margin-right: 12rpx; flex-shrink: 0; }
-.hc-mem-t { flex-shrink: 0; font-size: 25rpx; color: var(--stamp, #C26B5E); }
-.hc-mem-s {
-  flex: 1;
-  min-width: 0;
-  margin-left: 12rpx;
-  font-size: 25rpx;
-  color: var(--brown, #6B5B50);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hc-mem-go { width: 24rpx; height: 24rpx; margin-left: 10rpx; flex-shrink: 0; }
-
-/* ===== 8.1.0 老票根专场（一行，比那年今天厚一点：它是个入口，不是一句话） ===== */
-.hc-legacy {
-  display: flex;
-  align-items: center;
-  margin: 22rpx 48rpx 0;
-  padding: 20rpx 24rpx;
-  border-radius: 24rpx;
-  background: var(--soft, #E9E2D4);
-}
-.hc-legacy-ic { width: 34rpx; height: 34rpx; margin-right: 16rpx; flex-shrink: 0; }
-.hc-legacy-body { flex: 1; min-width: 0; }
-.hc-legacy-t { display: block; font-size: 26rpx; font-weight: 600; color: var(--brown, #6B5B50); }
-.hc-legacy-s {
+/* 今天还没收下时是虚线齿孔边 = 一张待撕的签；收下了就是实线，这件事今天已了结。
+   （原先这条规矩在「时光签」那一块上，并成一张卡之后挪到整张卡上） */
+.hc-today.is-pending { border-style: dashed; }
+.hc-td { display: flex; align-items: center; min-height: 64rpx; }
+.hc-td + .hc-td { border-top: 2rpx solid var(--border, #E2D9C7); }
+.hc-td-ic { width: 32rpx; height: 32rpx; margin-right: 16rpx; flex-shrink: 0; }
+.hc-td-body { flex: 1; min-width: 0; }
+.hc-td-t { display: block; font-size: var(--fs-md, 26rpx); font-weight: 600; color: var(--brown, #6B5B50); }
+.hc-td-s {
   display: block;
   margin-top: 4rpx;
-  font-size: 22rpx;
+  font-size: var(--fs-sm, 22rpx);
   color: var(--text2, #8A7B66);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.hc-legacy-go { width: 24rpx; height: 24rpx; margin-left: 10rpx; flex-shrink: 0; }
+/* 那年今天：左一句戳红引子、右一句票名，中间不隔开是因为它就是一整句话 */
+.hc-td-k { flex-shrink: 0; font-size: var(--fs-md, 26rpx); color: var(--stamp, #C26B5E); }
+.hc-td-v {
+  flex: 1;
+  min-width: 0;
+  margin-left: 12rpx;
+  font-size: var(--fs-md, 26rpx);
+  color: var(--brown, #6B5B50);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hc-td-go { width: 24rpx; height: 24rpx; margin-left: 10rpx; flex-shrink: 0; }
+.hc-td-btn {
+  flex-shrink: 0;
+  margin-left: 20rpx;
+  padding: 0 26rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  border-radius: 28rpx;
+  font-size: var(--fs-md, 26rpx);
+  color: var(--on-primary, #FFF8F2);
+  background: var(--stamp, #C26B5E);
+}
 
+/* —— 找票：搜索框 + 筛选按钮同一行 —— */
+.hc-find { display: flex; align-items: center; margin: 20rpx 48rpx 0; }
 .hc-search {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  height: 68rpx;
-  margin: 26rpx 48rpx 0;
+  height: 64rpx;
   padding: 0 26rpx;
   border-radius: 34rpx;
   background: var(--soft, #E8DFD0);
   box-sizing: border-box;
 }
 .hc-search-ic { width: 34rpx; height: 34rpx; margin-right: 14rpx; flex-shrink: 0; }
-.hc-search-ph { font-size: 26rpx; letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
-
-/* —— 分类胶囊 —— */
-.hc-chips { display: flex; gap: 12rpx; margin: 26rpx 48rpx 0; }
-.hc-chip {
+.hc-search-ph { font-size: var(--fs-md, 26rpx); letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
+/* 筛选按钮。选中态只改字色与字重、不给玫瑰实底 —— 实底就得连箭头图标一起反白，
+   而这个箭头是 data-uri、颜色编译时写死（做胶囊那版为此备了两套图标地址）。
+   按钮上本来就写着「全部 / 演出 / 电影」，谁是当前分类一眼看得见，不值当再备一套图。 */
+.hc-filter {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   height: 64rpx;
-  padding: 0 24rpx;
-  border-radius: 32rpx;
-  border: 3rpx solid var(--border, #E2D9C7);
-  background: var(--card, #FFFDF8);
+  margin-left: 16rpx;
+  padding: 0 22rpx;
+  border-radius: 34rpx;
+  background: var(--soft, #E8DFD0);
   box-sizing: border-box;
 }
-.hc-chip.on { background: var(--rose, #D9A0A6); border-color: var(--rose, #D9A0A6); }
-.hc-chip-ic { width: 30rpx; height: 30rpx; margin-right: 10rpx; flex-shrink: 0; }
-.hc-chip-t { font-size: 28rpx; letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
-.hc-chip.on .hc-chip-t { color: var(--on-primary, #FFF8F2); font-weight: 600; }
+.hc-filter-t { font-size: var(--fs-md, 26rpx); letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
+.hc-filter.on .hc-filter-t { color: var(--stamp, #C26B5E); font-weight: 600; }
+/* 列表那个右箭头转 90 度当「点开」用（省一个只为它画的雪佛龙图标） */
+.hc-filter-ic { width: 24rpx; height: 24rpx; margin-left: 8rpx; flex-shrink: 0; transform: rotate(90deg); }
 
 /* —— 云故障 / 超上限横幅（视觉同 album 的 .tm-net，左右边距跟本页的 48rpx） ——
    本类不写 transition：让全局 .pressable 的按压回弹原样生效（页面级同名属性会盖掉它） */
 .hc-net { margin: 20rpx 48rpx 0; padding: 16rpx 24rpx; background: var(--soft, #E9E2D4); border-radius: 18rpx; }
-.hc-net-t { font-size: 23rpx; color: var(--text2, #8A7B66); line-height: 1.5; }
+.hc-net-t { font-size: var(--fs-sm, 22rpx); color: var(--text2, #8A7B66); line-height: 1.5; }
 
 /* —— 票根墙：左右两列等高卡（不是瀑布流，见 home.js 文件头） —— */
 .hc-grid {
   display: flex;
   justify-content: space-between;
-  margin: 30rpx 48rpx 0;
+  margin: 20rpx 48rpx 0;
 }
 .hc-col { width: 310rpx; }
 
 .hc-card {
   position: relative;
   width: 310rpx;
-  height: 240rpx;
-  margin-bottom: 34rpx;
+  height: 256rpx;
+  margin-bottom: 28rpx;
   padding: 28rpx 10rpx 8rpx;
   box-sizing: border-box;
 }
@@ -234,11 +238,12 @@
   color: var(--brown, #6B5B50);
   text-shadow: 0 0 8rpx rgba(var(--text-rgb, 107, 91, 80), 0.45);
 }
-.hc-pm-city { font-size: 17rpx; font-weight: 600; letter-spacing: 1rpx; }
-.hc-pm-year { font-size: 15rpx; margin-top: 2rpx; opacity: 0.85; }
+/* 17/15 → 18/16：这枚戳压在照片上、还带一层阴影，原尺寸在深色照片上基本糊成一团 */
+.hc-pm-city { font-size: 18rpx; font-weight: 600; letter-spacing: 1rpx; }
+.hc-pm-year { font-size: 16rpx; margin-top: 2rpx; opacity: 0.85; }
 
 /* 照片：本身裁圆角，角上的花与叶要探出去，所以裁的是内层 */
-.hc-shot { position: relative; width: 290rpx; height: 132rpx; z-index: 2; }
+.hc-shot { position: relative; width: 290rpx; height: 144rpx; z-index: 2; }
 .hc-shot-frame {
   position: absolute;
   left: 0; top: 0;
@@ -286,13 +291,14 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.hc-meta { display: flex; align-items: center; margin-top: 6rpx; height: 22rpx; padding-left: 4rpx; }
-.hc-meta-ic { width: 20rpx; height: 20rpx; margin-right: 6rpx; flex-shrink: 0; }
+/* 行高给到 26：字号从 20 提到 22 之后，22rpx 的行高连笔画的下缘都容不下 */
+.hc-meta { display: flex; align-items: center; margin-top: 6rpx; height: 26rpx; padding-left: 4rpx; }
+.hc-meta-ic { width: 22rpx; height: 22rpx; margin-right: 6rpx; flex-shrink: 0; }
 .hc-meta-t {
   flex: 1;
   min-width: 0;
-  font-size: 20rpx;
-  line-height: 22rpx;
+  font-size: var(--fs-sm, 22rpx);
+  line-height: 26rpx;
   color: var(--text2, #8A7B66);
   overflow: hidden;
   white-space: nowrap;
@@ -311,22 +317,24 @@
 .hc-fav-ic { width: 30rpx; height: 30rpx; }
 
 /* —— 骨架屏 —— */
+/* 骨架块的盒子与 .hc-card 一一对应（shot 144 / title 34 / meta 26）——
+   对不上的话，真数据一进来整面墙会跳一下 */
 .hc-sk-card {
-  height: 240rpx;
-  margin-bottom: 34rpx;
+  height: 256rpx;
+  margin-bottom: 28rpx;
   padding: 28rpx 10rpx 8rpx;
   border-radius: var(--card-r, 28rpx);
   box-sizing: border-box;
 }
-.hc-sk-shot { width: 290rpx; height: 132rpx; border-radius: 10rpx; }
+.hc-sk-shot { width: 290rpx; height: 144rpx; border-radius: 10rpx; }
 .hc-sk-title { width: 180rpx; height: 24rpx; margin-top: 16rpx; border-radius: 12rpx; }
 .hc-sk-meta { width: 240rpx; height: 18rpx; margin-top: 12rpx; border-radius: 9rpx; }
 
 /* —— 空态 —— */
 .hc-empty { padding: 60rpx 48rpx 0; }
 .hc-empty-ic { display: block; width: 96rpx; height: 96rpx; margin: 0 auto 22rpx; opacity: 0.75; }
-.hc-empty-t { font-size: 30rpx; font-weight: 700; letter-spacing: 2rpx; color: var(--text, #2B2420); }
-.hc-empty-s { margin-top: 12rpx; font-size: 23rpx; letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
+.hc-empty-t { font-size: var(--fs-lg, 30rpx); font-weight: 700; letter-spacing: 2rpx; color: var(--text, #2B2420); }
+.hc-empty-s { margin-top: 12rpx; font-size: var(--fs-sm, 22rpx); letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
 .hc-empty-btn {
   margin: 36rpx auto 0;
   width: 320rpx;
@@ -334,7 +342,7 @@
   border-radius: 999rpx;
   background: var(--rose, #D9A0A6);
   color: var(--on-primary, #FFF8F2);
-  font-size: 27rpx;
+  font-size: var(--fs-md, 26rpx);
   letter-spacing: 2rpx;
   text-align: center;
 }

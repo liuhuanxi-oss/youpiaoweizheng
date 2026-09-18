@@ -85,9 +85,6 @@ t('用到的图标都在 icons.js 里注册过', () => {
   const block = /const TYPE_ICONS = \{([^}]*)\}/.exec(jsClean);
   ok(block, '取不到 TYPE_ICONS');
   [...block[1].matchAll(/'([a-zA-Z]\w*)'/g)].forEach((m) => names.add(m[1]));
-  const filters = /const FILTERS = \[([\s\S]*?)\];/.exec(jsClean);
-  ok(filters, '取不到 FILTERS');
-  [...filters[1].matchAll(/ico:\s*'([a-zA-Z]\w*)'/g)].forEach((m) => names.add(m[1]));
   ok(names.size >= 8, '图标只用到了 ' + names.size + ' 个，太少，断言可能失效');
   const bad = [...names].filter((n) => !ICONS.has(n));
   ok(bad.length === 0, '未注册的图标：' + bad.join(', '));
@@ -128,15 +125,17 @@ t('搜索框：放大镜 + 占位文案，点了去票夹页', () => {
   ok(/搜索演出、电影、城市\.\.\./.test(wxmlClean), '占位文案变了');
   ok(/bindtap="goSearch"/.test(wxmlClean), '搜索框不可点');
 });
-t('四个分类胶囊：演出 / 电影 / 交通 / 旅行，选中态换图标地址', () => {
+// 8.1.1：四枚胶囊原本常驻一行 90rpx，连搜索框一共吃掉 184rpx —— 首屏只装得下一行票根。
+// 收进按钮之后，「现在筛的是哪个分类」这件事只能靠按钮上那行字，所以那行字也得钉住。
+t('四个分类收进「筛选」按钮：点开是原生清单，按钮上写着当前分类', () => {
   ['show', 'movie', 'traffic', 'travel'].forEach((k) => {
     ok(new RegExp("key: '" + k + "'").test(jsClean), '少了分类 ' + k);
   });
   ['演出', '电影', '交通', '旅行'].forEach((n) => ok(jsClean.includes(n), '少了分类名 ' + n));
-  ok(/wx:for="\{\{filters\}\}"[\s\S]{0,80}wx:key="key"/.test(wxmlClean), '胶囊没走 filters 循环');
-  ok(/src="\{\{active === item\.key \? item\.srcOn : item\.srcOff\}\}"/.test(wxmlClean), '没做选中/未选两套图标');
-  ok(/srcOn: iconSrc\(f\.ico/.test(jsClean) && /srcOff: iconSrc\(f\.ico/.test(jsClean), '两套图标没编');
-  ok(/\.hc-chip\.on \{ background: var\(--rose/.test(wxssClean), '选中态不是玫瑰实底');
+  ok(!/hc-chip/.test(wxmlClean) && !/hc-chip/.test(wxssClean), '胶囊那行又回来了 —— 首屏装不下第二行票根就是它占的');
+  ok(/bindtap="onFilterOpen"/.test(wxmlClean), '筛选按钮没了');
+  ok(/wx\.showActionSheet\(\{/.test(jsClean), '没走原生清单 —— 自绘弹层要多几十行 WXML/WXSS，为 5 个选项不值当');
+  ok(/\{\{activeName \|\| '全部'\}\}/.test(wxmlClean), '按钮上没写当前分类：收进按钮之后，这是唯一能看出「现在筛的是哪个」的地方');
 });
 t('票根墙两列走 colA / colB，卡片模板只写一遍', () => {
   ok(/wx:for="\{\{colA\}\}"/.test(wxmlClean) && /wx:for="\{\{colB\}\}"/.test(wxmlClean), '两列循环少了');
@@ -163,8 +162,11 @@ t('分类筛选：默认「全部」不过滤，同键不重复计算，换键�
   // 首页默认亮着「演出」时，只有电影票 / 车票的用户看到的是「这里还没贴上票根」——
   // 有票却被说成一张都没有。分类是筛选，不该决定首屏能不能看到自己的票。
   ok(/active: ''/.test(jsClean), '首页默认又变成按分类过滤了 —— 非演出类的用户会看到假空态');
-  ok(/const next = key === this\.data\.active \? '' : key;/.test(jsClean), '亮着的胶囊再点一下不能取消筛选，回不到全部');
-  ok(/if \(next === this\.data\.active\) return;/.test(jsClean), '重复点同一个胶囊会重算');
+  // 胶囊那版「再点一下亮着的就取消筛选」是隐式的（用户得自己猜）；清单版把「全部」摆在第一项，
+  // 是一条看得见的路。选错了分类总得回得来。
+  ok(/\['全部'\]\.concat/.test(jsClean), '清单第一项不是「全部」，筛完就回不到全部票根了');
+  ok(/res\.tapIndex === 0 \? '' : FILTERS\[res\.tapIndex - 1\]\.key/.test(jsClean), '「全部」没映到空 key');
+  ok(/if \(next === this\.data\.active\) return;/.test(jsClean), '重复选同一个分类会重算，整面墙白闪一下');
   ok(/filter\(\(t\) => t\.type === key\)/.test(jsClean), '筛选口径变了');
 });
 t('空态 + 去拍一张', () => {
@@ -206,7 +208,7 @@ t('两列卡片加中缝正好铺满 750（左右各留 48，中缝 34）', () =
   ok(gap === 34, `按 CARD_W 算出来中缝是 ${gap}，与设计稿的 34 对不上`);
   const g = rule('.hc-grid', wxssClean);
   ok(/justify-content:\s*space-between/.test(g), '.hc-grid 没靠 space-between 撑中缝');
-  ok(/margin:\s*30rpx 48rpx 0/.test(g), '.hc-grid 的左右留白不是 48');
+  ok(/margin:\s*20rpx 48rpx 0/.test(g), '.hc-grid 的左右留白不是 48 / 上边距不是 20');
 });
 t('卡内纵向相加正好等于卡高（多一分少一分都会顶出齿边）', () => {
   const c = rule('.hc-card', wxssClean);
@@ -223,6 +225,38 @@ t('卡内纵向相加正好等于卡高（多一分少一分都会顶出齿边�
   ok(sum === constant('CARD_H'), `纵向合计 ${sum} ≠ CARD_H ${constant('CARD_H')}`);
   ok(shot.w + 2 * Number(pad[2]) === constant('CARD_W'), `照片宽 ${shot.w} + 左右留白 ≠ 卡宽`);
 });
+// 8.1.1 这一版重排就为了这一件事：让首屏装得下两行完整的票根。
+// 原先「三条横条（时光签 / 那年今天 / 老票根专场）+ 搜索 + 四枚胶囊」一路把票根墙
+// 推到 614rpx，第二行正好卡在悬浮 tab 栏底下 —— 首屏只看得见一行，还露半行。
+// 数字一律从源码取：哪一处间距、行高、卡高被改回去，这里都会红。
+t('首屏装得下两行完整票根（最矮的常见机型，扣掉原生导航栏与悬浮 tab 栏）', () => {
+  const rpx = (sel, prop) => num(new RegExp(prop + ':\\s*([\\d.]+)rpx'), rule(sel, wxssClean));
+  const HEAD = rpx('.hc-head', 'padding') + box('.hc-logo').h;
+  const GREET = rpx('.hc-greet', 'margin') + rpx('.hc-greet', 'min-height');
+  // 今天卡：上下内边距 + n 行（行高统一）+ (n-1) 条分隔线
+  // 今天卡：外边距 + 上下内边距 + 上下描边 + n 行（行高统一）+ (n-1) 条分隔线
+  const today = (n) => rpx('.hc-today', 'margin') + 2 * rpx('.hc-today', 'padding') + 2 * 2
+    + n * rpx('.hc-td', 'min-height') + (n - 1) * 2;
+  const FIND = rpx('.hc-find', 'margin') + num(/height:\s*([\d.]+)rpx/, rule('.hc-search', wxssClean));
+  const ROW = constant('CARD_H') + rpx('.hc-card', 'margin-bottom');
+
+  // 可见高度（rpx）：375×667 的屏 = 750×1334rpx，扣掉
+  //   状态栏 + 原生导航栏 128（20+44pt；home.json 没开 navigationStyle:custom）
+  //   悬浮 tab 栏 112（custom-tab-bar/index.wxss .bar，不贴底但占住这一条）
+  const BUDGET = 1334 - 128 - 112;
+  const row2Bottom = (n) => HEAD + GREET + today(n) + FIND + rpx('.hc-grid', 'margin') + ROW * 2;
+
+  // 今天卡露两行 = 签到 + （那年今天 / 老票根专场 二选一），这是常态的上限。
+  // 三行同时出现要同时满足「有票、一张五年前的都没有、今天又正好有往年今日」，
+  // 是罕见组合；那种情况下第二行会被切掉 30rpx（多一行 = 64 行高 + 2 描边），认了 —— 为它把六处间距各挤一点不值当。
+  const n = 2;
+  ok(row2Bottom(n) <= BUDGET,
+    '第二行票根沉到 tab 栏下面了：墙从 ' + (HEAD + GREET + today(n) + FIND + rpx('.hc-grid', 'margin'))
+    + 'rpx 开始，两行到 ' + row2Bottom(n) + 'rpx，而可见高度只有 ' + BUDGET + 'rpx');
+  // 今天卡的行数是「并成一张卡」省下多少的全部来源：加一行就等于把第一版的问题请回来
+  ok(countClass('hc-td') === 3, '今天卡里有 ' + countClass('hc-td') + ' 行，设计上是三行（签到 / 那年今天 / 老票根专场）');
+});
+
 t('邮戳直径与 PM_R 对得上（半径写进 JS 就得被盒子认领）', () => {
   const b = box('.hc-pm');
   ok(b.w === constant('PM_R') * 2 && b.h === b.w, `.hc-pm ${b.w}×${b.h} ≠ PM_R×2 = ${constant('PM_R') * 2}`);
@@ -288,12 +322,15 @@ t('三个跳转都还在：详情 / 票夹 / 个人中心', () => {
   ok(/wx\.switchTab\(\{ url: '\/pages\/album\/album' \}\)/.test(jsClean), '搜索落点变了');
   ok(/wx\.switchTab\(\{ url: '\/pages\/me\/me' \}\)/.test(jsClean), '人像落点变了');
 });
-t('主题切换会重编图形与两套胶囊图标（data-uri 里的颜色是编译时写死的）', () => {
+t('主题切换会重编图形（data-uri 里的颜色是编译时写死的）', () => {
   ok(/themeUtil\.getThemeMeta\(themeUtil\.getTheme\(\)\)/.test(jsClean), '没走主题元数据');
   // 类名允许挂附加类（7.2.0 起根节点还挂了入场动效的 fade-up），只断言「主题类是挂在根节点上」
   ok(/class="tk-page theme-\{\{theme\}\}[^"]*"/.test(wxmlClean), '根节点没挂主题类');
   ok(/this\._ink === m\.text/.test(jsClean), '没有"主题没变就不重编"的短路，每次 onShow 都会重拼 data-uri');
-  ok(/buildChips\(m/.test(jsClean), '胶囊图标没跟着主题重编');
+  // 8.1.1：判短路的那个 if 以前不是直接 return，而是「短路也要重编一遍胶囊图标」——
+  // 因为胶囊有选中/未选两套图标。胶囊没了，这里就该是干净的 return，别再顺手编一批用不上的图。
+  ok(/this\._ink === m\.text && this\.data\.art\.card\) return;/.test(jsClean), '主题没变时的短路分支不对');
+  ok(!/buildChips/.test(jsClean), 'buildChips 还留着 —— 它编的图标已经没有地方用了');
 });
 t('tab 页身份：点亮第一个 tab', () => {
   ok(/getTabBar[\s\S]{0,60}selected: 0/.test(jsClean), '没点亮自己这一格');

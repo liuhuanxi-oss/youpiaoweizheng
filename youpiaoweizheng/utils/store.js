@@ -379,9 +379,14 @@ async function removeTicket(id) {
 
 /**
  * 把这张票放进同场票根墙 / 从墙上撤下。
+ *
+ * **失败抛错；成功不回任何值** —— 成没成功只由「有没有抛错」表达，与 setCaption /
+ * addTicket 同一条规矩。特意**不返回「操作后的状态」**：那个布尔里 false 既可能是
+ * 「撤下成功」也可能是「失败」，调用方一眼看过去 `if (r)` 就分不清 ——
+ * 8.1.0 那个开关正是栽在这种含混上（见 tests/wall_toggle.test.js）。
+ *
  * @param {string} id 票根 id（必须是自己名下的）
  * @param {boolean} on true=放进墙 false=撤下
- * @returns {Promise<boolean>} 操作后的状态
  */
 async function setWallPublic(id, on) {
   if (USE_CLOUD && !isMockTicket(id)) {
@@ -391,13 +396,12 @@ async function setWallPublic(id, on) {
     });
     const r = (res && res.result) || {};
     if (!r.ok) throw new Error(r.msg || '操作失败，请稍后再试');
-    return !!r.on;
+    return;
   }
   // 演示模式：只改本机记录（数据不出本机，但行为与云端保持一致）
   writeLocal(readLocal().map((t) => (
     String(t.id) === String(id) ? { ...t, wallPublic: !!on } : t
   )));
-  return !!on;
 }
 
 /**

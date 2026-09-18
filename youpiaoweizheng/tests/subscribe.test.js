@@ -54,7 +54,10 @@ global.wx = {
  *  不去动仓库文件，也不给生产代码留测试专用的口子。 */
 function loadWithTmpl(id) {
   const file = path.join(ROOT, 'utils/subscribe.js');
-  const src = read('utils/subscribe.js').replace("const TMPL_ID = '';", `const TMPL_ID = '${id}';`);
+  // 按声明本身匹配，不认里面当前是什么值 —— 模板 ID 一旦回填，
+  // 原先那句 replace("const TMPL_ID = '';") 就再也匹配不上，整段静默失效。
+  const src = read('utils/subscribe.js')
+    .replace(/const TMPL_ID = '[^']*';/, `const TMPL_ID = '${id}';`);
   ok(src.indexOf(`TMPL_ID = '${id}'`) > 0, '注入失败：subscribe.js 里的 TMPL_ID 声明变了？');
   const m = new Module(file, null);
   m.filename = file;
@@ -70,26 +73,36 @@ function reset(reply) {
   dialogReply = reply || {};
 }
 
-const subscribe = require('../utils/subscribe.js'); // 仓库里那份（模板 ID 未配置）
+const repo = require('../utils/subscribe.js'); // 仓库里那份（模板 ID 已回填）
+// 「未配置」这件事只能靠注入空 ID 复现 —— 拿仓库当前状态当断言对象，
+// 等于把「有没有回填」和「未配置时该不该静默」两件事绑在一起：
+// 一旦回填，后者就再也测不到了（这正是回填时踩到的坑）。
+const unset = loadWithTmpl('');
 
 // ════════════════════════════════════════════════════════════
 console.log('\n【一、模板 ID 未配置 = 全站静默（不留点了没反应的假入口）】');
 
-t('默认模板 ID 是空的，available() 为 false', () => {
-  ok(subscribe.TMPL_ID === '', '仓库里的模板 ID 应该留空等回填：' + subscribe.TMPL_ID);
-  ok(subscribe.available() === false, '未配置却说自己可用');
+t('未配置时 available() 为 false', () => {
+  ok(unset.TMPL_ID === '', '注入没生效：' + unset.TMPL_ID);
+  ok(unset.available() === false, '未配置却说自己可用');
 });
 
 t('未配置时连授权弹窗都不拉起（一次都不行）', () => {
   reset();
-  ok(subscribe.askIfDue() === null, '未配置时应该直接返回 null');
+  ok(unset.askIfDue() === null, '未配置时应该直接返回 null');
   ok(dialogs.length === 0, '未配置却弹了授权窗：' + dialogs.length + ' 次');
 });
 
 t('未配置时没有任何服务端回报', async () => {
   reset();
-  await subscribe.afterSign(null, { ok: true, streak: 3 });
+  await unset.afterSign(null, { ok: true, streak: 3 });
   ok(calls.length === 0, '未配置却回报了服务端：' + JSON.stringify(calls));
+});
+
+t('仓库里的模板 ID 已经回填，而且像个真 ID', () => {
+  ok(repo.TMPL_ID !== '', '模板 ID 还空着 —— 签到授权会静默失效，用户永远收不到召回');
+  ok(/^[A-Za-z0-9_-]{20,}$/.test(repo.TMPL_ID), '模板 ID 格式不像话：' + repo.TMPL_ID);
+  ok(repo.available() === true, 'ID 已填，available() 却还是 false');
 });
 
 // ════════════════════════════════════════════════════════════
@@ -188,15 +201,26 @@ t('beijingHour：UTC+8 口径（定时器按哪个时区触发都不影响判断
   ok(recall.beijingHour(Date.UTC(2026, 8, 13, 16, 30)) === 0, '北京次日 00:30 应算 0 点');
 });
 
-t('消息内容：字段名固定、文案不吹牛（thing 类超 20 字微信会拒收）', () => {
+t('消息内容：字段名与后台模板逐字一致、且不越各类型的额度', () => {
   const d = recall.dataOf(3);
-  ok(d.thing1 && typeof d.thing1.value === 'string', 'thing1 缺失');
-  ok(d.thing2 && typeof d.thing2.value === 'string', 'thing2 缺失');
-  Object.keys(d).forEach((k) => {
-    ok(d[k].value.length <= 20, k + ' 的值超过 20 字（thing 类上限）');
-  });
-  ok(recall.dataOf(3).thing2.value.indexOf('3') >= 0, '连签天数没进文案');
-  ok(recall.dataOf(0).thing2.value.indexOf('0') < 0, '没连签却说连签 0 天');
+  // 字段名对着 MP 后台那个模板：phrase1 = 签到状态 ／ number2 = 连续签到天数。
+  // 对不上时 send 返回 47003，消息发不出去，端上完全看不出来 —— 所以逐字钉住。
+  ok(d.phrase1 && typeof d.phrase1.value === 'string', 'phrase1 缺失');
+  ok(d.number2 && typeof d.number2.value === 'string', 'number2 缺失');
+  ok(Object.keys(d).length === 2, '多出模板里没有的字段，微信会按未填处理：' + Object.keys(d).join(','));
+  // phrase 是全场最短的类型：**5 个汉字封顶**。这条最容易踩 ——
+  // 原先那句 10 个字的文案放进去，微信拒收且无任何提示。
+  ok(d.phrase1.value.length <= 5, 'phrase1 超过 5 字（phrase 类上限）：' + d.phrase1.value);
+  // number 只吃纯数字
+  ok(/^\d{1,32}$/.test(d.number2.value), 'number2 不是纯数字：' + d.number2.value);
+  ok(/^\d{1,32}$/.test(recall.dataOf(0).number2.value), '连签 0 天时 number2 也得是数字');
+});
+
+t('消息内容：文案不许撒谎（这条只在「今天还没签」时发出）', () => {
+  const v = recall.dataOf(3).phrase1.value;
+  ok(!/已签|已收|签过/.test(v), '状态写成「已签到」了，可这条消息恰恰是发来催签的：' + v);
+  ok(recall.dataOf(3).number2.value === '3', '连签天数没进消息');
+  ok(recall.dataOf(0).number2.value === '0', '没连签时也该如实报 0，不能凭空编一个数');
 });
 
 // ════════════════════════════════════════════════════════════

@@ -117,63 +117,65 @@
     <image class="hc-greet-wave" src="{{art.wave}}" mode="aspectFit" aria-hidden="true" />
   </view>
 
-  <!-- ============ 7.4.0 R1 今日时光签 ============
-       这是「今天没票可拍」的人也来的理由，所以放在问候语正下方、搜索之上。
-       已签后不消失（消失会让人以为没签上），改成「今天已收下」。 -->
-  <view class="hc-sign {{sign.signed ? 'is-done' : ''}}" wx:if="{{sign}}">
-    <view class="hc-sign-txt">
-      <text class="hc-sign-t">{{signText.title}}</text>
-      <text class="hc-sign-s">{{signText.sub}}</text>
+  <!-- ============ 8.1.1「今天」：三条横条并成一张卡 ============
+       原先「今日时光签 / 那年今天 / 老票根专场」各占一行、各写各的外边距（26 / 20 / 22），
+       三行加起来 280rpx —— 加上品牌行与问候语，票根墙得从第 768rpx 才开始画，
+       首屏只看得见一行完整卡，可这一页的主角是墙。
+       并成一张卡、行与行用细描边分开：谁该显示谁显示（三条原本就都有各自的出现条件），
+       一眼还看得出这是「今天这一组事」，而不是三件互不相干的东西。 -->
+  <view class="hc-today {{sign && !sign.signed ? 'is-pending' : ''}}" wx:if="{{sign || mem || legacy}}">
+    <!-- 7.4.0 R1 今日时光签：今天没票可拍的人也来的理由。
+         已签后不消失（消失会让人以为没签上），改成「今天已收下」，图标也换成对勾。 -->
+    <view class="hc-td" wx:if="{{sign}}">
+      <image class="hc-td-ic" src="{{sign.signed ? ic.signDone : ic.signIc}}" mode="aspectFit" aria-hidden="true" />
+      <view class="hc-td-body">
+        <text class="hc-td-t">{{signText.title}}</text>
+        <text class="hc-td-s">{{signText.sub}}</text>
+      </view>
+      <view class="hc-td-btn pressable" wx:if="{{signText.btn}}"
+            hover-class="press-hover" bindtap="onCheckIn"
+            aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
     </view>
-    <view class="hc-sign-btn pressable" wx:if="{{signText.btn}}"
-          hover-class="press-hover" bindtap="onCheckIn"
-          aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
-  </view>
 
-  <!-- ============ 7.4.0 R4 那年今天：有命中才出现 ============
-       没有命中就整行不显示 —— 编一句「去年的今天你在……」是假的，用户一眼看得出来 -->
-  <view class="hc-mem pressable" wx:if="{{mem}}" hover-class="press-hover" bindtap="goMemory"
-        aria-role="button" aria-label="{{mem.text}} {{mem.title}}">
-    <image class="hc-mem-ic" src="{{ic.memIc}}" mode="aspectFit" aria-hidden="true" />
-    <text class="hc-mem-t">{{mem.text}}</text>
-    <text class="hc-mem-s">{{mem.title}}</text>
-    <image class="hc-mem-go" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
-  </view>
-
-  <!-- ============ 8.1.0 老票根专场：翻抽屉 ============
-       只在「已经有票、但一张五年前的都没有」时出现（规则在 utils/legacy.js）——
-       新用户该先拍第一张，有老票的人该看回忆，这行对他们是多余的。
-       翻出来一张之后它自己就收了，不需要用户手动关。 -->
-  <view class="hc-legacy pressable" wx:if="{{legacy}}" hover-class="press-hover" bindtap="goLegacy"
-        aria-role="button" aria-label="老票根专场：抽屉里那些也值得留下来">
-    <image class="hc-legacy-ic" src="{{ic.legacyIc}}" mode="aspectFit" aria-hidden="true" />
-    <view class="hc-legacy-body">
-      <text class="hc-legacy-t">老票根专场</text>
-      <text class="hc-legacy-s">抽屉里那些，也值得留下来</text>
+    <!-- 7.4.0 R4 那年今天：有命中才出现。没有命中就不显示 ——
+         编一句「去年的今天你在……」是假的，用户一眼看得出来 -->
+    <view class="hc-td pressable" wx:if="{{mem}}" hover-class="press-hover" bindtap="goMemory"
+          aria-role="button" aria-label="{{mem.text}} {{mem.title}}">
+      <image class="hc-td-ic" src="{{ic.memIc}}" mode="aspectFit" aria-hidden="true" />
+      <text class="hc-td-k">{{mem.text}}</text>
+      <text class="hc-td-v">{{mem.title}}</text>
+      <image class="hc-td-go" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
     </view>
-    <image class="hc-legacy-go" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
+
+    <!-- 8.1.0 老票根专场：只在「已经有票、但一张五年前的都没有」时出现
+           （规则在 utils/legacy.js）—— 新用户该先拍第一张，有老票的人该看回忆，
+           这行对他们是多余的。翻出来一张之后它自己就收了，不需要用户手动关。 -->
+    <view class="hc-td pressable" wx:if="{{legacy}}" hover-class="press-hover" bindtap="goLegacy"
+          aria-role="button" aria-label="老票根专场：抽屉里那些也值得留下来">
+      <image class="hc-td-ic" src="{{ic.legacyIc}}" mode="aspectFit" aria-hidden="true" />
+      <view class="hc-td-body">
+        <text class="hc-td-t">老票根专场</text>
+        <text class="hc-td-s">抽屉里那些，也值得留下来</text>
+      </view>
+      <image class="hc-td-go" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
+    </view>
   </view>
 
-  <!-- ============ 搜索 ============ -->
-  <view class="hc-search pressable" bindtap="goSearch" hover-class="press-hover" aria-role="searchbox" aria-label="搜索票根">
-    <image class="hc-search-ic" src="{{ic.search}}" mode="aspectFit" aria-hidden="true" />
-    <text class="hc-search-ph">搜索演出、电影、城市...</text>
-  </view>
-
-  <!-- ============ 分类胶囊 ============ -->
-  <view class="hc-chips">
-    <view
-      class="hc-chip pressable {{active === item.key ? 'on' : ''}}"
-      wx:for="{{filters}}"
-      wx:key="key"
-      data-key="{{item.key}}"
-      bindtap="onFilter"
-      hover-class="press-hover"
-      aria-role="button"
-      aria-label="{{item.name}}分类"
-    >
-      <image class="hc-chip-ic" src="{{active === item.key ? item.srcOn : item.srcOff}}" mode="aspectFit" aria-hidden="true" />
-      <text class="hc-chip-t">{{item.name}}</text>
+  <!-- ============ 找票：搜索 + 筛选 ============
+       8.1.1：四枚分类胶囊原先自己占一行（连着搜索框 184rpx），而它们只是「把墙筛一下」。
+       收进右侧一个按钮，点开是原生清单（wx.showActionSheet，见 home.js onFilterOpen）：
+       省下 90rpx 给墙，还多了一件事 —— 按钮上直接写着现在在哪个分类。 -->
+  <view class="hc-find">
+    <view class="hc-search pressable" bindtap="goSearch" hover-class="press-hover" aria-role="searchbox" aria-label="搜索票根">
+      <image class="hc-search-ic" src="{{ic.search}}" mode="aspectFit" aria-hidden="true" />
+      <text class="hc-search-ph">搜索演出、电影、城市...</text>
+    </view>
+    <view class="hc-filter pressable {{active ? 'on' : ''}}" bindtap="onFilterOpen"
+          hover-class="press-hover" aria-role="button"
+          aria-label="筛选分类，当前是{{activeName || '全部'}}">
+      <text class="hc-filter-t">{{activeName || '全部'}}</text>
+      <!-- 复用列表那个右箭头，转 90 度当「点开」用 —— 不为一个雪佛龙再画一个图标 -->
+      <image class="hc-filter-ic" src="{{ic.goIc}}" mode="aspectFit" aria-hidden="true" />
     </view>
   </view>
 

@@ -17,7 +17,7 @@ const { USE_CLOUD } = require('./env.js');
 
 /** 订阅消息模板 ID（MP 后台 → 订阅消息 →「每日时光签」提醒模板）。
  *  空字符串 = 未配置 = 全站不出现任何相关请求（连授权弹窗都不会弹）。 */
-const TMPL_ID = '';
+const TMPL_ID = 'LoBUuHkTvYuHw1Q2Nt-MlqKLwwXQgNLg33LA62jxYB8';
 
 const LS_KEY = 'sp_sub_state';  // { ymd: 哪天问过, denyAt: 被拒的时间戳 }
 const DENY_QUIET_DAYS = 30;     // 被拒后的静默期
