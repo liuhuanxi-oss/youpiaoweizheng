@@ -72,7 +72,7 @@
 
 ### 2.3 `prefs`（账本集合：一个 `type` 一类文档）
 
-全项目引用最多的集合，新人最容易漏看。15 种文档：
+全项目引用最多的集合，新人最容易漏看。16 种文档：
 
 | `type` | 存什么 | 关键字段 |
 |---|---|---|
@@ -91,6 +91,7 @@
 | `daily_sign` | 每日时光签（7.4.0 A 段） | `ymd`、`streak`、`best`、`total` —— 判定与发奖在服务端，按北京时间换天 |
 | `points` | 积分账本（7.4.0 B 段） | `balance`、`lifetime`（累计获得，勋章看它）、`earn{ymd,n}`（日上限计数器）、`log[]`（最近 50 条流水）、`redeemYmd` / `redeemReq` / `redeemAt`（兑换的每日名额与幂等键） |
 | `recall` | 订阅消息召回（7.4.0 C2） | `tmplId`、`streak`、`sendAt`、`status`（`pending`/`sent`/`dead`）、`tries`、`err` |
+| `anniv` | 周年提醒（8.1.2，**与 `recall` 同一趟定时器发**） | `tmplId`、`ymd`（周年那天，北京时间）、`years`、`title`、`ticketId`（落页用，正则清洗过）、`sendAt`（那天 09:00）、`status`、`tries`、`err`。与 `recall` 的两处不同：**只在那一天发**（过了就 `dead` + `err:'expired:<ymd>'`，不补发）｜一人一条（给别的票排提醒即覆盖） |
 | `ocr_day` | 识别配额（P2-11，由 `recognizeTicket` 写） | `_id` 固定为 `ocr_{openid}_{ymd}`（并发首调靠主键分胜负）、`ymd`、`count`（每人每天 30 次） |
 
 ### 2.4 `config`（支付凭证）
@@ -106,7 +107,7 @@
 
 ---
 
-## 三、客户端模块契约（`utils/`，下表 30 个模块）
+## 三、客户端模块契约（`utils/`，下表 31 个模块）
 
 按「被页面直接 require 的次数」排序，括号内为引用页数（**8.1.0 实测**，只数 `pages/`、`components/` 与 `custom-tab-bar/` 不计入；`(0)` 表示只被 util 内部 require、页面不直接用）：
 
@@ -142,7 +143,8 @@
 | `mapFilm.js` (1) | `canPlay(cities, flags)`、`frames(cities)`、`span(fs)`、`sheet(rows)`、`yearOf(date)`、`MIN_STOPS` / `FRAME_MS` / `MAX_ROWS` / `SHEET_W` / `MAP_W` / `MAP_H` | 一键成片的**唯一编排**：站点顺序按首次到访升序、同日以城市名为第二把钥匙（否则两次播放顺序会飘）、无日期排最后且不编年份；不足两站或云兜底（`flags.netFallback`）不给播；长图版面纯算高度（上游按 12 城封顶，12 城 750×1928，dpr 2 = 3856 不越 iOS 单边 4096；`MAX_ROWS=20` 是保险丝，真到那一步宁可图软也不崩）。`pages/discover/film.js` 是配套画笔，与 `pages/annual/poster.js` 同一写法（纯 Canvas、不碰 wx） | mapArt |
 | `svg.js` (0) | `toDataUri(svg)`、`b64(str)` | 图形工厂唯一的出口；**必须 base64** —— 百分号编码在开发者工具里正常、真机上整片不显示 | — |
 | `weather.js` (1) | `weatherText(w)`、`weatherHint(w)` | WMO 码表 28 项；体感分界 5 / 14 / 30 ℃；`w` 为空一律返回空串（不造假） | — |
-| `subscribe.js` (经 sign) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` | 一次性订阅：授权→次日一条，没有「开关」；`TMPL_ID` 空着时一次都不请求、不留假入口（**8.1.1 已回填** `LoBUuHkTvYuHw1Q2Nt-MlqKLwwXQgNLg33LA62jxYB8`）；`askIfDue` 必须在点击回调里同步发起；被拒后 30 天静默（环境类失败不进静默期）。**服务端**发消息的字段名（`recall.js` 的 `dataOf`）必须与后台模板逐字一致 —— `phrase1`（上限 5 个汉字）/ `number2`（只吃数字字符串），对不上 `send` 回 47003 而端上毫无提示 | env |
+| `subscribe.js` (经 sign / detail) | `TMPL_ID`、`available`、`askIfDue`、`afterSign` + **8.1.2 的 `ANNIV_TMPL`、`annivAvailable`、`annivAskable`、`annivSaved`、`askAnniv`、`afterAnniv`** | 一次性订阅：授权→次日一条，没有「开关」；`TMPL_ID` 空着时一次都不请求、不留假入口（**8.1.1 已回填** `LoBUuHkTvYuHw1Q2Nt-MlqKLwwXQgNLg33LA62jxYB8`）；`askIfDue` 必须在点击回调里同步发起；被拒后 30 天静默（环境类失败不进静默期）。**服务端**发消息的字段名（`recall.js` 的 `dataOf`）必须与后台模板逐字一致 —— `phrase1`（上限 5 个汉字）/ `number2`（只吃数字字符串），对不上 `send` 回 47003 而端上毫无提示。**8.1.2 起两个模板各自一份状态**（`sp_sub_state` / `sp_sub_anniv`，互不连坐）；`askAnniv()` 返回空 = 连弹窗都没拉起，调用方必须把入口一起收起 | env |
+| `anniv.js` (2) | `next(dateStr, now)`、`cnDay(ymd)`、`parse`、`WINDOW_DAYS`（30） | 纯函数，**整套周年规则的唯一出处**：下一个周年日落在 1–30 天内才返回（今天正是周年**不算** —— 归详情页 4.15.0 彩蛋；今年的票不算）；跨年、`2-29` 平年落 `2-28`、脏日期一律 null（不替用户编一天）；口径固定北京时间（源码里不许出现 `getDate()` / `getMonth()`） | — |
 | `auth.js` (经 pay) | `ensureSession(force)`、`isFresh`、`LS_AUTH_TIME`、`FRESH_MS` | key `sp_auth_time`；24h 新鲜度；模块内并发去重；`wx.login` 成功后必须立刻 `authLogin` 覆盖服务端，两步不拆 | env |
 
 ### 页面 → 数据层的最小约定
@@ -206,6 +208,7 @@
 | `shareOpen` | `code` | 分享被打开归因：按码找到分享人并给**他**记 `share`（+5，日上限 3）；自己点自己的不加 |
 | `pointsRedeem` | `req`（幂等号，截 40 位） | 100 分兑 1 次重绘；日上限 1；扣分与占名额同一条条件更新；发额度失败连分带名额退回（`NOBAL`/`LIMIT`/`GRANT`） |
 | `recallSave` | `tmplId`, `streak`（截断夹紧） | 写 `prefs.recall`（一人一条，`status='pending'`、`sendAt`=次日 09:00 北京） |
+| `annivSave`（8.1.2） | `tmplId`, `ymd`, `years`, `id`, `title` | 写 `prefs.anniv`（一人一条）。**日期要过校验**：必须是真实存在的日子、且落在未来 1–60 天内（端上窗口是 30 天，这里放宽一倍容时钟偏差），越界一律拒；票 id 要过正则清洗（落页用）；票名过 `clip20`（`thing` 类型上限 20 字） |
 | `goodsImgSetup` / `opsCleanup` / `opsAudit` / `opsRecall` | `opsToken`（= AppKey 校验，四个入口共用 `checkOpsToken`），`imgBase64` / `dryRun` | 运维专用：道具图上传 / 上线前清理 / 只读巡检 / 手动发一轮召回（`dryRun:true` 只列名单不发） |
 
 ### 4.3 支付推送分支（微信服务端 → 云函数）
@@ -356,7 +359,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 ② 积分看**累计获得**（`lifetime`）而不是余额——攒够 500 换掉 5 次重绘后余额归零，按余额判定
 勋章会当场熄灭，已经得到的东西不该因为消费而失去。
 
-### 6.5.1 订阅消息召回（`utils/subscribe.js` + `saveTicket/recall.js`）
+### 6.5.1 订阅消息（`utils/subscribe.js` + `saveTicket/recall.js`）
 
 一次性订阅：**一次授权只能发一条**，所以没有「每日提醒」开关可做。真实闭环是
 「签到时授权 → 次日 09:00 发一条 → 用户回来再授权」。三处细节错了就是静默失效：
@@ -366,6 +369,20 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 - 端上被拒后 30 天内不再问，同一天只问一次；
 - 云端只在北京时间 07:00–22:00 发送（定时器半夜跑起来也不能吵人），窗口外**留着**不是丢弃；
   43101（无授权额度）/ 47003（模板字段对不上）是终局错误，直接结案不重试。
+
+**8.1.2 起同一条链路发两类**，**不新增定时器**（`recallTick` 那趟每小时顺手分拣 `type`）：
+
+| | 签到召回 `type='recall'` | 周年提醒 `type='anniv'` |
+|---|---|---|
+| 从哪儿授权 | 详情页之外：`utils/sign.js` 签到那一下 | **只放票根详情页**（那一行贴着具体一张票） |
+| 什么时候出现 | 不分时机，签到成功就同步发一次授权 | 只有那张票的下一个周年日落在 **30 天内**才出现（更早用户不知道自己在同意什么，当天又已经排不上了） |
+| 什么时候发 | 次日 09:00；发送窗口 07:00–22:00 | **就是那天 09:00**；**晚了一天就作废**（`status='dead'`、`err='expired:<ymd>'`）—— 补发出去的那句「今天满 N 周年」是假话 |
+| 点什么进来 | `pages/home/home` | `pages/detail/detail?id=<票 id>`（票没了 → 4.18.0 空态） |
+| 一人几条 | 一条 | 一条（给别的票排提醒就是覆盖 —— 端上的「已排上」与云端必须一对一） |
+| 模板字段 | `phrase1` / `number2` | `thing1`（票名，≤20 字）/ `time2`（`2026年08月12日 09:00`）/ `thing3`（备注，≤20 字）/ `thing4`（`你`） |
+
+两类共用一条「不能撒谎」的规矩：**端上只有真的回报成功才显示「已排上」**（用户拒绝 / 弹窗失败 /
+云端 `ok:false` 三种情况都不记），弹窗拉不起来（模板没配、今天已问过）时那一行整块收起，不留假入口。
 
 ### 6.6 骨架屏时序（`utils/skeleton.js`）
 
@@ -394,9 +411,10 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 卡片取票失败 | 空态 + 出路（去扫描 / 返回） | 不复用第一张票冒充 |
 | 图片加载失败 | 占位图 / 跳过该张 | 不出现破图 |
 | 广告位未配置 | 相关 UI 整体隐藏 | 不出现空按钮 |
-| 订阅模板 ID 未配置 | 授权弹窗与召回整条链不启动（云端也无记录） | 无感，签到照常 |
-| 订阅授权被拒 / 弹窗失败 | 不挂提醒；被拒后 30 天不再问（环境失败不进静默期） | 无感（签到奖励照发） |
+| 订阅模板 ID 未配置 | 授权弹窗与召回整条链不启动（云端也无记录）；8.1.2 起**两个模板各管各的**，一个没配不影响另一个 | 无感，签到照常 |
+| 订阅授权被拒 / 弹窗失败 | 不挂提醒；被拒后 30 天不再问（环境失败不进静默期）。**端上不记「已排上」** —— 记了就变成「我明明设了提醒却什么都没来」 | 无感（签到奖励照发）；详情页那一行收起 |
 | 召回消息发送失败 | 网络类留到下一整点重试（≤3 次）；43101/47003 结案留痕 | 无感（最多少一条提醒，不发第二个错） |
+| 周年提醒过期（定时器停过） | 不在那天就**不发**：`status='dead'`、`err='expired:<ymd>'` 留痕，不重试不补发 | 无感（迟到的「今天满 N 周年」比不收到更糟） |
 
 ---
 
@@ -411,7 +429,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 密钥 | 小程序 AppSecret、支付 appKey/appSecret、上传私钥均在 `.env` / `config` 集合，**不入仓库**；`config` 集合权限「仅管理端可读写」 |
 | 隐私 | 不申请定位权限（城市来自票面识别）；`__usePrivacyCheck__` 开启；摄像头 / 相册按需触发 + 官方隐私弹窗 |
 | 运维接口 | `opsCleanup` / `opsAudit` / `goodsImgSetup` / `opsRecall` 需 `opsToken`（与服务端 AppKey 比对，四个入口共用 `checkOpsToken`） |
-| 订阅消息 | **只在用户主动签到时请求一次授权**，不在启动/进页面时弹（合规红线）；模板 ID 未配置时一次都不请求；发送只在服务端（端上不能指定发给谁） |
+| 订阅消息 | **只在用户主动点击时请求一次授权**（签到那一下 / 详情页那行「提醒我」），不在启动/进页面时弹（合规红线）；模板 ID 未配置时一次都不请求；发送只在服务端（端上不能指定发给谁） |
 | 同场票根墙（8.1.0） | **全项目唯一一个陌生人可读的出口**，所以隐私面按「只许少、不许加」管：① 默认关闭——上墙是**一张票一次**的主动选择（沿用「同场印记」那个默认参与的开关，等于偷偷扩大用户没同意过的范围）；② `wallPublic` **不在入库白名单**里，端上塞不进墙，唯一入口是 `wallJoin` 且必过安检；③ 出口 `field()` 取四列 + 逐字段重建，只出 `title / venue / date / img`，**`_id` 也给不得**（card 页支持按 id 取票，漏 id 等于白送一条读别人完整票根的旁路）；④ 撤下不过安检（内容后来被判违规的用户不能被永久钉在墙上）。契约见 §4.2，守卫见 `tests/same_wall.test.js` |
 
 ---
@@ -428,7 +446,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 双人 | `bind` action + `couples` | `couple.js` 的演示绑定：本地写一份「演示搭档」进 `sp_couple_cache`（`partnerOpenid='demo_partner'`），不产生云文档；票根归属由 `duoData.js` 按排序 `i % 2` 交替分配 |
 | 支付 / 重绘 | 云函数 + `prefs` | 额度视图本地模拟，不产生真实订单 |
 | 签到 / 积分 | `dailySign` / `pointsGet` + `prefs` | `status()` 一律返回 null（首页横幅与「我的」积分块**整块不渲染**），`checkIn()` 回「演示模式不支持签到」——不留点了没反应的假入口 |
-| 邀请归因 / 订阅召回 | `refCode` / `refBind` / `refReward` / `shareOpen` / `recallSave` | `invite.js` 全链路静默空转（不影响任何界面）；演示模式没有签到可签，订阅授权一次都不发起 |
+| 邀请归因 / 订阅消息 | `refCode` / `refBind` / `refReward` / `shareOpen` / `recallSave` / `annivSave` | `invite.js` 全链路静默空转（不影响任何界面）；演示模式没有签到可签，订阅授权一次都不发起详情页那一行也不出现（`setupAnniv` 第一句就拦演示票根 —— 样例日期不是用户真去过的那天） |
 
 演示内容**必须标注「演示」**（项目宪法的诚实原则）；演示票通过 `store.isMockTicket(id)` 判定。
 
@@ -440,7 +458,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 |---|---|
 | 票根字段 | §2.1 表 + `saveTicket` 入库段 + `store.js` 归一逻辑 + 页面读字段处（`_id` / `id` 别写反） |
 | 新增云能力 | 加 action（不新建函数目录）+ `scripts/ci/deploy-fns.js` 部署 + §4.2 表 |
-| 订阅消息 | 端上模板 ID（`utils/subscribe.js`）+ 云端字段名（`recall.js` 的 `dataOf`，**必须与 MP 后台模板逐字一致**，否则 47003）+ `config.json` 的 `subscribeMessage.send` 权限与 timer 触发器 + §6.5.1 |
+| 订阅消息 | 端上模板 ID（`utils/subscribe.js` 的 `TMPL_ID` 与 `ANNIV_TMPL`）+ 云端字段名（`recall.js` 的 `dataOf` / `annivData`，**必须与 MP 后台模板逐字一致**，否则 47003）+ `config.json` 的 `subscribeMessage.send` 权限与 timer 触发器 + §6.5.1 |
 | 额度 / 价格 / 订单 | `pay.js` 四件套 + §5.1 状态机 + §4.3 三道闸（**动钱，先人工确认**） |
 | 积分规则 / 上限 | `POINTS_RULES` + `SIGN_MILESTONES` + `POINTS_PER_ART` + `CLIENT_EARN_REASONS` + **`PUBLIC_RULE_KEYS`**（只公开 sign / upload / card；share 与 invite 照发不误但不对外展示）+ 端上 `points.js` 的 `RULE_LABEL`（两处同时改，否则界面上摆的是假规则） |
 | 邀请码 / 短码 | 端上 `invite.js`（三个 `sp_ref_*` key 与分享 path 的 `?ref=`）+ `saveTicket` 的 R6 段四道防刷闸 + `couples` 的 4 位码与 7 天惰性过期 + `wxacode` 要收 `ref`（漏传则归因永远算不到邀请人头上）+ 分享卡的 `shareOpen` 归因（码属于分享人） |

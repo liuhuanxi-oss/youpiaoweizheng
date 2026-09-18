@@ -2292,6 +2292,12 @@ exports.main = async (event) => {
     await ensureCollection(rdb, 'prefs');
     return recall.save(rdb, OPENID, event);
   }
+  // 8.1.2 拉新 6/6 周年提醒：详情页授权成功后排一条（真正发送在同一个定时触发器里）
+  if (event.action === 'annivSave') {
+    const adb = cloud.database();
+    await ensureCollection(adb, 'prefs');
+    return recall.annivSave(adb, OPENID, event);
+  }
   // 7.4.0 C2：手动发一轮召回（运维入口，opsToken 门禁，前端不调用）
   if (event.action === 'opsRecall') {
     return recallOpsAction(event);

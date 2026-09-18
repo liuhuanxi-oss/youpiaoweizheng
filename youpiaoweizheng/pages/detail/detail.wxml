@@ -132,6 +132,23 @@
     <view class="b-perf dtc-perf"></view>
   </view>
 
+  <!-- ===== 8.1.2 拉新 6/6 周年提醒（一年里只有 30 天的窗口会出现在这一页）
+       只在「下一个周年日落在 30 天内」且「现在问得出口」时出现：模板没配 / 被拒后的
+       静默期 / 今天已经问过，三种情况都整块收起来 —— 不留点了没反应的假入口。
+       hover-class 跟着可点性走：已排上时不给按压反馈。 ===== -->
+  <view class="dtc-ar pressable" wx:if="{{arState}}"
+        hover-class="{{arState === 'ask' ? 'press-item-hover' : 'none'}}"
+        bindtap="{{arState === 'ask' ? 'onAnnivTap' : ''}}"
+        aria-role="{{arState === 'ask' ? 'button' : ''}}"
+        aria-label="这张票满周年那天，早上提醒我一次">
+    <image class="dtc-ar-ic" src="{{icons.iCalendar}}" mode="aspectFit" aria-hidden="true" />
+    <view class="dtc-ar-body">
+      <view class="dtc-ar-name">{{arName}}</view>
+      <view class="dtc-ar-desc">{{arDesc}}</view>
+    </view>
+    <text class="dtc-ar-go" wx:if="{{arState === 'ask'}}">提醒我</text>
+  </view>
+
   <!-- 同场印记（品牌稿外既有功能，保留为最小一行） -->
   <view class="dtc-same" wx:if="{{t.eventKey}}">
     <view class="b-dash-path dtc-same-dash"></view>

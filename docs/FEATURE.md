@@ -106,7 +106,7 @@
 | FR-G2（R4） | 那年今天 | 首页一行（有命中才出现） | `utils/memory.js`、`pages/home` | ✅ 只认**更早**年份、多条命中取最近一年；没命中整行不显示（不编）；日期口径固定北京时间 |
 | FR-G3（B 段） | 积分与兑换 | 我的 → 时光签卡（余额 / 「还差 N 分」/ 兑换） | `utils/points.js`、`pointsGet` / `pointsEarn` / `pointsRedeem` / `shareOpen` action、`pages/me` | ✅ 100 分 = 1 次 AI 重绘、每天最多兑 1 次；六种行为服务端记账、各带日上限；兑换带确认弹层 |
 | FR-G4（B 段） | 挣分规则公示 | 我的 → 时光签卡 →「积分怎么来」 | 同上（服务端 `PUBLIC_RULE_KEYS` 白名单） | ✅ **只对外公布签到 / 上传 / 生成卡片三条**（8.0.5）；分享与邀请的奖励照发，但界面上一句不提；端上认不出的 key 一律不显示 |
-| FR-G5（C2） | 订阅消息召回 | 签到成功时同步发起授权 | `utils/subscribe.js`、`cloudfunctions/saveTicket/recall.js`、`recallSave` / `opsRecall` action、云函数定时触发器 | 🔶 **未通电：`utils/subscribe.js` 的模板 ID 还是空串，当前一次都不请求**（回填即生效）；一次授权只换一条次日 09:00 的提醒；定时器每小时跑、只在北京时间 07:00–22:00 之间发 |
+| FR-G5（C2） | 订阅消息召回 | 签到成功时同步发起授权 | `utils/subscribe.js`、`cloudfunctions/saveTicket/recall.js`、`recallSave` / `opsRecall` action、云函数定时触发器 | ✅ **已通电（8.1.1 回填模板 ID + 字段名改对）**；一次授权只换一条次日 09:00 的提醒；定时器每小时跑、只在北京时间 07:00–22:00 之间发。字段名必须与 MP 后台逐字一致（对不上回 47003 而端上毫无提示） |
 | FR-A8（A8） | 新用户三步引导 | 首页首次进入（拍一张 → AI 认字 → 上墙） | `pages/home`（`sp_guide_done`） | ✅ 只看一次，可跳过；关掉后不再弹 |
 
 ### 9.2 拉新与分享
@@ -118,29 +118,30 @@
 | FR-H3（R6） | 邀请有礼 | 分享卡片（`?ref=`）/ 双人页邀请面板 / 带短码的海报小程序码 | `utils/invite.js`、`utils/share.js`、`refCode` / `refBind` / `refReward` action | ✅ 好友完成首次上传后双方各 +1 次重绘；防刷四道闸（被邀请人唯一 / 不能自邀 / 老用户只记归因 / 条件更新抢占结算权）；自己点自己的分享不加分 |
 | FR-H4（A6） | 长按快捷菜单 | 长按首页 / 时光机的票根卡 | `components/ticket-menu`、`pages/home`、`pages/album` | ✅ 生成纪念卡片 / 分享给好友 / 删除三行；「分享」是原生 `open-type=share` 按钮（小程序不许代码拉起转发面板），页面按 `data-id` 取被长按的那一张 |
 | FR-H5（X3） | 竖版素材导出 | 卡片页底部「存竖版素材」→ 系统三选一 | `pages/card`（`saveXHS` / `drawXhsCover` / `drawXhsSteps` / `_exportOffscreen`）、`utils/canvas-deco.js` | ✅ 成品图 / 封面图 / 步骤图三张 1080×1440；**一个二维码都不画、不写「微信搜」**；iOS 离屏画布导出失败自动退 `toDataURL`；基础库过低有明确提示 |
+| FR-H6（8.1.2） | 周年提醒卡片 | **只放票根详情页**：那张票的下一个周年日落在 **30 天内**时，主卡下方出现一行「N 周年 · X月X日」+「提醒我」；按下去 = 换一条**周年当天 09:00** 的订阅消息，点开落回这张票 | `utils/anniv.js`（下一个周年日：30 天窗口 / 跨年 / 2-29 / 脏日期，纯函数）、`utils/subscribe.js`（第二个模板 `ANNIV_TMPL`，与签到召回分立）、`pages/detail`（那一行）、`saveTicket` 的 `annivSave` + `recall.js`（复用现有每小时那一趟触发器） | ✅ 一次性订阅 = **一次授权换一条**，所以是「提醒我」而不是开关；**授权必须在点击回调里同步发起**；模板没配 / 被拒后的 30 天静默期 / 今天已问过，三种情况整块收起（不留假入口）；发送**只在当天**，过期就地结案不补发（发晚了那句「今天满 N 周年」是假话）；一人一条（给别的票排提醒即覆盖）；口径全北京时间。守卫 `tests/anniv_remind.test.js` |
 
 ---
 
 ## 十、怎么验（功能 ↔ 测试套件对照）
 
-> 条数为最近一次记录值，权威以 `npm test` 输出为准（当前 **39 套 / 941 条**，见 [TEST.md](./TEST.md) §3）。
+> 条数为最近一次记录值（2026-09-18 逐套重核），权威以 `npm test` 输出为准（当前 **43 套 / 1036 条**，见 [TEST.md](./TEST.md) §3）。
 
 | 功能 | 自动化 | 真机 |
 |---|---|---|
-| A 录入与识别 | `scan_frame`（36 条） | 授权弹窗文案、真实识别率 |
-| B 归档与查找 | `home_wall`（35）、`album_timemachine`（38）、`list_banner` | 长列表滚动、弱网横幅 |
+| A 录入与识别 | `scan_frame`（45 条） | 授权弹窗文案、真实识别率 |
+| B 归档与查找 | `home_wall`（36）、`album_timemachine`（38）、`list_banner`（28） | 长列表滚动、弱网横幅 |
 | C1/C2 详情与手记 | `detail_icons`（23） | 打字机效果、照片放大 |
 | C3 AI 修复 | — | 目前只有「即将上线」提示 |
-| C4 重绘 | `art_repaint`（26）、`art_job_reclaim`（11） | 三种作画状态、付费墙、卡死回收退额度 |
+| C4 重绘 | `art_repaint`（32）、`art_job_reclaim`（11） | 三种作画状态、付费墙、卡死回收退额度 |
 | C5 卡片 | `card_postcard`（40，真跑渲染）、`xhs_export`（4） | 五种卡面、存相册、分享、三张竖版素材图 |
 | D1 时光机 | `album_timemachine`（38） | 年份节点、邮戳字形 |
 | D2 回忆地图 | `discover_map`（50，真跑投影） | **原生地图手势与滚动冲突**（重点） |
 | D3 年报 | `annual_report`（36，真跑海报） | 长图存相册 |
-| E 双人 | `duo_bind`（37）、`bind_concurrency`（15） | 绑定全流程走两遍（两个号）、两人同时输码、自己扫自己的码 |
-| F 我的 / 设置 / 主题 / 勋章 | `me_setting`（28）、`page_refs`（3）、`theme_preview`（13） | 勋章点亮、六主题各切一遍、主题卡预览票根 |
-| 留存（时光签 / 积分 / 勋章 / 那年今天 / 召回） | `daily_sign`（17）、`points`（32）、`badges`（15）、`memory`（12）、`subscribe`（25） | 同一天连点只加一次分、连签有礼、兑换到账、授权弹窗与消息落地 |
-| 拉新（分享 / 邀请 / 长按菜单） | `share_invite`（35） | 分享到朋友圈、邀请后双方额度 +1、长按三行 |
-| 动效与图形底座 | `motion`（64）、`svg_datauri`（15）、`press_feedback`、`icon_purity`、`page_timers`（28） | 减弱动态效果下的降级、真机图形不白板、退页后不再有定时器乱跑 |
+| E 双人 | `duo_bind`（39）、`bind_concurrency`（15） | 绑定全流程走两遍（两个号）、两人同时输码、自己扫自己的码 |
+| F 我的 / 设置 / 主题 / 勋章 | `me_setting`（35）、`page_refs`（5）、`theme_preview`（13） | 勋章点亮、六主题各切一遍、主题卡预览票根 |
+| 留存（时光签 / 积分 / 勋章 / 那年今天 / 召回） | `daily_sign`（17）、`points`（32）、`badges`（15）、`memory`（12）、`subscribe`（27） | 同一天连点只加一次分、连签有礼、兑换到账、授权弹窗与消息落地 |
+| 拉新（分享 / 邀请 / 长按菜单 / 周年提醒） | `share_invite`（37）、`anniv_remind`（36） | 分享到朋友圈、邀请后双方额度 +1、长按三行；**周年提醒**：那一行只在 30 天窗口里出现、授权当场弹、消息点开落回那张票 |
+| 动效与图形底座 | `motion`（64）、`svg_datauri`（15）、`press_feedback`、`icon_purity`、`page_timers`（31） | 减弱动态效果下的降级、真机图形不白板、退页后不再有定时器乱跑 |
 | 商业化 | —（**支付无自动化**） | 沙箱下单、额度到账、掉单自愈 |
 
 ## 十一、文档与实际不符（本清单已按代码更正）

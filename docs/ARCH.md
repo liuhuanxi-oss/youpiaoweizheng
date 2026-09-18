@@ -104,6 +104,7 @@
 | `dailySign` | 每日时光签：签到与查状态（判定与发奖全在服务端，端上只读） | prefs |
 | `pointsGet` / `pointsEarn` / `shareOpen` / `pointsRedeem` | 积分：查余额（含对外挣分规则）/ 端上行为上报（白名单只有「生成卡片」）/ 分享被打开的归因 / 兑换 AI 重绘（100 分、一天 1 次、幂等） | prefs |
 | `recallSave` | 订阅消息召回：授权成功后挂一条次日提醒（**真正发送在定时触发器里**，见下） | prefs |
+| `annivSave`（8.1.2） | 周年提醒：详情页授权成功后挂一条「那张票满周年那天早上 09:00」的提醒（同样在定时触发器里发；日期要过校验：1–60 天内，越界一律拒） | prefs |
 | `authLogin` | code2Session 换会话 | prefs |
 | `payCreate` / `payQuery` / `payConfirm` / `quotaGet` / `artRewardGrant` | 下单 / 查单对账 / 支付后发货 / 额度视图 / 激励视频奖励入账 | prefs（订单、额度） |
 | `profileGet` / `profileSave` / `profileClear` | 署名资料（昵称走内容安全） | prefs |
@@ -111,7 +112,7 @@
 | `goodsImgSetup` / `opsCleanup` / `opsAudit` / `opsRecall` | 运维：道具图上传 / 上线前清理 / 只读巡检 / 手动发一轮召回（需 opsToken，前端不调用） | 云存储、tickets、couples、prefs |
 | `reorder` / `reorderGroups` / `getGroupOrder` | 排序（客户端已不再调用，**为线上旧版保留**） | tickets / prefs |
 
-**定时触发器**是第三条入口：`saveTicket` 挂了一个每小时整点的 `recallTick`（7.4.0 订阅消息召回）。`miniprogram-ci` 的 `uploadFunction` 只传代码、不管触发器 —— 触发器没建**不报错也不留痕，只是永远不发**，所以 `scripts/ci/deploy-fns.js` 部署完会读各云函数 `config.json` 的 `triggers` 并调 `createTimeTrigger` 确保建成。
+**定时触发器**是第三条入口：`saveTicket` 挂了一个每小时整点的 `recallTick`（7.4.0 订阅消息召回；8.1.2 起同一条顺带发周年提醒 —— 两类都在 `recall.js` 的 `run()` 里分拣，**不新增第二条触发器**）。`miniprogram-ci` 的 `uploadFunction` 只传代码、不管触发器 —— 触发器没建**不报错也不留痕，只是永远不发**，所以 `scripts/ci/deploy-fns.js` 部署完会读各云函数 `config.json` 的 `triggers` 并调 `createTimeTrigger` 确保建成。
 
 **微信支付回调**是另一条入口（非 action）：`xpay_*` 事件。安全约束——带 `OPENID` 的调用一律拒绝（微信服务端推送不带用户上下文），发货前必须回查微信侧真实订单。改动这条链路等于动钱，见宪法第四节。
 

@@ -235,7 +235,11 @@ function fakeDb(rows) {
     get: async () => ({ data: rows.map((r) => Object.assign({}, r)) }),
     doc: (id) => ({ update: async (o) => { updates.push({ id, data: o.data }); return { stats: { updated: 1 } }; } })
   };
-  return { db: { command: { lte: (v) => ({ __lte: v }) }, collection: () => col }, updates };
+  // in：8.1.2 起召回执行器一次查两种（recall / anniv），假库得跟得上
+  return {
+    db: { command: { lte: (v) => ({ __lte: v }), in: (v) => ({ __in: v }) }, collection: () => col },
+    updates
+  };
 }
 function fakeCloud(result) {
   const sent = [];

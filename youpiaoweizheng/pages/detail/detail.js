@@ -13,6 +13,8 @@ const share = require('../../utils/share.js');             // 7.3.0 S1/S2：分�
 const ads = require('../../utils/ads.js');                 // 4.21.0：底部 Banner 广告位（未配置 ID 时整块隐藏）
 const { iconSrc } = require('../../utils/icons.js');       // 7.0.0：线性图标（替换原 emoji）
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
+const anniv = require('../../utils/anniv.js');     // 8.1.2 拉新 6/6：下一个周年日是哪天
+const subscribe = require('../../utils/subscribe.js'); // 8.1.2：周年提醒的授权（订阅接口只此一处出口）
 
 const LS_CAP_STYLE = 'sp_cap_style'; // 4.11.0：文案风格本地记忆（detail/card 共用）
 
@@ -47,6 +49,7 @@ function buildIcons(themeKey) {
     iWeather: iconSrc('moon', m.text, 0.5),
     iSpark: iconSrc('sparkle', m.accent),
     iUsers: iconSrc('users', m.accent), // 8.1.0 同场票根墙入口
+    iCalendar: iconSrc('calendar', m.accent), // 8.1.2 周年提醒那一行
     iHeart: iconSrc('heart', m.text, 0.28),
     iHeartOn: iconSrc('heart', m.accent, 1, 1.6, true),
     iFix: iconSrc('wand', BTN_FIX_FG),
@@ -101,6 +104,7 @@ Page({
 
   /** 4.15.0：离开页面清掉彩蛋定时器（v5.1 D2：一并清打字机） */
   onUnload() {
+    this._gone = true; // 8.1.2：周年提醒的授权回报是异步的，回来时页面可能已经没了
     if (this._eggTimer) clearTimeout(this._eggTimer);
     if (this._capTimer) { clearInterval(this._capTimer); this._capTimer = null; }
     // 删除后的「收拢淡出 → 退回」定时器：用户在这 700ms 内自己按了返回，定时器还在，
@@ -142,7 +146,11 @@ Page({
     // 7.4.0：AI 生成失败时手记卡抖一下（只弹个窗，用户容易当成「点了没反应」）
     memoErr: false,
     // 8.1.0 同场票根墙：这张票有没有被本人主动放进公共墙（默认关，一张票一次选择）
-    wallOn: false
+    wallOn: false,
+    // 8.1.2 周年提醒那一行：'' 不显示 / 'ask' 可点「提醒我」/ 'done' 已排上
+    arState: '',
+    arName: '',
+    arDesc: ''
   },
 
   /** 4.12.1 照片解码完成 → 淡入；失败 → 落回纸票样式兜底 */
@@ -219,6 +227,7 @@ Page({
       });
       this._anniv = annivYears(raw.date); // 4.11.0：今天恰逢 N 周年 → 文案带纪念语气
       this.maybeAnnivEgg();               // 4.15.0：恰逢周年 → 打开彩蛋
+      this.setupAnniv(raw);               // 8.1.2：周年日快到了 → 多一行「到那天提醒我」
       this.loadSameCount(raw);
       this._typeCaption(raw.aiCaption);   // v5.1 D2：已有文案也走打字机逐字显示
     } finally {
@@ -251,6 +260,50 @@ Page({
     this.setData({ anniv: n, eggShow: true, confetti });
     haptics.confirm(); // 关键仪式时刻（与收票/保存同级）
     this._eggTimer = setTimeout(() => this.setData({ eggShow: false }), 3200);
+  },
+
+  /**
+   * 8.1.2 拉新 6/6 周年提醒：这一行什么时候出现。
+   * 三个条件全中才显示 —— ① 下一个周年日落在未来 30 天内（utils/anniv.js 算）；
+   * ② 模板配置好了；③ **现在问得出口**（不在被拒后的静默期、今天没问过）。
+   * ②③ 由 subscribe.annivAskable 一并管住：问不出口的时候还摆着一行「提醒我」，
+   * 点下去什么都不会发生，那正是全项目最忌讳的假入口。
+   */
+  setupAnniv(t) {
+    // 演示票根（云兜底那批）的日期是样例数据，不是用户真去过的那一天。
+    // 拿它去换一次订阅授权 = 烧掉用户一次「一次授权换一条」的额度，
+    // 而且真到那天早上会推一条「《示例…》今天满 1 周年」—— 关于一张他从未有过的票。
+    if (store.isMockTicket(t.id)) return;
+    const n = anniv.next(t.date);
+    if (!n) return;
+    this._annivAt = n;
+    const name = `${n.years} 周年 · ${anniv.cnDay(n.ymd)}`;
+    // 已经排上过这一条（本地记着，云端也是一人一条）：直接给「已排上」，不再问第二遍
+    if (subscribe.annivSaved() === n.ymd) {
+      this.setData({ arState: 'done', arName: name, arDesc: '已排上，那天早上提醒你一次' });
+      return;
+    }
+    if (!subscribe.annivAskable()) return;
+    this.setData({ arState: 'ask', arName: name, arDesc: '那天早上提醒你一次，点开回到这张票' });
+  },
+
+  /**
+   * 点「提醒我」：订阅授权必须**在这一下点击里同步发起**（挪到 await 之后手势就过期了，
+   * 弹窗永不出现且没有报错 —— utils/subscribe.js 文件头上那条硬约束）。
+   */
+  onAnnivTap() {
+    const n = this._annivAt;
+    if (!n || this.data.arState !== 'ask') return;
+    haptics.tap();
+    const p = subscribe.askAnniv();   // 同步发起，p 稍后再收结果
+    if (!p) { this.setData({ arState: '' }); return; } // 慢一步被别的入口抢先问过：把这行收掉，不留假按钮
+    subscribe.afterAnniv(p, {
+      ymd: n.ymd, years: n.years, id: this.data.t.id, title: this.data.t.title
+    }).then((done) => {
+      if (!done || this._gone) return;
+      track.track('anniv_remind', { years: n.years }); // 埋点：设了多少条提醒（不记是哪张票）
+      this.setData({ arState: 'done', arDesc: '已排上，那天早上提醒你一次' });
+    });
   },
 
   // 4.11.0：切换文案风格（记住选择；已有文案时点「换一句」即按新风格重生）

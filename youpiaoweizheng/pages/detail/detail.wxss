@@ -199,6 +199,21 @@
   white-space: nowrap;
 }
 
+/* ===== 8.1.2 周年提醒：与票根墙同一副骨架（图标 + 两行字 + 右侧动作） ===== */
+.dtc-ar {
+  display: flex; align-items: center; gap: 18rpx;
+  margin: 22rpx 32rpx 0;
+  padding: 24rpx 26rpx;
+  background: var(--card);
+  border: 1rpx solid var(--border);
+  border-radius: 24rpx;
+}
+.dtc-ar-ic { flex: 0 0 34rpx; width: 34rpx; height: 34rpx; }
+.dtc-ar-body { flex: 1; min-width: 0; }
+.dtc-ar-name { font-size: 27rpx; color: var(--text); }
+.dtc-ar-desc { margin-top: 6rpx; font-size: 22rpx; line-height: 1.5; color: var(--text2); }
+.dtc-ar-go { flex: 0 0 auto; font-size: 24rpx; color: var(--rose, #D9A0A6); }
+
 /* ===== 8.1.0 同场票根墙：看别人 / 放自己 ===== */
 .dtc-wall {
   margin: 22rpx 32rpx 0;
