@@ -261,7 +261,9 @@ t('转发带邀请码直达绑定页（7.3.0 S2：文案与路径改由 share.js
   // 页面只报「双人场景 + 我的码」；路径（bind?code=）与口号在 utils/share.js 的 SCENES.duo 里，
   // 由 share_invite.test.js 钉住，这里只保证这一页真的把码传下去了
   ok(/onShareAppMessage\(\)/.test(jsClean), '转发回调没了');
-  ok(/share\.message\('duo',\s*\{\s*code:\s*this\.data\.myCode\s*\}\)/.test(jsClean), '转发没把邀请码交给 share.js');
+  // 8.1.0 起还多交一个 mine（我自己的票根张数，邀请卡的标题要报它）——
+  // 这里只钉「码必须在」，mine 由 duo_invite.test.js 单独钉
+  ok(/share\.message\('duo',\s*\{\s*code:\s*this\.data\.myCode/.test(jsClean), '转发没把邀请码交给 share.js');
 });
 t('主题与骨架屏：六主题变量化 + sk.start/end', () => {
   ok(/themeUtil\.getThemeMeta\(themeUtil\.getTheme\(\)\)/.test(jsClean), '没走主题元数据');

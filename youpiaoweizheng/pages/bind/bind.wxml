@@ -10,6 +10,7 @@
       </view>
       <view class="t serif">有人邀请你共写一本时光收藏册</view>
       <view class="s">邀请码 · {{code}}</view>
+      <view class="tip">绑好后，你们同一天同一场的票根会标成「共同场次」，同城的标成「共同城市」</view>
       <view class="btn-main accent pressable" hover-class="press-hover" bindtap="accept">接受邀请</view>
       <view class="btn-ghost pressable" hover-class="press-hover" bindtap="decline">先逛逛再说</view>
     </block>
@@ -22,8 +23,19 @@
         <view class="link serif">∞</view>
       </view>
       <view class="t serif">绑定成功！</view>
-      <view class="s">你们的票根从此汇入同一条时间线</view>
-      <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goDuo">进入我们的回忆</view>
+
+      <!-- 我一张票根都没有：主行动是去收第一张（拉来的人得先有一张票） -->
+      <block wx:if="{{empty}}">
+        <view class="s">你们的册子还空着 —— 拍下第一张，这里就有第一页了</view>
+        <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goScan">去收下第一张票根</view>
+        <view class="btn-ghost pressable" hover-class="press-hover" bindtap="goDuo">先看看我们的册子</view>
+      </block>
+
+      <!-- 我本来就有票根：直接进去看共同的那几张 -->
+      <block wx:else>
+        <view class="s">你们的票根从此汇入同一条时间线</view>
+        <view class="btn-main accent pressable" hover-class="press-hover" bindtap="goDuo">进入我们的回忆</view>
+      </block>
     </block>
 
     <!-- 失败 -->

@@ -68,6 +68,17 @@
   text-align: center;
   letter-spacing: 1rpx;
 }
+/* 「绑好后能得到什么」那行说明：比 .s 再轻一档，不跟邀请码抢注意力 */
+.tip {
+  font-size: 21rpx;
+  line-height: 1.6;
+  color: var(--text2);
+  opacity: 0.8;
+  margin: 0 0 34rpx;
+  text-align: left;
+  letter-spacing: 1rpx;
+}
+
 .btn-main, .btn-ghost { width: 100%; box-sizing: border-box; margin: 0; }
 .btn-main {
   background: var(--primary);

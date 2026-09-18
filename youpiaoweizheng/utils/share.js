@@ -77,10 +77,15 @@ const SCENES = {
     cover: COVERS.map
   },
   // 双人空间 / 双人报告（沿用 v5.1 那句「我们」钩子：比功能描述更能唤起绑定）
+  // 8.1.0：还没绑定就发出去的那张邀请卡，标题带上**我自己**的票根张数 ——
+  // 收卡的人得先判断「这人是不是真在用」。张数是分享者自己的（与 map 场景同一口径），
+  // 拿不到（云兜底 / 一张没有）就退回那句通用的话，不编数字。
   duo: {
-    title: (d) => (d && d.total
-      ? `我和${(d && d.partnerName) || 'TA'}一起收藏了 ${d.total} 张票根`
-      : '我把咱俩看过的时光收成了收藏册，给你留了位置，来一起翻'),
+    title: (d) => {
+      if (d && d.total) return `我和${d.partnerName || 'TA'}一起收藏了 ${d.total} 张票根`;
+      if (d && d.mine) return `我已经存了 ${d.mine} 张票根，想和你一起翻`;
+      return '我把咱俩看过的时光收成了收藏册，给你留了位置，来一起翻';
+    },
     path: (d) => (d && d.code ? `/pages/bind/bind?code=${d.code}` : '/pages/duo/duo'),
     query: () => '',
     cover: COVERS.duo

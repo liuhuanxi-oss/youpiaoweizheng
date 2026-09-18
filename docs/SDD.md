@@ -117,7 +117,7 @@
 | `track.js` (15) | `track(event, data, opts)`、`dump()` | 双通道：`wx.reportEvent` + 本地环形缓冲（key `sp_track_events`，500 条上限，参数截 60 字）；`opts.local === false` 只走官方通道（`page_view` 这类高频事件） | — |
 | `store.js` (12) | `USE_CLOUD`、`listTickets`、`getTicket`、`addTicket`、`setCaption`、`removeTicket`、`isMockTicket`、`getSameOptOut`、`setSameOptOut`、`listFlags` | `PAGE_SIZE=20`、`LIST_MAX=500`；云失败落本地并置 `flags.netFallback`，触顶置 `flags.truncated`（`flags.cap` 是上限值 500）；成功结果 30s TTL 缓存，三个写入口一律置脏 | env、mock |
 | `deco.js` (11) | `decoSrc(name, theme)`、`avatarSrc`、`previewSrc`、`postmarkParts`、`artFrame`、`flowerStamp`、`pinkedPanel` | 25 款手绘装饰；viewBox 默认 `0 0 64 44`，9 款另有专属框 | — |
-| `share.js` (12) | `message(key, d, extra)`、`timeline(key, d)`、`sp()`、`withSlogan`、`SCENES`、`COVERS`、`SLOGAN` | 五场景 ticket / annual / duo / legacy / map，各带标题、落地页与 5:4 封面（内容收在中间安全区，好友卡片与朋友圈 1:1 裁切共用）；每条 path / query 经 `invite.withRef` 带短码；`sp()` 认朋友圈单页模式（scene 1154） | invite |
+| `share.js` (12) | `message(key, d, extra)`、`timeline(key, d)`、`sp()`、`withSlogan`、`SCENES`、`COVERS`、`SLOGAN` | 五场景 ticket / annual / duo / legacy / map，各带标题、落地页与 5:4 封面（内容收在中间安全区，好友卡片与朋友圈 1:1 裁切共用）；每条 path / query 经 `invite.withRef` 带短码；`sp()` 认朋友圈单页模式（scene 1154）；`duo` 的标题分三档（`d.total` → 「一起收藏了 N 张」、只有 `d.mine` → 「我已经存了 N 张」、都没有 → 通用那句），**`mine` 必须是真数**：云兜底（`flags.netFallback`）那批是演示票根，传上去就是编数字 | invite |
 | `couple.js` (6) | `queryCouple`、`cachedCouple`、`createCode(name)`、`joinByCode(code, name)`、`unbind` | 走 `bind` action 的 mode=query/create/join/unbind；缓存 key `sp_couple_cache` | env |
 | `skeleton.js` (6) | `start(page)`、`end(page)` | 300ms 内完成不闪骨架 | — |
 | `pay.js` (5) | `PRODUCT_ID`、`PACK_PRICE_LABEL`、`humanizePayErr`、`getQuota`、`buyArtPack(onStatus)`、`getProfile`、`saveProfile`、`clearProfile`、`quotaLabel` | 商品 `ART_PACK_10`（¥6 / 10 幅）；`payConfirm` 即时到账，失败落轮询 15 次 × 1.5s（首轮 600ms）；免费额度 3 幅/月 | env、auth、track |
@@ -443,6 +443,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 额度 / 价格 / 订单 | `pay.js` 四件套 + §5.1 状态机 + §4.3 三道闸（**动钱，先人工确认**） |
 | 积分规则 / 上限 | `POINTS_RULES` + `SIGN_MILESTONES` + `POINTS_PER_ART` + `CLIENT_EARN_REASONS` + **`PUBLIC_RULE_KEYS`**（只公开 sign / upload / card；share 与 invite 照发不误但不对外展示）+ 端上 `points.js` 的 `RULE_LABEL`（两处同时改，否则界面上摆的是假规则） |
 | 邀请码 / 短码 | 端上 `invite.js`（三个 `sp_ref_*` key 与分享 path 的 `?ref=`）+ `saveTicket` 的 R6 段四道防刷闸 + `couples` 的 4 位码与 7 天惰性过期 + `wxacode` 要收 `ref`（漏传则归因永远算不到邀请人头上）+ 分享卡的 `shareOpen` 归因（码属于分享人） |
+| 双人邀请 / 绑定落地 | `pages/bind`（三态：confirm / done / error，done 再分「有票 / 没票」两支）+ `couple.joinByCode`（**称呼选填**，空则云端默认 TA）+ `pages/duo` 的 `_mineCount` → `share.js` 的 duo 三档文案 + `tests/duo_invite.test.js`。两条口径别写反：**「先不填」仍然往下走**（不是中止）；**云兜底的演示票根不算用户的**（既不能据此推「去收第一张」，也不能算进 `mine` 报出去） |
 | 坐标 / 地图 | §6.2 三级来源 + `mapArt.js`（水彩与真地图同源，两处都要动）+ `tests/discover_map.test.js` |
 | 一键成片 | `mapFilm.js`（编排与版面，纯函数）+ `pages/discover/film.js`（长图画笔）+ `tests/map_film.test.js`。**水彩 SVG 不能喂 `drawImage`**（iOS 画不出来），陆地走 `mapArt.stageLand()` 出纯数据、长图拿 Canvas 路径重画（**与页面上那张同一份国界**，改一边两边都变）；dpr 走 `canvas-deco.safeDpr`。改动后**必须先出图肉眼看一眼**（`scripts/dev/preview-film.js`）—— 图上少画一块、地名压线、地图偏小这三类错**都不报错也不掉测试** |
 | 主题令牌 | `app.wxss` 的 `.theme-*` 段 + `theme.js` 元数据 + `custom-tab-bar` **自己的 wxss**（组件是独立渲染树） |

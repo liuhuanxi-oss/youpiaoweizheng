@@ -114,8 +114,12 @@ Page({
     this.setData({ bound: false, duo: null, stat: null, rows: [] });
     try {
       const raw = await store.listTickets();
+      const flags = store.listFlags() || {};
+      // 邀请卡的标题要报「我已经存了 N 张」——兜底那批演示票根不是他的，报出去就是编数字
+      this._mineCount = flags.netFallback ? 0 : (raw || []).length;
       this.setData({ rows: this._rowCards((raw || []).filter((t) => t && t.title && t.date)) });
     } catch (e) {
+      this._mineCount = 0;
       this.setData({ rows: [] });
     }
     if (this.data.myCode) return;
@@ -361,7 +365,8 @@ Page({
     track.track('share_click', { from: 'duo' });
     // 7.3.0 S2：文案与落地页走 share.js —— v5.1 那句「我们」钩子保留在场景表里，
     // 落地位仍是绑定位（code 在时直达），另外自动带上邀请短码（R6 归因）
-    return share.message('duo', { code: this.data.myCode });
+    // 8.1.0：再把「我已经存了 N 张」交给文案（拿不到就是 0，场景表会退回通用那句）
+    return share.message('duo', { code: this.data.myCode, mine: this._mineCount || 0 });
   },
 
   /** 7.3.0 S1：分享到朋友圈（朋友圈只能带 query、落地就是本页） */
