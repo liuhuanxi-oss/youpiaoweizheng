@@ -24,6 +24,15 @@ const tests = [];
 const t = (name, fn) => tests.push([name, fn]);
 const ok = (c, m) => { if (!c) throw new Error(m || '断言失败'); };
 
+/** 本机「今天」—— 与 utils/subscribe.js 的 _ymd() 同口径（设备本地日期）。
+ *  千万别写成 toISOString().slice(0,10)：那是 UTC 日期，本机 UTC+8 的凌晨 0~8 点
+ *  比本地早一天，种进去的「今天问过」永远对不上（2026-09-19 凌晨 02:30 就是这么红的）。 */
+function localYmd() {
+  const d = new Date();
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 // ════════════════════════════════════════════════════════════
 // wx 桩：订阅模块要跑真逻辑，不能只扫源码
 // ════════════════════════════════════════════════════════════
@@ -123,7 +132,7 @@ t('签到时拉起一次授权，模板就是那一个（不多带、不写错�
 
 t('同一天不再弹第二次（签到失败重试时不该再弹一遍）', () => {
   reset({ [TMPL]: 'accept' });
-  LS.set(S, { ymd: new Date().toISOString().slice(0, 10) });
+  LS.set(S, { ymd: localYmd() });
   ok(sub.askIfDue() === null, '今天已经问过，还是弹了');
   ok(dialogs.length === 0, '今天已经问过，还是弹了');
 });

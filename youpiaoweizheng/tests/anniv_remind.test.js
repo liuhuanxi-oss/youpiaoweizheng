@@ -31,6 +31,14 @@ function bjText(ts) {
   const p = (x) => String(x).padStart(2, '0');
   return `${n.getUTCFullYear()}-${p(n.getUTCMonth() + 1)}-${p(n.getUTCDate())} ${p(n.getUTCHours())}:${p(n.getUTCMinutes())}`;
 }
+/** 本机「今天」—— 与 utils/subscribe.js 的 _ymd() 同口径（设备本地日期）。
+ *  千万别写成 toISOString().slice(0,10)：那是 UTC 日期，本机 UTC+8 的凌晨 0~8 点
+ *  比本地早一天，种进去的「今天问过」永远对不上（2026-09-19 凌晨 02:30 就是这么红的）。 */
+function localYmd() {
+  const d = new Date();
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 // ════════════════════════════════════════════════════════════
 console.log('\n【一、下一个周年日（utils/anniv.js，真跑）】');
@@ -171,7 +179,7 @@ t('配好之后：弹一次、模板就是那一个（不多带）', async () =>
 
 t('今天已经问过 → 同一天不再弹第二遍', () => {
   reset({ [ANNIV]: 'accept' });
-  LS.set(S_ANNIV, { ymd: new Date().toISOString().slice(0, 10) });
+  LS.set(S_ANNIV, { ymd: localYmd() });
   ok(sub.annivAskable(NOW) === false, '今天已经问过了还问得出口');
   ok(sub.askAnniv() === null && dialogs.length === 0, '今天已经问过，还是弹了');
 });
@@ -440,6 +448,13 @@ t('云端：定时器与权限不需要新增（复用 7.4.0 那一条）', () =
   const cfg = JSON.parse(read('cloudfunctions/saveTicket/config.json'));
   ok((cfg.triggers || []).length === 1, '又多建了定时器？周年提醒应该复用现有那一趟每小时');
   ok(((cfg.permissions || {}).openapi || []).indexOf('subscribeMessage.send') >= 0, '没申请发送权限');
+});
+
+t('协议：周年提醒这条披露必须在站内协议里（说了才做）', () => {
+  const p = read('pages/protocol/protocol.js');
+  ok(/周年提醒（8\.1\.2）/.test(p), '站内协议一个字都没提会给你发周年提醒 —— 功能先发了、话没说，正是要堵的口径漏洞');
+  ok(/一次性订阅消息/.test(p) && /一次授权只换一条/.test(p),
+    '协议没写清这是微信的一次性订阅（一次授权只换一条），用户会以为它是个可以退订、能天天推的东西');
 });
 
 // ════════════════════════════════════════════════════════════
