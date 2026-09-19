@@ -175,7 +175,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 
 | 类别 | 在哪 | 说明 |
 |---|---|---|
-| 回归测试 | `tests/*.test.js`（39 套 / 941 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
+| 回归测试 | `tests/*.test.js`（46 套 / 1088 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
 | 单屏预览 | `scripts/dev/preview-*.js` | 本机把卡面 / 年报 / 装饰图形渲成图或 HTML 先看一眼 |
 | 云函数部署 | `scripts/ci/deploy-fns.js` | `npm run deploy:fn`（CloudBase CLI 非交互） |
 | 上传提审 | `scripts/ci/` | `npm run upload` / `audit` / `audit:status` / `release`；`pipeline:dev` 串起「体积粗检 → 部署 → 上传」 |
