@@ -4,6 +4,10 @@
 // 而它错起来是「静默地错」：命中早了一天，用户看到的是「去年的今天你在看演出」，
 // 可他那天根本不在——回忆功能一旦说假话，比没有这个功能更伤。
 // 所以口径（同月同日 + 更早年份 + 北京时间）逐条钉死。
+//
+// 8.1.5 起多了一条降级链（同月 → 轮换重温），这一节更长了：
+// **降级同样不许说假话** —— 「重温这一张」这种文案里不能出现任何日期，
+// 出现了就是在替用户断言某一天，而那一天根本没发生过。
 // ============================================================
 const path = require('path');
 
@@ -93,7 +97,79 @@ t('文案：一年说「去年今天」，两年以上说「N 年前的今天」
   ok(memory.label(null) === '', '没命中时该是空串');
 });
 
-console.log('\n【五、接线：页面真的用上了它（改一处漏一处就白做）】');
+console.log('\n【五、8.1.5 降级链：真命中 → 同月 → 轮换重温（降级也要说真话）】');
+
+/** n 张往年票，都在 3 月 —— 离 09-13 很远，保证 ①② 都不命中，只能落到档③。
+ *  故意按日期**倒序**给，与首页真喂进来的顺序一致：档③ 要自己重排成升序，
+ *  喂进来就是升序的话，「从最早那张往前走」这条断言等于没写。 */
+const many = (n) => Array.from({ length: n }, (_, i) => tk('20' + String(10 + i) + '-03-0' + (i + 1), '票' + i, 'id' + i)).reverse();
+
+t('档①优先：同月同日那张还在时，不会走同月或轮换', () => {
+  const r = memory.row(many(6).concat([tk('2024-09-13', '正主', 'HIT')]), NOW);
+  ok(r && r.kind === 'day', '走错档了：' + (r && r.kind));
+  ok(r.id === 'HIT', '挑错了票：' + r.id);
+});
+
+t('档②：同月、但不同日的往年票 → 「去年这个月」', () => {
+  const r = memory.row([tk('2025-09-20', '同月', 'M1')], NOW);
+  ok(r && r.kind === 'month', '没降级到档②：' + JSON.stringify(r));
+  ok(r.text === '去年这个月', '文案不对：' + r.text);
+  ok(r.id === 'M1', '挑错了票：' + r.id);
+});
+
+t('档②：本年度同一个月的票不算「那年」（它就在今年）', () => {
+  ok(memory.row([tk('2026-09-20', '今年的')], NOW) === null, '把今年的票当成了回忆');
+});
+
+t('档②：多条同月取最近的那一年', () => {
+  const r = memory.row([tk('2019-09-20', '很早'), tk('2025-09-20', '去年'), tk('2022-09-20', '三年前')], NOW);
+  ok(r.title === '去年', '没取最近的一年：' + r.title);
+  ok(r.years === 1, '年份差不对：' + r.years);
+});
+
+t('档③：都不命中且票够多 →「重温这一张」，文案里不许出现任何日期', () => {
+  const r = memory.row(many(5), NOW);
+  ok(r && r.kind === 'rotate', '没降级到档③：' + JSON.stringify(r));
+  ok(r.text === '重温这一张', '文案不对：' + r.text);
+  ok(!/\d/.test(r.text), '文案里出现了数字 —— 那是在替用户断言某一天');
+  ok(!!r.id && !!r.title, '档③也要带 id 与票名（点它得能跳进详情）');
+});
+
+t('档③的门槛：票太少就整行不显示（天天翻同一张比没有更尬）', () => {
+  ok(memory.row(many(4), NOW) === null, '只有 4 张也走了档③');
+  ok(memory.row(many(5), NOW) !== null, '5 张该走档③');
+});
+
+t('档③当天稳定：同一天里几点看都是同一张', () => {
+  const ts = many(5);
+  ok(memory.row(ts, NOW).id === memory.row(ts, NOW + 5 * 3600 * 1000).id, '同一天翻出了两张不同的票');
+});
+
+t('档③轮换跟着北京日期翻页（不是设备时区，也不是 UTC）', () => {
+  const ts = many(5);
+  const base = memory.row(ts, NOW).id;                                // 北京 09-13 12:00
+  const late = memory.row(ts, NOW + 12 * 3600 * 1000 - 60000).id;     // 北京 09-13 23:59
+  const next = memory.row(ts, NOW + 12 * 3600 * 1000).id;             // 北京 09-14 00:00
+  ok(late === base, '北京还没到零点就换票了');
+  ok(next !== base, '北京过了零点还没换票');
+});
+
+t('档③ n 天正好轮完一遍、不重样，且顺着日期从最早那张往前走', () => {
+  const ts = many(5);
+  const asc = ts.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).map((x) => x.id);
+  const seen = [];
+  for (let i = 0; i < 5; i++) seen.push(memory.row(ts, NOW + i * 86400000).id);
+  ok(new Set(seen).size === 5, '5 天里出现了重复：' + seen.join(','));
+  const start = asc.indexOf(seen[0]);
+  ok(seen.every((id, i) => id === asc[(start + i) % 5]), '不是按日期顺序走的：' + seen.join(','));
+});
+
+t('档③的池子只收能用的票：没名字 / 没日期的票不算人头', () => {
+  const dirty = many(4).concat([{ id: 'x1', date: '' }, { title: '没日期' }, { id: 'x2', title: '日期是脏的', date: '2024-9' }]);
+  ok(memory.row(dirty, NOW) === null, '脏票被算进了档③的门槛');
+});
+
+console.log('\n【六、接线：页面真的用上了它（改一处漏一处就白做）】');
 const fs = require('fs');
 const read = (p) => fs.readFileSync(path.resolve(__dirname, '..', p), 'utf8');
 
@@ -104,6 +180,9 @@ t('首页确实渲染了这一行，且点得动', () => {
   const js = read('pages/home/home.js');
   ok(/memory\.row\(this\._all\)/.test(js), '首页没有把票根喂给 memory.row');
   ok(/navigateTo\(\{ url: `\/pages\/detail\/detail\?id=\$\{m\.id\}` \}\)/.test(js), '没跳详情页');
+  // 三档混在一行里，不带 kind 就分不出「今天是真有回忆」还是「只是轮到了这一张」——
+  // 那这个功能上不上线、哪一档在生效，就又变成一个没法回答的问题。
+  ok(/memory_open'[\s\S]{0,120}?kind:/.test(js), 'memory_open 没带上 kind');
 });
 
 // ════════════════════════════════════════════════════════════

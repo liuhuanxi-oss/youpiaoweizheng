@@ -137,8 +137,10 @@
             aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
     </view>
 
-    <!-- 7.4.0 R4 那年今天：有命中才出现。没有命中就不显示 ——
-         编一句「去年的今天你在……」是假的，用户一眼看得出来 -->
+    <!-- 7.4.0 R4 / 8.1.5 那年今天：三档都落空才整行不显示（新用户常态）。
+         档①「去年今天」、档②「去年这个月」是日期上的真命中；档③「重温这一张」不是，
+         所以它的文案里一个日期都没有 —— 编一句「去年的今天你在……」是假的，一眼看得出来。
+         三档共用这一行、共用同两个槽位（引子 + 票名），见 utils/memory.js -->
     <view class="hc-td pressable" wx:if="{{mem}}" hover-class="press-hover" bindtap="goMemory"
           aria-role="button" aria-label="{{mem.text}} {{mem.title}}">
       <image class="hc-td-ic" src="{{ic.memIc}}" mode="aspectFit" aria-hidden="true" />
