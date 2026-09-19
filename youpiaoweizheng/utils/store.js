@@ -377,6 +377,51 @@ async function removeTicket(id) {
 // 所以「公开给陌生人看」必须是用户一张票一次的选择，不能沿用「同场印记」那个开关。
 // 上墙只有 wallJoin 一条路，且服务端会按 openid 验归属 + 当场重过一次内容安全。
 
+/** 8.1.3：上墙用的小图长边 —— 落在图片安检接口的尺寸框内（750×1334），约 100KB */
+const WALL_THUMB_SIDE = 750;
+
+/**
+ * 8.1.3：为「上墙」另做一张小图（送检 + 展示都用它）。
+ *
+ * 【为什么不在原图上送检】`security.imgSecCheck` 只吃 ≤1MB 且 ≤750×1334 的图，
+ * 而票根原图是长边 1600 压出来的 —— 尺寸超框，送检结果不可靠。
+ * 【为什么走「下载 → 压缩 → 上传」这一趟】端上手上没有原图的本地副本（票可能是很久
+ * 以前存的，本机只剩一个云文件 ID），而图片安检**只有服务端能调**。上墙是一次性的
+ * 用户动作，这几跳的代价可以接受；换来的是一张必然过得了接口限制、且**展示的就是
+ * 送检的那张**的图（堵掉「送检一张良性的、展示一张违规的」）。
+ *
+ * @returns {Promise<string>} 小图的云文件 ID；失败抛错（调用方据此回滚开关）
+ */
+async function wallThumb(fileID) {
+  const dl = await wx.cloud.downloadFile({ fileID });
+  const src = dl && dl.tempFilePath;
+  if (!src) throw new Error('照片读取失败，请重试');
+  let path = src;
+  try {
+    const info = await new Promise((resolve, reject) => {
+      wx.getImageInfo({ src, success: resolve, fail: reject });
+    });
+    const opt = { src, quality: 70 };
+    // 只给一边：两边同时给会被当成拉伸目标（竖图会压扁）—— 与 scan 页同一处坑
+    if (info && info.width && info.height) {
+      if (info.width >= info.height) opt.compressedWidth = WALL_THUMB_SIDE;
+      else opt.compressedHeight = WALL_THUMB_SIDE;
+    }
+    const c = await new Promise((resolve, reject) => {
+      wx.compressImage(Object.assign({ success: resolve, fail: reject }, opt));
+    });
+    if (c && c.tempFilePath) path = c.tempFilePath;
+  } catch (e) {
+    // 压不动就用原图：服务端还有一道体积闸，超了它会给用户一句人话
+  }
+  const up = await wx.cloud.uploadFile({
+    cloudPath: `wall/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`,
+    filePath: path
+  });
+  if (!up || !up.fileID) throw new Error('照片准备失败，请重试');
+  return up.fileID;
+}
+
 /**
  * 把这张票放进同场票根墙 / 从墙上撤下。
  *
@@ -387,12 +432,15 @@ async function removeTicket(id) {
  *
  * @param {string} id 票根 id（必须是自己名下的）
  * @param {boolean} on true=放进墙 false=撤下
+ * @param {string} [img] 这张票的云文件 ID（上墙时用来现做一张送检小图；撤下不用）
  */
-async function setWallPublic(id, on) {
+async function setWallPublic(id, on, img) {
   if (USE_CLOUD && !isMockTicket(id)) {
+    // 只有「上墙」需要小图；撤下时墙上那张由服务端一并删掉
+    const thumb = (on && img) ? await wallThumb(img) : '';
     const res = await wx.cloud.callFunction({
       name: 'saveTicket',
-      data: { action: 'wallJoin', id, on: !!on }
+      data: { action: 'wallJoin', id, on: !!on, thumb }
     });
     const r = (res && res.result) || {};
     if (!r.ok) throw new Error(r.msg || '操作失败，请稍后再试');

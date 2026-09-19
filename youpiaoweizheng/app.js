@@ -68,6 +68,13 @@ App({
     } catch (e) { /* 上报失败不影响 */ }
   },
 
+  // ===== 8.1.3 埋点落云 =====
+  // 用户离开小程序 = 把本地这批埋点送一次（服务端认了才从本地删，失败留着下次）。
+  // 放 onHide 而不是 onLaunch：它在一次使用的最末尾，这一趟的事件最全。
+  onHide() {
+    try { track.flush(true); } catch (e) { /* 埋点失败不拦任何业务 */ }
+  },
+
   onShow(options) {
     // 4.17.0：热启动来源（分享卡进入/下拉直达/搜一搜等），cold:0 区分于冷启动
     if (options && options.scene) track.track('scene_source', { scene: options.scene, cold: 0 });

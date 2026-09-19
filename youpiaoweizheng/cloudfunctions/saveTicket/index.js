@@ -12,6 +12,8 @@ const { geocodeVenue } = require('./geocode.js'); // 4.18.1：场馆级精化（
 const { generateArt } = require('./artRestyle.js'); // 4.19.0：票根博物志 AI 重绘（GCJ-02 城市中心）
 const pay = require('./pay.js'); // 4.20.0：虚拟支付（签名/code2Session/额度/错误码）
 const recall = require('./recall.js'); // 7.4.0 C2：订阅消息召回（次日提醒来收时光签）
+const tracklog = require('./tracklog.js'); // 8.1.3：埋点落云通道（不依赖 mp 后台配置的第二条命）
+const wallimg = require('./wallimg.js'); // 8.1.3：上墙图片送检（墙是全项目唯一陌生人可读的出口）
 
 /** 规范化场次键：同一场演出 = 同一场馆 + 同一日期（同场偶遇的聚合键） */
 function makeEventKey(venue, date) {
@@ -2049,6 +2051,7 @@ async function eventStatsAction(event) {
 // 端上传的这两个字段会被丢弃 —— 上墙只有 wallJoin 这一条路，且必须过安检。
 // ============================================================
 const WALL_MAX = 50; // 一面墙最多展示多少张（再多没人翻，且省流量）
+// 8.1.3：图片送检在 ./wallimg.js（单独成模块 = 能脱开本文件单独跑测试，见 tests/wall_img_check.test.js）
 
 /** 加入 / 撤下同场票根墙（只能操作自己名下的票） */
 async function wallJoinAction(event, OPENID) {
@@ -2056,12 +2059,17 @@ async function wallJoinAction(event, OPENID) {
   if (!id) return { ok: false, msg: '缺少票根 id' };
   if (!OPENID) return { ok: false, msg: '请先登录' };
   const on = !!event.on;
+  const thumb = String(event.thumb || ''); // 端上另压的长边 750 小图（8.1.3 起才有）
   try {
     const db = cloud.database();
     const owned = { _id: id, _openid: OPENID }; // 归属写进 where：别人的票命中 0 条，改不动
     const doc = await db.collection('tickets').where(owned).get();
     const t = (doc.data || [])[0];
     if (!t) return { ok: false, msg: '这张票根不在你的名下' };
+    // 上墙用哪张图：有 thumb 用它（8.1.3 端），没有就退回原图（还在线上的老版本。
+    // 那一支等 8.1.3 成为最低版本后可以删）
+    const useThumb = wallimg.isFileID(thumb);
+    const img = t.img ? (useThumb ? thumb : String(t.img)) : '';
     if (on) {
       // 退出过同场印记的票没有场次键，也就没有「同一场」可挂
       if (!t.eventKey) return { ok: false, msg: '这张票没有场次信息，放不进去' };
@@ -2069,12 +2077,29 @@ async function wallJoinAction(event, OPENID) {
       // 这里以「此刻要给别人看」为准重新过一遍。
       const gate = await secGate(OPENID, [t.title, t.venue].filter(Boolean).join(' '), '票面文字');
       if (!gate.ok) return { ok: false, msg: gate.msg };
+      // 图也要过检：墙上那张照片是陌生人看得见的，文字检了它没检 = 洞
+      if (t.img) {
+        if (!wallimg.isFileID(img)) return { ok: false, msg: '照片没准备好，请重试' };
+        const ig = await wallimg.gate(cloud, img);
+        if (!ig.ok) {
+          if (useThumb) await wallimg.drop(cloud, img); // 送去检的小图没用了，别留在存储里
+          return { ok: false, msg: ig.msg };
+        }
+      }
     }
+    const wallImg = on ? img : '';
     const res = await db.collection('tickets').where(owned)
-      .update({ data: { wallPublic: on, wallAt: on ? Date.now() : 0 } });
-    if (!res.stats || !res.stats.updated) return { ok: false, msg: '操作失败，请重试' };
+      .update({ data: { wallPublic: on, wallAt: on ? Date.now() : 0, wallImg } });
+    if (!res.stats || !res.stats.updated) {
+      if (wallImg && wallImg !== t.wallImg) await wallimg.drop(cloud, wallImg); // 没写成就把刚传的小图删掉
+      return { ok: false, msg: '操作失败，请重试' };
+    }
+    // 换了图、或撤下：把墙上那张旧图从存储里删掉。协议承诺「撤下后即从墙上移除」——
+    // 文件还留在云存储里，算不得移除。尽力而为，删不掉不影响这次操作的结果。
+    if (t.wallImg && t.wallImg !== wallImg) await wallimg.drop(cloud, t.wallImg);
     return { ok: true, on };
   } catch (e) {
+    await wallimg.drop(cloud, thumb);
     return failLog('wallJoin', e, '操作失败，请稍后再试');
   }
 }
@@ -2087,7 +2112,10 @@ async function wallListAction(event) {
     const db = cloud.database();
     const res = await db.collection('tickets')
       .where({ eventKey, wallPublic: true })
-      .field({ title: true, venue: true, date: true, img: true })
+      // 8.1.3：取 wallImg（送检过的那张小图）而不是 img（票根原图）。
+      // 8.1.3 之前上墙的老记录没有这个字段 —— 它们在墙上会没有图（只有票名/场馆/日期），
+      // 那是**故意的**：没送检过的图不上墙，宁可少一张。这类记录只可能出现在这版云函数上线前。
+      .field({ title: true, venue: true, date: true, wallImg: true })
       .limit(WALL_MAX)
       .get();
     // 显式重建而不是把 field() 的结果原样回出去：将来谁往 field() 里加一个字段，
@@ -2096,7 +2124,7 @@ async function wallListAction(event) {
       title: String(t.title || '未命名票根').slice(0, 60),
       venue: String(t.venue || '').slice(0, 60),
       date: String(t.date || '').slice(0, 10),
-      img: CLOUD_FILEID_RE.test(String(t.img || '')) ? t.img : ''
+      img: CLOUD_FILEID_RE.test(String(t.wallImg || '')) ? t.wallImg : ''
     }));
     return { ok: true, items, total: items.length, max: WALL_MAX };
   } catch (e) {
@@ -2304,6 +2332,13 @@ exports.main = async (event) => {
   }
   if (event.action === 'eventStats') {
     return eventStatsAction(event);
+  }
+  // 8.1.3：埋点落云通道（端上离开小程序 / 攒够一批时调一次；数据只进 events，不影响任何业务）
+  if (event.action === 'trackBatch') {
+    const tdb = cloud.database();
+    await ensureCollection(tdb, 'events');
+    await ensureCollection(tdb, 'prefs');
+    return tracklog.save(tdb, OPENID, event);
   }
   // 8.1.0 同场票根墙：加入/撤下（只能改自己的票）；拉取公开票根（陌生人可读，出口已脱敏）
   if (event.action === 'wallJoin') {

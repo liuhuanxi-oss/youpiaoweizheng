@@ -35,20 +35,38 @@ const constOf = (name) => {
   return m[0];
 };
 
-/** 把两个 action 取出来真跑：cloud / secGate / failLog 全部注入（secGate 记调用） */
+/**
+ * 把两个 action 取出来真跑：cloud / secGate / failLog / wallimg 全部注入（secGate 记调用）。
+ * wallimg 注入的是**真模块**（8.1.3 起图片送检）：它只依赖传进来的 cloud，所以假 cloud
+ * 补上 downloadFile / deleteFile / openapi.security.imgSecCheck 三样，图片那条路就能真跑。
+ */
 function build(opts) {
   const o = opts || {};
-  const calls = { sec: [], updated: [] };
+  const calls = { sec: [], updated: [], dropped: [], img: 0, dl: 0 };
   const secGate = async (openid, content, what) => {
     calls.sec.push({ openid, content, what });
     return o.secPass === false ? { ok: false, msg: (what || '内容') + '未通过安全检查' } : { ok: true };
   };
-  const cloud = { database: () => fakeDb(o.rows || [], calls, o.project) };
+  const cloud = {
+    database: () => fakeDb(o.rows || [], calls, o.project),
+    downloadFile: async () => {
+      calls.dl++;
+      if (o.imgReadFail) throw new Error('downloadFile:fail');
+      return { fileContent: Buffer.alloc(o.imgBytes === undefined ? 1000 : o.imgBytes) };
+    },
+    deleteFile: async ({ fileList }) => { calls.dropped = calls.dropped.concat(fileList); },
+    openapi: { security: { imgSecCheck: async () => {
+      calls.img++;
+      if (o.imgPass === false) throw { errCode: 87014, errMsg: 'risky content' };
+      return { errCode: 0 };
+    } } }
+  };
   const failLog = (tag, e, msg) => { calls.failTag = tag; return { ok: false, msg }; };
   const src = constOf('CLOUD_FILEID_RE') + '\n' + constOf('WALL_MAX') + '\n'
     + fnOf('wallJoinAction') + '\n' + fnOf('wallListAction')
     + '\nreturn { wallJoinAction, wallListAction };';
-  const fns = new Function('cloud', 'secGate', 'failLog', src)(cloud, secGate, failLog);
+  const fns = new Function('cloud', 'secGate', 'failLog', 'wallimg', src)(
+    cloud, secGate, failLog, require(path.join(ROOT, 'cloudfunctions/saveTicket/wallimg.js')));
   return { fns, calls };
 }
 
@@ -65,7 +83,12 @@ function fakeDb(rows, calls, project) {
         get: async () => ({ data: hits(w) }),
         update: async ({ data }) => {
           const hit = hits(w);
-          hit.forEach((r) => { Object.assign(r, data); calls.updated.push({ id: r._id, ...data }); });
+          // 换一份新对象写回，**不改调用方手上那份快照** —— 真库就是这样的：
+          // get() 回来的是反序列化的副本，update() 不会把手里的 t.wallImg 就地改掉
+          hit.forEach((r) => {
+            calls.updated.push({ id: r._id, ...data });
+            rows[rows.indexOf(r)] = Object.assign({}, r, data);
+          });
           return { stats: { updated: hit.length } };
         },
         field: (f) => ({
@@ -99,7 +122,8 @@ const PRIVATE = {
   source: '大麦',
   note: '和黄一起去的，她哭了三次',
   geo: { lat: 30.5928, lng: 114.3055 },
-  img: 'cloud://cloud1-x.y/tickets/a.jpg',
+  img: 'cloud://cloud1-x.y/tickets/a.jpg',        // 票根原图（长边 1600，超大送不了检）
+  wallImg: 'cloud://cloud1-x.y/wall/thumb.jpg',   // 8.1.3：送检过的那张小图，墙上展示的是它
   aiCaption: '那天武汉下了整夜的雨',
   weather: { tempC: 18 },
   createdAt: 1761480000000,
@@ -138,14 +162,27 @@ t('就算 field() 被人改坏，出口照样只剩四个字段（假库故意�
 
 t('非本环境云存储的图片地址 → 回空串（外链不能经我们的出口发出去）', async () => {
   const rows = [
-    Object.assign({}, PRIVATE, { _id: 'a', img: 'https://evil.example.com/a.jpg' }),
-    Object.assign({}, PRIVATE, { _id: 'b', img: 'data:image/png;base64,iVBORw0KGgo=' }),
-    Object.assign({}, PRIVATE, { _id: 'c', img: 'cloud://cloud1-x.y/tickets/ok.jpg' })
+    Object.assign({}, PRIVATE, { _id: 'a', wallImg: 'https://evil.example.com/a.jpg' }),
+    Object.assign({}, PRIVATE, { _id: 'b', wallImg: 'data:image/png;base64,iVBORw0KGgo=' }),
+    Object.assign({}, PRIVATE, { _id: 'c', wallImg: 'cloud://cloud1-x.y/wall/ok.jpg' })
   ];
   const { fns } = build({ rows });
   const r = await fns.wallListAction({ eventKey: PRIVATE.eventKey });
   ok(r.items[0].img === '' && r.items[1].img === '', '外部图地址被放出去了');
-  ok(r.items[2].img === 'cloud://cloud1-x.y/tickets/ok.jpg', '正常云存储图被误伤');
+  ok(r.items[2].img === 'cloud://cloud1-x.y/wall/ok.jpg', '正常云存储图被误伤');
+});
+
+t('墙上展示的是 wallImg（送检过的那张），不是票根原图 img', async () => {
+  // 8.1.3 之前上墙的老记录没有 wallImg。原图从没送检过，宁可这一行没图也不能放它出去 ——
+  // 否则「送一张良性的、展示一张违规的」这条旁路原样还在。
+  const rows = [
+    Object.assign({}, PRIVATE, { _id: 'old', wallImg: undefined }),
+    Object.assign({}, PRIVATE, { _id: 'new' })
+  ];
+  const { fns } = build({ rows });
+  const r = await fns.wallListAction({ eventKey: PRIVATE.eventKey });
+  ok(r.items[0].img === '', '老记录的票根原图（没送检过）被放上墙了：' + r.items[0].img);
+  ok(r.items[1].img === PRIVATE.wallImg, '新记录没出 wallImg');
 });
 
 t('只出「本人点过公开」的票：别人私藏的票不会被顺手带出去', async () => {
@@ -225,15 +262,46 @@ t('上墙前重新过一遍内容安全：票面文字被判违规 → 上不了
   ok(r.ok === false && /安全检查/.test(r.msg), '违规票面被挂了上去：' + r.msg);
   ok(calls.sec.length === 1, '上墙没有走安检 —— 入库那次可能很久以前，甚至当年是服务异常放行的');
   ok(calls.updated.length === 0, '安检没过却写了库');
+  ok(calls.img === 0, '文字已经没过，还白花一次图片送检的额度');
+});
+
+t('照片也过检：图被判违规 → 上不了墙、不写库，并把刚传的小图删掉', async () => {
+  const rows = [Object.assign({}, PRIVATE, { _openid: 'me', wallPublic: false })];
+  const { fns, calls } = build({ rows, imgPass: false });
+  const r = await fns.wallJoinAction({ id: PRIVATE._id, on: true, thumb: PRIVATE.wallImg }, 'me');
+  ok(r.ok === false && /照片/.test(r.msg), '违规照片被挂上墙了：' + r.msg);
+  ok(calls.img === 1, '照片没有送去检 —— 墙上那张图是陌生人看得见的，这是 8.1.0 起就有的洞');
+  ok(calls.updated.length === 0, '照片没过检却写了库');
+  ok(calls.dropped.indexOf(PRIVATE.wallImg) >= 0, '被拒的小图没删 —— 它会一直躺在云存储里占空间');
+});
+
+t('老版本端上（没带 thumb）→ 检原图，不因为少个字段就跳过', async () => {
+  const rows = [Object.assign({}, PRIVATE, { _openid: 'me', wallPublic: false })];
+  const { fns, calls } = build({ rows, imgPass: false });
+  const r = await fns.wallJoinAction({ id: PRIVATE._id, on: true }, 'me');
+  ok(r.ok === false, '还在线上的老版本能把没检过的图挂上墙');
+  ok(calls.img === 1 && calls.dl === 1, '没有退回检原图：dl=' + calls.dl + ' img=' + calls.img);
+  ok(calls.dropped.length === 0, '原图是用户的票根，不该被顺手删掉');
+});
+
+t('送检的那张读不到 / 太大 → 拒，且不写库', async () => {
+  const rows = [Object.assign({}, PRIVATE, { _openid: 'me', wallPublic: false })];
+  const bad = build({ rows, imgBytes: 1024 * 1024 + 1 });
+  const r1 = await bad.fns.wallJoinAction({ id: PRIVATE._id, on: true, thumb: PRIVATE.wallImg }, 'me');
+  ok(r1.ok === false && /太大/.test(r1.msg), '超大图没被挡住：' + r1.msg);
+  ok(bad.calls.updated.length === 0, '超大图还是写了库');
 });
 
 t('撤下永远能成功：安检挡的是「给陌生人看」，不是「不给人看」', async () => {
   const rows = [Object.assign({}, PRIVATE, { _openid: 'me', wallPublic: true })];
-  const { fns, calls } = build({ rows, secPass: false });
+  const { fns, calls } = build({ rows, secPass: false, imgPass: false });
   const r = await fns.wallJoinAction({ id: PRIVATE._id, on: false }, 'me');
   ok(r.ok === true, '想撤下却撤不掉 —— 内容后来被判违规的用户就被永久钉在墙上了');
   ok(calls.sec.length === 0, '撤下还去调了安检（平白多一次失败机会）');
+  ok(calls.img === 0 && calls.dl === 0, '撤下还去折腾了一遍图');
   ok(calls.updated[0] && calls.updated[0].wallPublic === false, '没真的写下去');
+  ok(calls.updated[0].wallImg === '', '撤下没把墙上那张图清空');
+  ok(calls.dropped.indexOf(PRIVATE.wallImg) >= 0, '撤下后小图还留在云存储里 —— 协议写的是「撤下即从墙上移除」');
 });
 
 t('退出过同场印记的票（没有场次键）→ 上不了墙，并说清原因', async () => {

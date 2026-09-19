@@ -19,7 +19,7 @@
           │   ├─ saveTicket      万能 action 路由（入库 / 鉴权 / 支付 / 双人 / 重绘 / 运维）
           │   └─ recognizeTicket OCR 识别 + 规则解析
           ↓
-云数据  4 个集合 tickets / couples / prefs / config  ＋ 云存储（票根照片、海报、重绘图）
+云数据  5 个集合 tickets / couples / prefs / config / events（8.1.3 埋点落云，首写自动建）＋ 云存储（票根照片、海报、重绘图、上墙小图 wall/）
 ```
 
 **为什么只有两个云函数**：miniprogram-ci 只能更新云函数、不能创建目录，所以新能力一律**加 action**，不新建函数（宪法第四节）。
@@ -76,7 +76,7 @@
 | `sp_same_optout` | store | 退出同场印记聚合 |
 | `app_theme` / `sp_theme` | utils/theme | 主题（新 / 旧 key 兼容） |
 | `sp_couple_cache` | utils/couple | 绑定关系缓存 |
-| `sp_track_events` | utils/track | 埋点环形缓冲（500 条） |
+| `sp_track_events` | utils/track | 埋点环形缓冲（500 条）。**8.1.3 起它同时是落云队列**：攒够 30 条 / 离开小程序时送云端，**服务端认了才从这里删** |
 | `sp_auth_time` | utils/auth | 会话时间戳（24h 新鲜度） |
 | `sp_ref_from` / `sp_ref_code` / `sp_ref_wait` | utils/invite | 邀请有礼（7.3.0）：待绑定的邀请人短码 / 我自己的短码 / 已绑定等对方传首票（结算一次即清） |
 | `sp_sub_state` | utils/subscribe | 订阅消息：哪天问过、被拒的时间戳（7.4.0；拒后静默 30 天） |

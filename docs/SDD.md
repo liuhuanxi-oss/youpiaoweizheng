@@ -72,7 +72,7 @@
 
 ### 2.3 `prefs`（账本集合：一个 `type` 一类文档）
 
-全项目引用最多的集合，新人最容易漏看。16 种文档：
+全项目引用最多的集合，新人最容易漏看。17 种文档：
 
 | `type` | 存什么 | 关键字段 |
 |---|---|---|
@@ -93,14 +93,22 @@
 | `recall` | 订阅消息召回（7.4.0 C2） | `tmplId`、`streak`、`sendAt`、`status`（`pending`/`sent`/`dead`）、`tries`、`err` |
 | `anniv` | 周年提醒（8.1.2，**与 `recall` 同一趟定时器发**） | `tmplId`、`ymd`（周年那天，北京时间）、`years`、`title`、`ticketId`（落页用，正则清洗过）、`sendAt`（那天 09:00）、`status`、`tries`、`err`。与 `recall` 的两处不同：**只在那一天发**（过了就 `dead` + `err:'expired:<ymd>'`，不补发）｜一人一条（给别的票排提醒即覆盖） |
 | `ocr_day` | 识别配额（P2-11，由 `recognizeTicket` 写） | `_id` 固定为 `ocr_{openid}_{ymd}`（并发首调靠主键分胜负）、`ymd`、`count`（每人每天 30 次） |
+| `track` | 埋点落云的**当日计数**（8.1.3） | `ymd`、`n`（当天已落库条数，上限 `TRACK_MAX_PER_DAY = 2000`，超了静默丢；跨天自动归零）。**计数写在入库之后** —— 宁可少数一次，也不要计数涨了而数据没落库 |
 
-### 2.4 `config`（支付凭证）
+### 2.4 `events`（埋点落云，8.1.3）
+
+一条事件一行：`{_openid, e（事件名）, d（参数）, t（端上时间戳）, at（服务端入库时间）, ver（小程序版本号）}`。
+集合由 `ensureCollection` **首写自动建**（控制台不用手动加）。写入前一律当外部输入清洗：
+事件名小写蛇形（铁律 6）、`t` 只收 7 天内、`d` 最多 6 个键且值截 60 字符、单次最多 50 条、每人每天 2000 条封顶。
+**只有 `trackBatch` 一个写入口**，且它不返回任何业务数据 —— 埋点不该给端上反馈（端上只看 `ok`）。
+
+### 2.5 `config`（支付凭证）
 
 单文档 `_id: 'pay_secret'`：`{ offerId, appKey, appKeySandbox, appSecret, env }`。
 `env: 0` 现网 / `1` 沙箱，**两套 AppKey 是不同的值**。集合权限必须设「仅管理端可读写」。
 **不在自动建表范围**，缺失时支付与登录返回 `NO_CONFIG`，需去控制台手工创建。
 
-### 2.5 云存储
+### 2.6 云存储
 
 - 票根原图路径 `tickets/{Date.now()}-{6 位随机}.jpg`；头像 `avatar/a{Date.now()}{4 位随机}.{ext}`；AI 重绘产物 `art/art-{时间戳}-{随机}.png`；海报小程序码 `wxacode/poster-{码或 all}-{时间戳}.png`；线下立牌码 `wxacode/sign-{时间戳}.png`（8.1.0）；
 - **删票根会连照片一起删**（`utils/store.js` 的 `removeTicket` → `deleteCloudFile`，7.4.3 补 `img`、8.0.4 补 `artVersion.fileID`）：先 `get()` 拿两个 fileID 再删记录，最后逐个 `wx.cloud.deleteFile`。删除失败只落 `console.warn` 留孤儿图，不让收尾动作把「删票成功」变成报错（已知债，见 `docs/HEALTH.md` §5.3）。
@@ -116,8 +124,8 @@
 | `theme.js` (18) | `getTheme`、`setTheme`、`getThemeMeta`、`isDark`、`THEME_KEY`、`THEMES`、`DEFAULT_THEME`、`THEME_META`、`TYPE_SCALE`、`DECO_LABELS`（另出兼容轨 `current`、`set`、`apply`、`META`、`KEY`） | 六主题 paper/glass/collage/film/literary/minimal，默认 `paper`；key `app_theme`，旧 `sp_theme` 兼容保留（深色 Canvas 页仍在读） | — |
 | `haptics.js` (15) | `tap()`、`confirm()`、`warn()` | 触觉只按语义留三档（轻 / 中 / 重），不再逐处写力度；接口缺失或报错一律吞掉，不打断主流程 | — |
 | `icons.js` (15) | `iconSrc(name, color, opacity, width, solid)`、`ICON_PATH`（43 个键）、`_uriCache` | 线性图标转 data-uri SVG；未知键回落 `ticket`；默认描边 1.6、默认色 `#6B5B50`、viewBox 24×24；按全部入参记忆化 | svg |
-| `track.js` (15) | `track(event, data, opts)`、`dump()` | 双通道：`wx.reportEvent` + 本地环形缓冲（key `sp_track_events`，500 条上限，参数截 60 字）；`opts.local === false` 只走官方通道（`page_view` 这类高频事件） | — |
-| `store.js` (12) | `USE_CLOUD`、`listTickets`、`getTicket`、`addTicket`、`setCaption`、`removeTicket`、`isMockTicket`、`getSameOptOut`、`setSameOptOut`、`listFlags` | `PAGE_SIZE=20`、`LIST_MAX=500`；云失败落本地并置 `flags.netFallback`，触顶置 `flags.truncated`（`flags.cap` 是上限值 500）；成功结果 30s TTL 缓存，三个写入口一律置脏 | env、mock |
+| `track.js` (15) | `track(event, data, opts)`、`dump()`、`flush(force)` | **三通道**：① `wx.reportEvent`（**同名事件没在 MP 后台登记过就被静默丢弃** —— 登记清单见 [埋点登记清单.md](./埋点登记清单.md)）；② 本地环形缓冲（key `sp_track_events`，500 条上限，参数截 60 字），**它同时就是待发送队列**；③ **8.1.3 落云**：攒够 `FLUSH_MIN=30` 条自动送一次、`app.onHide` 里 `flush(true)` 再送一次，间隔 `FLUSH_GAP=60s`（`force` 可穿透）。`flush()` 的硬规矩是「**服务端认了才删本地**」，且任何失败路径都不抛错、不删行。`opts.local === false` 只走官方通道（`page_view` 这类高频事件，一次会话几十条，进队列会把真事件挤出缓冲） | — |
+| `store.js` (12) | `USE_CLOUD`、`listTickets`、`getTicket`、`addTicket`、`setCaption`、`removeTicket`、`isMockTicket`、`getSameOptOut`、`setSameOptOut`、`listFlags`、`setWallPublic`、`wallThumb` | `PAGE_SIZE=20`、`LIST_MAX=500`；云失败落本地并置 `flags.netFallback`，触顶置 `flags.truncated`（`flags.cap` 是上限值 500）；成功结果 30s TTL 缓存，三个写入口一律置脏。**8.1.3 `wallThumb(fileID)`**：上墙前把票根照片另压一张长边 `WALL_THUMB_SIDE=750` 的小图传到 `wall/`（横图只给 `compressedWidth`、竖图只给 `compressedHeight` —— 两个都给会把图压扁），失败抛人话；`setWallPublic(id, on, img)` 上墙时带上它，**图没准备好就不发上墙请求** | env、mock |
 | `deco.js` (11) | `decoSrc(name, theme)`、`avatarSrc`、`previewSrc`、`postmarkParts`、`artFrame`、`flowerStamp`、`pinkedPanel` | 25 款手绘装饰；viewBox 默认 `0 0 64 44`，9 款另有专属框 | — |
 | `share.js` (12) | `message(key, d, extra)`、`timeline(key, d)`、`sp()`、`withSlogan`、`SCENES`、`COVERS`、`SLOGAN` | 五场景 ticket / annual / duo / legacy / map，各带标题、落地页与 5:4 封面（内容收在中间安全区，好友卡片与朋友圈 1:1 裁切共用）；每条 path / query 经 `invite.withRef` 带短码；`sp()` 认朋友圈单页模式（scene 1154）；`duo` 的标题分三档（`d.total` → 「一起收藏了 N 张」、只有 `d.mine` → 「我已经存了 N 张」、都没有 → 通用那句），**`mine` 必须是真数**：云兜底（`flags.netFallback`）那批是演示票根，传上去就是编数字 | invite |
 | `couple.js` (6) | `queryCouple`、`cachedCouple`、`createCode(name)`、`joinByCode(code, name)`、`unbind` | 走 `bind` action 的 mode=query/create/join/unbind；缓存 key `sp_couple_cache` | env |
@@ -168,7 +176,7 @@
                                      掉进主流程会真去写 tickets（每天早上一张空票根，且不报错）；
                                      带 OPENID 的调用一律拒（小程序端可伪造 Type:Timer）
 1) event.Event 以 xpay_ 开头        → 支付推送分支（见 4.3）
-2) event.action === 'xxx'          → 36 个 action 分支
+2) event.action === 'xxx'          → 38 个 action 分支
 3) 其余                            → 票根入库主流程
 ```
 
@@ -197,8 +205,9 @@
 | `bind` | `mode: query\|create\|join\|unbind`，`name`（截 12 字），`code` | 双人绑定；`create` 复用未绑定的旧码 |
 | `duoStats` | `full`（bool） | 双人统计（合并票数 / 城市 / 一起场次） |
 | `eventStats` | `eventKey` | 同场收藏人数（匿名聚合；opt-out 用户不入列） |
-| `wallJoin`（8.1.0） | `id`, `on`（bool） | 加入 / 撤下同场票根墙：归属（`_id` + `_openid`）写进 `where`，改不到别人的票；`on=true` 时票必须有 `eventKey` 且**重新过一遍 `secGate`**（入库那次安检可能很久以前），`on=false` 不过安检（撤下必须永远能成功）。写 `tickets.wallPublic` / `wallAt` |
-| `wallList`（8.1.0） | `eventKey` | 某场次的自愿公开票根。**不要求登录**（分享出去的人没登录也要看得到）。`field()` 只取四列 + **出口逐字段重建**，只回 `title / venue / date / img`；**没有 `_id`、`_openid`、座位、票价、坐标、备注**。`img` 非本环境云存储 fileID 一律回空串；单面墙 `WALL_MAX = 50` |
+| `wallJoin`（8.1.0，8.1.3 加图片送检） | `id`, `on`（bool）, `thumb`（8.1.3：端上另压的长边 750 小图 fileID，可空） | 加入 / 撤下同场票根墙：归属（`_id` + `_openid`）写进 `where`，改不到别人的票；`on=true` 时票必须有 `eventKey` 且**重新过一遍 `secGate`**（入库那次安检可能很久以前），`on=false` 不过安检（撤下必须永远能成功）。**8.1.3 起文字与图片两道都过**：图片走 `wallimg.gate()`（抖动重试一次、两次都异常才拒，87014 直接拒、超 1MB 不送检直接拒），**检不过就 `return`，绝不先落库再检**；检过的图（`thumb`，没有则退回原图 —— 还在线上的老版本不带这个字段）写进 `tickets.wallImg`，**墙上展示的就是它**（展示的与送检的是同一张，堵掉「送一张良性的、展示一张违规的」）。被拒 / 换图 / 撤下时把对应云文件删掉（`wallimg.drop`，尽力而为不抛错）。写 `tickets.wallPublic` / `wallAt` / `wallImg` |
+| `wallList`（8.1.0，8.1.3 改取图） | `eventKey` | 某场次的自愿公开票根。**不要求登录**（分享出去的人没登录也要看得到）。`field()` 只取 `title / venue / date / wallImg` 四列 + **出口逐字段重建**，只回 `title / venue / date / img`（`img` 取自 `wallImg`；**8.1.3 之前上墙的老记录没有这个字段，在墙上就该没图** —— 没送检过的图不上墙）；**没有 `_id`、`_openid`、座位、票价、坐标、备注**。`img` 非本环境云存储 fileID 一律回空串；单面墙 `WALL_MAX = 50` |
+| `trackBatch`（8.1.3） | `rows[]`（端上本地缓冲里切出来的一批，最多 50 条）、`ver` | 埋点落云。**这是全项目唯一一个「端上想写多少就写多少」的接口**，所以一律当外部输入清洗后才入库（见 §2.4）。返回 `{ok, saved}`；`ok:false` 只在「没登录态」这类情况下出现 —— 脏数据、超日限都是**静默丢并回 `ok`**（回错误会让端上把这批脏行反复重送）。不读也不写任何业务数据 |
 | `refCode` | — | 我的邀请短码（每人一条，幂等）；新码 6 位、与双人邀请码同表（去 `0O1IL`） |
 | `refBind` | `code`（大写去杂截 8 位，<4 位拒） | 记 `prefs.ref_link`（被邀请人唯一，重复绑返回 `dup`）；绑定时已有票根 → `stale`，只归因不发奖 |
 | `refReward` | — | 结算邀请奖励：被邀请人已有 ≥1 张票根 → 双方各 +1 幅图版与 +50 分；条件更新抢结算权，可反复催 |
@@ -430,7 +439,8 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 隐私 | 不申请定位权限（城市来自票面识别）；`__usePrivacyCheck__` 开启；摄像头 / 相册按需触发 + 官方隐私弹窗 |
 | 运维接口 | `opsCleanup` / `opsAudit` / `goodsImgSetup` / `opsRecall` 需 `opsToken`（与服务端 AppKey 比对，四个入口共用 `checkOpsToken`） |
 | 订阅消息 | **只在用户主动点击时请求一次授权**（签到那一下 / 详情页那行「提醒我」），不在启动/进页面时弹（合规红线）；模板 ID 未配置时一次都不请求；发送只在服务端（端上不能指定发给谁） |
-| 同场票根墙（8.1.0） | **全项目唯一一个陌生人可读的出口**，所以隐私面按「只许少、不许加」管：① 默认关闭——上墙是**一张票一次**的主动选择（沿用「同场印记」那个默认参与的开关，等于偷偷扩大用户没同意过的范围）；② `wallPublic` **不在入库白名单**里，端上塞不进墙，唯一入口是 `wallJoin` 且必过安检；③ 出口 `field()` 取四列 + 逐字段重建，只出 `title / venue / date / img`，**`_id` 也给不得**（card 页支持按 id 取票，漏 id 等于白送一条读别人完整票根的旁路）；④ 撤下不过安检（内容后来被判违规的用户不能被永久钉在墙上）。契约见 §4.2，守卫见 `tests/same_wall.test.js` |
+| 同场票根墙（8.1.0） | **全项目唯一一个陌生人可读的出口**，所以隐私面按「只许少、不许加」管：① 默认关闭——上墙是**一张票一次**的主动选择（沿用「同场印记」那个默认参与的开关，等于偷偷扩大用户没同意过的范围）；② `wallPublic` **不在入库白名单**里，端上塞不进墙，唯一入口是 `wallJoin` 且必过安检；③ 出口 `field()` 取四列 + 逐字段重建，只出 `title / venue / date / img`，**`_id` 也给不得**（card 页支持按 id 取票，漏 id 等于白送一条读别人完整票根的旁路）；④ 撤下不过安检（内容后来被判违规的用户不能被永久钉在墙上）。**8.1.3 补上照片那一道**：8.1.0 建墙时文字检了、**照片一张没检**，而照片正是陌生人直接看得见的东西。做法是「**展示的与送检的是同一张**」——端上另压一张长边 750 的小图（`imgSecCheck` 只吃 ≤1MB 且 ≤750×1334，票根原图长边 1600 根本送不进去），检过了写进 `wallImg` 并展示它，而不是展示从没检过的原图。**平台故障不等于放行**（与 `secGate` 同一口径：抖动重试一次，两次都异常就拒）——否则挑腾讯侧抖动的时刻提交就是一条旁路。契约见 §4.2，守卫见 `tests/same_wall.test.js` 与 `tests/wall_img_check.test.js` |
+| 埋点落云（8.1.3） | **全项目唯一一个「端上想写多少就写多少」的接口**，所以入库前一律当外部输入清洗（事件名口径 / 时间戳 7 天窗口 / 参数封顶 / 单次 50 条 / 每人每天 2000 条），且**只写 `events`、不碰任何业务数据**；端上那半的所有失败路径都静默（云函数挂了也不许影响用户）。守卫见 `tests/track_cloud.test.js` |
 
 ---
 

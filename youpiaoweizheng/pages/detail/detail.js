@@ -344,7 +344,9 @@ Page({
     // 而票其实已经上墙了（失败时更糟：抛出的异常没人接，开关停在错误位置还一声不吭）。
     // 判断成败**只看有没有抛错**，不看返回值。见 tests/wall_toggle.test.js
     try {
-      await store.setWallPublic(t.id, on);
+      // 8.1.3：把票根图一起交给 store —— 上墙前它会现压一张长边 750 的小图送检，
+      // 墙上展示的也是那张（原图长边 1600，超出图片安检接口的尺寸框）
+      await store.setWallPublic(t.id, on, t.img || '');
     } catch (err) {
       this.setData({ wallOn: !on });
       wx.showToast({ title: (err && err.message) || '没能保存，请重试', icon: 'none' });
