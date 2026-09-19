@@ -41,10 +41,13 @@ function _state(key) {
 function _save(key, patch) {
   try { wx.setStorageSync(key || LS_KEY, Object.assign(_state(key), patch)); } catch (e) { /* 存储异常不影响签到 */ }
 }
-/** 端上只用来判断「今天问过没有」，不参与任何发奖判定（发奖一律服务端按北京时间算） */
-function _ymd() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/** 端上只用来判断「今天问过没有」，不参与任何发奖判定（发奖一律服务端按北京时间算）。
+ *  8.1.3：口径统一到北京时间（+8h 后取 getUTC*，同 date.js / anniv.js / legacy.js）。
+ *  原先用设备本地时间：手机时区一变，「今天」就与北京差一天 —— 23:50 授权过的用户
+ *  00:10 又会被弹一次（或反过来整晚不弹）。 */
+function _ymd(now) {
+  const d = new Date((Number(now) || Date.now()) + 8 * 3600 * 1000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 /**

@@ -56,7 +56,47 @@ async function main() {
     onProgressUpdate: undefined
   })
   console.log('上传成功：', JSON.stringify(res, null, 2))
-  await notify(`上传成功 v${config.upload.version}（${desc}），可到公众平台设为体验版/提审`)
+  const sizeLine = reportSize(res)
+  await notify(`上传成功 v${config.upload.version}（${desc}），${sizeLine}，可到公众平台设为体验版/提审`)
+}
+
+/**
+ * 包体积台账（8.1.3 起）：主包上限 2 MB，红线是「每版本增幅 ≤ 20 KB」
+ * （7.4.4 → 8.1.2 四版涨了 162 KB，平均每版 +40 KB，按那速度迟早撞上限）。
+ * 上一次的数值记在 scripts/ci/pkg-size.json 里 —— 上传时对比一次，超了就喊一声。
+ */
+const SIZE_LEDGER = path.join(__dirname, 'pkg-size.json')
+const SIZE_LIMIT_KB = 2048
+const SIZE_DELTA_KB = 20
+
+function reportSize(res) {
+  const packs = (res && res.subPackageInfo) || []
+  if (!packs.length) {
+    console.log('包体积：本次上传未返回尺寸信息，跳过台账')
+    return '包体积未取到'
+  }
+  const main = packs.find((p) => !p.name || p.name === '__FULL__' || p.name === '__APP__') || packs[0]
+  const kb = (n) => Math.round(n / 1024)
+  const total = kb(main.size)
+  console.log(`包体积：主包 ${total} KB / 上限 ${SIZE_LIMIT_KB} KB（${((total / SIZE_LIMIT_KB) * 100).toFixed(1)}%）`)
+  packs.forEach((p) => { if (p !== main) console.log(`        分包 ${p.name}：${kb(p.size)} KB`) })
+
+  let prev = null
+  try { prev = JSON.parse(fs.readFileSync(SIZE_LEDGER, 'utf8')) } catch (e) { /* 首次上传没有台账 */ }
+  const last = prev && prev.byVersion ? prev.byVersion[prev.latest] : null
+  if (last) {
+    const delta = total - last.mainKb
+    const sign = delta >= 0 ? '+' : ''
+    const warn = delta > SIZE_DELTA_KB ? `  ⚠️ 超过 +${SIZE_DELTA_KB} KB 红线（这一版涨多了，看看是不是新塞了图）` : ''
+    console.log(`        比 v${prev.latest}（${last.mainKb} KB）${sign}${delta} KB${warn}`)
+  }
+  if (total > SIZE_LIMIT_KB) console.log(`        ⚠️ 已超主包上限（${SIZE_LIMIT_KB} KB），必须分包或删资源`)
+
+  const ledger = (prev && prev.byVersion) || {}
+  const v = config.upload.version
+  ledger[v] = { mainKb: total, at: new Date().toISOString().slice(0, 10) }
+  fs.writeFileSync(SIZE_LEDGER, JSON.stringify({ latest: v, byVersion: ledger }, null, 2) + '\n')
+  return `主包 ${total} KB`
 }
 
 main().catch(err => {

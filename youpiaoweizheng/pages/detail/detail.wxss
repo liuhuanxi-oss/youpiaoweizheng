@@ -325,11 +325,8 @@
   border-radius: 999rpx;
   font-size: 28rpx; font-weight: 600;
 }
-/* 6.4.0 TabBar/详情规范图口径：修复=鼠尾草绿浅底 / 重绘=鹅黄浅底 / 分享=灰玫粉实底 */
-.dtc-btn.ghost {
-  background: var(--sage);
-  color: #5F7F5C;
-}
+/* 6.4.0 TabBar/详情规范图口径：重绘=鹅黄浅底 / 分享=灰玫粉实底
+   （8.1.3 摘掉「修复」那颗鼠尾草绿胶囊后，.dtc-btn.ghost 一并删掉，不留死样式） */
 .dtc-btn.sage {
   background: var(--butter);
   color: #8A6F3A;

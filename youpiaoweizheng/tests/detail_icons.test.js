@@ -63,16 +63,17 @@ t('所有 iconSrc 的色参都是主题实色或十六进制常量', () => {
   });
   ok(bad.length === 0, '色参不合法：' + bad.map((b) => b[0]).join(' | '));
 });
-t('两颗浅底胶囊的图标色与文字色同值（不能吃主题变量）', () => {
-  ok(/BTN_FIX_FG = '#5F7F5C'/.test(js), 'BTN_FIX_FG 与 .dtc-btn.ghost 文字色不一致');
+t('浅底胶囊的图标色与文字色同值（不能吃主题变量）', () => {
+  // 8.1.3：原先这里还管着「修复」那颗（BTN_FIX_FG / .dtc-btn.ghost），
+  // 那颗假按钮摘掉后只剩「重绘」一颗 —— 详见 tests/audit_812.test.js 第三节
   ok(/BTN_ART_FG = '#8A6F3A'/.test(js), 'BTN_ART_FG 与 .dtc-btn.sage 文字色不一致');
-  ok(/\.dtc-btn\.ghost\s*\{[\s\S]*?color:\s*#5F7F5C/.test(wxss), 'wxss 胶囊文字色改了，JS 常量要跟着改');
   ok(/\.dtc-btn\.sage\s*\{[\s\S]*?color:\s*#8A6F3A/.test(wxss), 'wxss 胶囊文字色改了，JS 常量要跟着改');
+  ok(!/BTN_FIX_FG/.test(js), '修复胶囊的色常量还在（那颗按钮已经摘了）');
 });
 
 console.log('\n【四、icons.js 必须提供本页用到的全部路径】');
 t('本页用到的图标名都在 ICON_PATH 里', () => {
-  const need = ['music', 'pin', 'seat', 'wallet', 'moon', 'wand', 'palette', 'share', 'heart', 'sparkle', 'ticket'];
+  const need = ['music', 'pin', 'seat', 'wallet', 'moon', 'palette', 'share', 'heart', 'sparkle', 'ticket'];
   const missing = need.filter((n) => !new RegExp('^\\s*' + n + ':', 'm').test(icons));
   ok(missing.length === 0, '缺少：' + missing.join(', '));
 });

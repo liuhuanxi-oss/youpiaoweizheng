@@ -64,6 +64,12 @@ async function callAction(data) {
   return (res && res.result) || {};
 }
 
+/** 轮询中止号。页面走了（onUnload）调 abort() 把它 +1，正在跑的轮询下一轮就退出。
+ *  8.1.3 补：此前用户在「确认到账中…」时切走，循环照样把 15 次 payQuery 发完
+ *  （≈22 秒）—— 页面早没了，结果没人看，只剩白烧的云调用。 */
+let _pollId = 0;
+function abort() { _pollId++; }
+
 /** 服务端权威额度视图 → {freeLeft, paid, left, freePerMonth} | null（云失败由调用方兜底） */
 async function getQuota() {
   if (!USE_CLOUD) return null;
@@ -155,10 +161,12 @@ async function buyArtPack(onStatus) {
 
   // 5) 轮询确认到账（发货推送/微信状态有秒级同步窗口；1.5s × 15 ≈ 22s 上限。
   //    4.22.5（BUG审查⑥）：8 次≈12s 在推送高峰可能不够，放宽到 15 次；超窗仍有云函数幂等发货兜底）
+  const pollId = _pollId; // 本轮轮询的凭号：页面走了（abort）就不再发下一次
   let quota = null;
   let delivered = false;
   let badStatus = '';
   for (let i = 0; i < 15; i++) {
+    if (pollId !== _pollId) return { ok: false, aborted: true };
     if (onStatus && i > 0) onStatus('确认到账中…');
     await new Promise((res) => setTimeout(res, i === 0 ? 600 : 1500));
     try {
@@ -218,6 +226,6 @@ function quotaLabel(quota, freePerMonth) {
 }
 
 module.exports = {
-  PRODUCT_ID, PACK_PRICE_LABEL, humanizePayErr,
+  PRODUCT_ID, PACK_PRICE_LABEL, humanizePayErr, abort,
   getQuota, buyArtPack, getProfile, saveProfile, clearProfile, quotaLabel
 };

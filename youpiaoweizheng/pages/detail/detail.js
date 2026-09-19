@@ -18,9 +18,8 @@ const subscribe = require('../../utils/subscribe.js'); // 8.1.2：周年提醒�
 
 const LS_CAP_STYLE = 'sp_cap_style'; // 4.11.0：文案风格本地记忆（detail/card 共用）
 
-// 修复/重绘两颗胶囊的图标色：与 .dtc-btn.ghost / .dtc-btn.sage 的文字色同值
+// 重绘胶囊的图标色：与 .dtc-btn.sage 的文字色同值
 // （按钮是浅色实底 + 深色字，图标必须跟着字色走，不能吃主题变量）
-const BTN_FIX_FG = '#5F7F5C';
 const BTN_ART_FG = '#8A6F3A';
 
 // 7.4.0：删除后退场的时长，必须与 detail.wxss 里 .dtc-card.leaving 的动画时长一致
@@ -52,7 +51,6 @@ function buildIcons(themeKey) {
     iCalendar: iconSrc('calendar', m.accent), // 8.1.2 周年提醒那一行
     iHeart: iconSrc('heart', m.text, 0.28),
     iHeartOn: iconSrc('heart', m.accent, 1, 1.6, true),
-    iFix: iconSrc('wand', BTN_FIX_FG),
     iArt: iconSrc('palette', BTN_ART_FG),
     iShare: iconSrc('share', '#FFFFFF'),
     iTicketEmpty: iconSrc('ticket', m.text, 0.3)
@@ -387,12 +385,9 @@ Page({
   // ===== 4.21.0 底部 Banner 广告位：加载失败静默（品牌稿无此项，作为商业基建保留在页尾） =====
   onAdError() { /* 广告拉取失败由平台侧自动兜底，前端静默 */ },
 
-  /** 品牌稿「✦ 修复」：AI 修复（restore）能力待接入 artRestyle，先如实告知 */
-  goRepair() {
-    haptics.tap();
-    track.track('detail_repair', {});
-    wx.showToast({ title: 'AI 修复即将上线', icon: 'none' });
-  },
+  // 8.1.3：原先这里还有个 goRepair（品牌稿「✦ 修复」胶囊），点了只弹「AI 修复即将上线」。
+  // AI 修复能力没接，那就是一块假按钮（红线④），连同底部的胶囊与 detail_repair 埋点一起摘掉。
+  // 哪天 artRestyle 真能修票面了：把胶囊加回 wxml、这里补一个 goRepair 即可（埋点登记清单已留行）。
 
   /** 导航「···」更多菜单：AI 艺术重绘 / 纪念卡片 / AI 文案 / 删除
    *  6.4.0：FAB 移除后功能挂载点——原 FAB 级联三钮（图版/分享/卡片）中

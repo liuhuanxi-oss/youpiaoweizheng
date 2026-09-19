@@ -10,8 +10,10 @@
 //   长图是第二个入口，故把它拎出来 —— 两份「一样的授权引导」早晚有一边会改歪
 //   （同 utils/canvas-deco.js 顶部那条理由）。
 //
-// 【已知债】card.js ×2 / art.js / annual.js 里还各抄着一份等价的 catch 分支。
-//   它们跑得好好的，本批（8.1.0 拉新）不顺手改四个页面 —— 见 CHANGELOG 那条。
+// 【8.1.3 已清账】card.js ×2 / art.js / annual.js 里那四份等价的 catch 分支全并进来了，
+//   现在全项目就这一份「保存失败怎么分」。调用方只剩一句「没弹过的那个弹出去」：
+//     try { ... await saveimg.save(path); ... }
+//     catch (e) { wx.hideLoading(); if (!e.shown) wx.showToast({ title: e.msg, icon: 'none' }); }
 // ============================================================
 const AUTH_RE = /auth|authorize|deny|permission/i;
 const CANCEL_RE = /cancel/i;

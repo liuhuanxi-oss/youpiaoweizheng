@@ -215,7 +215,7 @@ t('付费墙还在（变现链路不是这次改版能省的），且视频/购�
 t('保存链路没被动过：合成 → canvasToTempFilePath → 存相册 → 埋点', () => {
   ok(/_compose\(\)/.test(jsClean), '_compose 没了');
   ok(/wx\.canvasToTempFilePath/.test(jsClean), '导出没了');
-  ok(/wx\.saveImageToPhotosAlbum/.test(jsClean), '存相册没了');
+  ok(/saveimg\.save\(/.test(jsClean), '存相册没了');
   ok(/track\.track\('art_save'/.test(jsClean), 'art_save 埋点没了');
   ok(/id="art-canvas"/.test(wxmlClean), '合成用的隐藏画布没了');
 });

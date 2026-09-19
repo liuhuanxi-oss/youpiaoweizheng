@@ -18,6 +18,7 @@ const { iconSrc } = require('../../utils/icons.js');
 const deco = require('../../utils/deco.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 const { safeDpr } = require('../../utils/canvas-deco.js'); // 画布倍率回夹（iOS 单边 4096 上限）
+const saveimg = require('../../utils/saveimg.js'); // 8.1.3：存相册的失败分类只此一份
 
 const LS_QUOTA = 'sp_art_quota'; // { ym: 'YYYY-MM', used: n }
 const LS_TOTAL = 'sp_art_total'; // 藏品编号（全局第几幅，跳号不回收）
@@ -160,7 +161,8 @@ Page({
     } catch (e) { /* 查询失败停在 idle，用户可手动开始 */ }
   },
 
-  onUnload() { this._dead = true; this._stopPoll(); },
+  // 8.1.3：页面走了连支付轮询一起收 —— 否则切走后还会白发 20 秒 payQuery（见 pay.abort）
+  onUnload() { this._dead = true; this._stopPoll(); pay.abort(); },
 
   // ===== 基础设施 =====
 
@@ -386,6 +388,8 @@ Page({
       return;
     }
     if (r.cancelled) return; // 用户主动取消：静默不打扰
+    // 8.1.3：页面已经走了（onUnload 里 pay.abort）—— 结果没人看，别再往一个已销毁的页面弹窗
+    if (r.aborted) return;
     if (r.pending) {
       // 钱已扣、推送未到：云函数幂等兜底最终会发货，不吓用户
       this._applyQuota(r.quota);
@@ -586,9 +590,7 @@ Page({
     try {
       await this._compose();
       const res = await wx.canvasToTempFilePath({ canvas: this._canvas });
-      await new Promise((resolve, reject) => {
-        wx.saveImageToPhotosAlbum({ filePath: res.tempFilePath, success: resolve, fail: reject });
-      });
+      await saveimg.save(res.tempFilePath);
       wx.hideLoading();
       haptics.confirm();
       // 4.19.0 art_save：图版装帧完成（口径：实际存入相册）
@@ -596,17 +598,8 @@ Page({
       wx.showToast({ title: '已存入相册', icon: 'success' });
     } catch (e) {
       wx.hideLoading();
-      const msg = String((e && e.errMsg) || e.message || e);
-      if (/auth/i.test(msg)) {
-        wx.showModal({
-          title: '需要相册权限',
-          content: '保存图版需要「添加到相册」权限，请在设置中开启',
-          confirmText: '去设置',
-          success: (r) => { if (r.confirm) wx.openSetting(); }
-        });
-      } else if (!/cancel/i.test(msg)) {
-        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
-      }
+      // 见 utils/saveimg.js：拒授权 / 自己取消 / 真失败三种，弹过的（shown）不再叠一个 toast
+      if (!e.shown) wx.showToast({ title: e.msg || '保存失败，请重试', icon: 'none' });
     } finally {
       this.setData({ saving: false });
     }

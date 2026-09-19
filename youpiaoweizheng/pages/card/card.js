@@ -31,6 +31,7 @@ const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外�
 //    再自行注入这几支笔，拆行会剩下半截声明与注入的同名变量撞车。
 const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape, safeDpr } = require('../../utils/canvas-deco.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
+const saveimg = require('../../utils/saveimg.js'); // 8.1.3：存相册的失败分类只此一份，别再各写一份
 
 const W = 600, H = 960;
 const LS_SHARE = 'sp_share_count'; // 时光信使勋章：分享/导出计数（本地）
@@ -1449,13 +1450,7 @@ Page({
     try {
       await this._waitFirstFrame(); // 别把还没画出来的空画布存进相册（见 _waitFirstFrame）
       const res = await wx.canvasToTempFilePath({ canvas: this._canvas });
-      await new Promise((resolve, reject) => {
-        wx.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: resolve,
-          fail: reject
-        });
-      });
+      await saveimg.save(res.tempFilePath);
       this._earnCard();
       // 4.17.0 poster_save：带码海报的保存转化（口径：本次实际画没画码）
       track.track('poster_save', { style: this.data.style, code: this._qrDrawn ? 1 : 0 });
@@ -1479,17 +1474,9 @@ Page({
       }
     } catch (e) {
       wx.hideLoading();
-      const msg = String((e && e.errMsg) || e.message || e);
-      if (/auth/i.test(msg)) {
-        wx.showModal({
-          title: '需要相册权限',
-          content: '保存卡片需要「添加到相册」权限，请在设置中开启',
-          confirmText: '去设置',
-          success: (r) => { if (r.confirm) wx.openSetting(); }
-        });
-      } else if (!/cancel/i.test(msg)) {
-        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
-      }
+      // 存相册那四种失败的分类（拒授权 / 自己取消 / 真失败）统一在 utils/saveimg.js 里判，
+      // 这里只负责把没弹过的那个弹出去（弹过的 shown=true，再弹就是叠两个提示）
+      if (!e.shown) wx.showToast({ title: e.msg || '保存失败，请重试', icon: 'none' });
     } finally {
       this.setData({ exporting: false });
     }
@@ -1560,9 +1547,7 @@ Page({
           this._photoImg || null, this._duo || null, this._same || 0, this.data.signature || '');
       }
       const out = await this._exportOffscreen(off);
-      await new Promise((resolve, reject) => {
-        wx.saveImageToPhotosAlbum({ filePath: out.path, success: resolve, fail: reject });
-      });
+      await saveimg.save(out.path);
       // 回退路径是自己写的临时文件（相册已经拿到图了）：删掉，别占着用户数据目录
       if (!out.temp) wx.getFileSystemManager().unlink({ filePath: out.path, success() {}, fail() {} });
       this._earnCard();
@@ -1572,17 +1557,7 @@ Page({
       wx.showToast({ title: '已存入相册 · 3:4 长图', icon: 'none' });
     } catch (e) {
       wx.hideLoading();
-      const msg = String((e && e.errMsg) || e.message || e);
-      if (/auth/i.test(msg)) {
-        wx.showModal({
-          title: '需要相册权限',
-          content: '保存卡片需要「添加到相册」权限，请在设置中开启',
-          confirmText: '去设置',
-          success: (r) => { if (r.confirm) wx.openSetting(); }
-        });
-      } else if (!/cancel/i.test(msg)) {
-        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
-      }
+      if (!e.shown) wx.showToast({ title: e.msg || '保存失败，请重试', icon: 'none' });
     } finally {
       this._dropCanvas(off); // 连出三张时离屏位图叠加会顶到低端机内存线，用完就还
       this.setData({ exporting: false });

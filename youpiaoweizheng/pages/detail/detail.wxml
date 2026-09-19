@@ -225,12 +225,10 @@
     </view>
   </view>
 
-  <!-- ===== 底部操作：修复 / 重绘 / 分享（品牌稿屏2 三胶囊；7.0.0 换线性图标） ===== -->
+  <!-- ===== 底部操作：重绘 / 分享（品牌稿屏2 原是「修复 / 重绘 / 分享」三胶囊）
+       8.1.3：摘掉「修复」——AI 修复能力没接，点它只弹一句「即将上线」，是块假按钮
+       （红线④不做假按钮，审核员看到点了没反应也像半成品）。功能接上时把那颗胶囊加回来即可。 ===== -->
   <view class="dtc-actions">
-    <view class="dtc-btn ghost pressable" hover-class="press-hover" bindtap="goRepair" aria-role="button" aria-label="AI 修复">
-      <image class="dtc-btn-ic" src="{{icons.iFix}}" mode="aspectFit" aria-hidden="true" />
-      <text>修复</text>
-    </view>
     <view class="dtc-btn sage pressable" hover-class="press-hover" bindtap="goArt" aria-role="button" aria-label="AI 重绘">
       <image class="dtc-btn-ic" src="{{icons.iArt}}" mode="aspectFit" aria-hidden="true" />
       <text>重绘</text>

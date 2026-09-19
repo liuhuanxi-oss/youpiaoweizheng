@@ -223,11 +223,14 @@ t('没有照片时画素色底不报错，有照片才 drawImage', () => {
 console.log('\n【五、既有链路一个都不能少】');
 t('保存链路没被动过：canvasToTempFilePath → 存相册 → 埋点', () => {
   ok(/wx\.canvasToTempFilePath/.test(jsClean), '导出没了');
-  ok(/wx\.saveImageToPhotosAlbum/.test(jsClean), '存相册没了');
+  ok(/saveimg\.save\(/.test(jsClean), '存相册没了');
   ok(/track\.track\('annual_save'/.test(jsClean), 'annual_save 埋点没了');
 });
 t('相册权限被拒时的「去设置」引导还在', () => {
-  ok(/wx\.openSetting/.test(jsClean), '权限引导没了');
+  // 8.1.3：引导与分流统一挪进 utils/saveimg.js 了 —— 本页只负责别把它的提示再叠一遍
+  ok(/require\('\.\.\/\.\.\/utils\/saveimg\.js'\)/.test(jsClean), '没接上统一的存相册模块');
+  ok(/e\.shown/.test(jsClean), '不看 shown，会把「去设置」弹窗和 toast 叠着弹两个');
+  ok(/wx\.openSetting/.test(read('utils/saveimg.js')), '权限引导没了');
 });
 t('导出前等绘制真的落图（draw 返回 Promise，有照片/署名晚到也不会导出旧图）', () => {
   ok(/await this\.draw\(\)/.test(jsClean), '保存前没等重绘');

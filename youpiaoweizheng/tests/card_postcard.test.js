@@ -164,11 +164,14 @@ t('不带码时（A/B 对照 / 演示模式）不画码，但页面照常出图'
 console.log('\n【四、既有链路一个都不能少】');
 t('保存链路没被动过：canvasToTempFilePath → 存相册 → 埋点', () => {
   ok(/wx\.canvasToTempFilePath/.test(jsClean), '导出没了');
-  ok(/wx\.saveImageToPhotosAlbum/.test(jsClean), '存相册没了');
+  ok(/saveimg\.save\(/.test(jsClean), '存相册没了');
   ok(/track\.track\('poster_save'/.test(jsClean), 'poster_save 埋点没了');
 });
 t('相册权限被拒时的「去设置」引导还在', () => {
-  ok(/wx\.openSetting/.test(jsClean), '权限引导没了');
+  // 8.1.3：引导与分流统一挪进 utils/saveimg.js 了 —— 本页只负责别把它的提示再叠一遍
+  ok(/require\('\.\.\/\.\.\/utils\/saveimg\.js'\)/.test(jsClean), '没接上统一的存相册模块');
+  ok(/e\.shown/.test(jsClean), '不看 shown，会把「去设置」弹窗和 toast 叠着弹两个');
+  ok(/wx\.openSetting/.test(read('utils/saveimg.js')), '权限引导没了');
 });
 t('小红书竖版导出还在（3:4 装裱 + 品牌水印）', () => {
   ok(/XHS_W = 1080, XHS_H = 1440/.test(js), '竖版尺寸被改');

@@ -24,13 +24,13 @@ const tests = [];
 const t = (name, fn) => tests.push([name, fn]);
 const ok = (c, m) => { if (!c) throw new Error(m || '断言失败'); };
 
-/** 本机「今天」—— 与 utils/subscribe.js 的 _ymd() 同口径（设备本地日期）。
- *  千万别写成 toISOString().slice(0,10)：那是 UTC 日期，本机 UTC+8 的凌晨 0~8 点
- *  比本地早一天，种进去的「今天问过」永远对不上（2026-09-19 凌晨 02:30 就是这么红的）。 */
+/** 北京「今天」—— 与 utils/subscribe.js 的 _ymd() 同口径（+8h 后取 UTC 字段，8.1.3 起）。
+ *  千万别写成 toISOString().slice(0,10)：那是纯 UTC 日期，北京凌晨 0~8 点比它早一天，
+ *  种进去的「今天问过」永远对不上（2026-09-19 凌晨 02:30 就是这么红的）。 */
 function localYmd() {
-  const d = new Date();
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
   const p = (x) => String(x).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
 }
 
 // ════════════════════════════════════════════════════════════
