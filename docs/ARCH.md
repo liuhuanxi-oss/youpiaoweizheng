@@ -142,7 +142,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 2. 若带场馆名，再调**腾讯地图 LBS**（`apis.map.qq.com` 场馆检索，Key 在 [geocode.js](../youpiaoweizheng/cloudfunctions/saveTicket/geocode.js)）做**场馆级精化**（`geoSource:'venue'`）；
 3. 天气（Open-Meteo）用这个坐标，随票根一起存档。
 
-> 回忆地图页默认画的是**自绘水彩中国**（`utils/mapArt.js` 做经纬度→舞台投影）；页内可切到**微信原生 `<map>`**（7.1.0 起），两种看法吃的是同一份经纬度（`mapArt.markersOf` 与 `toStage` 同源），点图钉与点气泡共用同一个城市面板。腾讯地图接口在这条链路里负责「场馆名 → 精确经纬度」。
+> 回忆地图页默认画的是**微信原生 `<map>`**（8.1.4 起；7.1.0 起就有这个看法，此前默认是自绘的那张）；页内可切到**自绘水彩中国**（`utils/mapArt.js` 做经纬度→舞台投影），两种看法吃的是同一份经纬度（`mapArt.markersOf` 与 `toStage` 同源），点图钉与点气泡共用同一个城市面板。**水彩那张不能删**：一键成片是气泡一颗颗亮起 + 时光线一段段长出，原生地图给不了这个动效（`startFilm()` 里必须切回水彩那一层）。腾讯地图接口在这条链路里负责「场馆名 → 精确经纬度」。
 
 ### 5.2 AI 文案与重绘
 

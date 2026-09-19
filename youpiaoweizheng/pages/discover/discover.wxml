@@ -38,7 +38,7 @@
   <view class="dc-card">
     <view class="dc-card-inner">
 
-      <!-- 看法切换：水彩中国（稿屏7 的默认样子）/ 真地图（微信原生地图，能缩放拖动） -->
+      <!-- 看法切换：真地图（微信原生地图，能缩放拖动 —— 默认看这张）/ 水彩中国（稿屏7 的手绘那张） -->
       <view class="dc-view">
         <view class="dc-view-b {{view === 'art' ? 'on' : ''}} pressable" hover-class="press-item-hover"
               data-view="art" bindtap="setView" aria-role="button" aria-label="看水彩地图">水彩</view>

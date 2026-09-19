@@ -241,6 +241,19 @@ t('切换按钮两个选项都接了 setView，且点击会真的换 view', () =
   ok(body, '找不到 setView 函数体');
   ok(/setData\(\{\s*view/.test(body[1]), 'setView 没写回 view');
 });
+t('默认看的是真地图，但水彩那一层必须还在（一键成片要在它上面演）', () => {
+  // 8.1.4：打开这张卡先给真地图。初值只在 data 里出现一次，改成水彩是最容易
+  // 「顺手」改回去的一行，故钉住 —— 这是用户拍板的默认，不是随手写的。
+  const d = /\bview:\s*'(art|real)'/.exec(js); // 文件里第一处就是 data 的初值
+  ok(d, '找不到 view 的初值');
+  ok(d[1] === 'real', '默认看法不是真地图，是 ' + d[1]);
+  // 水彩层不能跟着删：一键成片是气泡一颗一颗亮起来，原生地图画不了（见 WXSS 与 startFilm），
+  // 播放时必须切回 art。少了这一行，点「一键成片」会演在一张画不出气泡的地图上。
+  const film = /startFilm\(\)\s*\{([\s\S]*?)\n  \},/.exec(js);
+  ok(film, '找不到 startFilm 的函数体');
+  ok(/view:\s*'art'/.test(film[1]), '一键成片没把看法切回水彩，播放就没有舞台了');
+});
+
 t('点图钉走的是 cities[markerId]，与气泡共用同一个面板', () => {
   ok(/onMarkerTap\(e\)[\s\S]{0,200}cities\[e\.detail\.markerId\]/.test(js), '没按 markerId 找回城市');
   ok(/onCityTap\(e\)\s*\{\s*this\.openCity\(/.test(js), '气泡没走共用入口 openCity');

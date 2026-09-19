@@ -74,8 +74,9 @@ Page({
     sheet: [],       // 选中城市的票根
     stageW: mapArt.STAGE_W,
     stageH: mapArt.STAGE_H,
-    // 两种看法：'art' 水彩中国（稿屏7 的默认）/ 'real' 微信原生地图（可缩放、可拖）
-    view: 'art',
+    // 两种看法：'real' 微信原生地图（**默认看这张** —— 能缩放能拖，图钉点得动）/
+    //           'art' 手绘水彩中国（稿屏7 那张，一键成片在它上面演）
+    view: 'real',
     swapping: false, // 换层中（整块淡出 → 换 → 淡回），见 setView
     markers: [],     // 原生地图的图钉（一城一枚）
     mapPts: [],      // include-points：让原生地图自动缩放到装下全部图钉

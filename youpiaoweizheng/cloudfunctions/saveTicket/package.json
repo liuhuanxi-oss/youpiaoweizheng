@@ -1,6 +1,6 @@
 {
   "name": "saveTicket",
-  "version": "7.0.1",
+  "version": "8.1.4",
   "description": "票根入库 + 天气存档 + 场次键生成 + geo 配对 + 博物志重绘",
   "main": "index.js",
   "dependencies": {
