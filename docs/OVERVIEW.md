@@ -31,7 +31,7 @@
 | 后端 | **2 个云函数**（`saveTicket` 万能 action 路由 / `recognizeTicket` OCR）、**5 个集合**（tickets / prefs / couples / config / **events**（8.1.3 埋点落云，首写自动建））+ 云存储 |
 | 数据层 | `utils/store.js` 双模式（云 / 演示）；`utils/` **34 个模块**（store / theme / icons / sign / points / badges / share / subscribe / anniv / saveimg / tracklog …） |
 | 视觉 | 六套主题（paper 默认 / glass / collage / film / literary / minimal），10 屏按品牌全案精修稿重做 |
-| 测试 | `npm test` **46 套 / 1088 条全绿**（2026-09-19 全量复跑，逐套自报数加总；8.1.3 新增 `audit_812` 13 条 —— 见 [TEST.md](./TEST.md) §3）；真机逐屏验收见 [TEST.md](./TEST.md) §7 |
+| 测试 | `npm test` **46 套 / 1092 条全绿**（2026-09-19 全量复跑，逐套自报数加总；8.1.3 新增 `audit_812` 17 条 —— 见 [TEST.md](./TEST.md) §3）；真机逐屏验收见 [TEST.md](./TEST.md) §7 |
 | 合规 | 隐私授权弹窗、内容安全先审后显、AI 生成标注、支付防伪三道闸已就位；ICP 已通过；服务类目已通过（2026-09-15）；算法侧手上是**腾讯侧备案截图 + 微信云开发 AI 算法合作协议**（混元助手大模型，备案号 `440305295988701230071`，状态正常、协议有效至 2027-03-04）——以本主体名义是否还要另行备案**待确认**（细节见 [PRD.md](./PRD.md) CP-5） |
 | 待办 | **`8.1.3` 收口**：`npm run deploy:fn saveTicket`（**云函数必须先于端上**）→ 后台设体验版 → 按 PROJECT §6② 的 8 条走真机回归 → 提审（真机验收自 7.0.0 起一直没做）；MP 后台侧还欠埋点事件登记（实为 **49 个**，A 档先点 16 个，见 [docs/埋点登记清单.md](埋点登记清单.md)）、流量主、广告位等，见 PROJECT §4.2 U1–U8 |
 

@@ -264,6 +264,52 @@ t('上传脚本会打印主包体积并记台账，超红线要喊一声', () =>
 });
 
 // ════════════════════════════════════════════════════════════
+console.log('\n【七、H4.4 落票链路：消息点开必须落回那张票（两端逐字对齐）】');
+// 审查把这条列成「8.1.2 未真机验证的核心路径」，并写明「有任何一处落空 ⇒ 8.1.3 必须修」。
+// 真机那一趟只能人来做，但**代码侧的两半现在就能钉死**：
+// 云端拼 `?id=<票 _id>`、端上 detail 读 `options.id` —— 两边各自改个名字都不会报错，
+// 只有用户点开消息落到「不在册子」时才看得出来。所以这里把两端**对起来**钉。
+t('落页参数名两端一致：云端拼的 ?xxx= 就是详情页读的 options.xxx', () => {
+  const cloud = read('cloudfunctions/saveTicket/recall.js');
+  const m = cloud.match(/ANNIV_PAGE\s*\+\s*\(r\.ticketId\s*\?\s*'\?([A-Za-z0-9_]+)='/);
+  ok(m, '云端找不到「周年提醒拼落页」那一句');
+  const js = strip(read('pages/detail/detail.js'));
+  const d = js.match(/store\.getTicket\(options\.([A-Za-z0-9_]+)\)/);
+  ok(d, '详情页不是从 onLoad 的 options 里取票号');
+  ok(m[1] === d[1], `两端参数名对不上：云端发 ?${m[1]}=，端上读 options.${d[1]} —— 点开消息落到空态且不报错`);
+  ok(d[1] === 'id', '参数名不是 id（改了就等于改微信后台已发出去的消息，做不到）');
+});
+t('落页路径不带前导斜杠，且最长不超微信的 128 字节线', () => {
+  const cloud = read('cloudfunctions/saveTicket/recall.js');
+  const m = cloud.match(/const ANNIV_PAGE = '([^']+)'/);
+  ok(m, '找不到 ANNIV_PAGE');
+  ok(!m[1].startsWith('/'), '落页路径带了前导斜杠，微信不认：' + m[1]);
+  ok(/^pages\/[a-z]+\/[a-z]+$/.test(m[1]), '落页路径形状不对：' + m[1]);
+  const cap = cloud.match(/ticketId:\s*\/\^\[A-Za-z0-9_-\]\{1,(\d+)\}\$\//);
+  ok(cap, '找不到票号清洗的长度上限');
+  const max = m[1].length + 4 + Number(cap[1]);
+  ok(max <= 128, `落页最长 ${max} 字节，超过微信 128 上限`);
+});
+t('票号清洗放得过云库 _id 的形状，也拦得住畸形串', () => {
+  const cloud = read('cloudfunctions/saveTicket/recall.js');
+  const m = cloud.match(/ticketId:\s*\/([^/]+)\/\.test\(id\)/);
+  ok(m, '找不到 ticketId 的清洗正则');
+  const re = new RegExp(m[1]);
+  // 云库 add() 自动生成的 _id 就是 32 位小写十六进制 —— 洗没了 = 每条周年提醒都落空
+  ok(re.test('a1b2c3d4e5f60718293a4b5c6d7e8f90'), '云库 _id 被判为来路不明，落页会被清空');
+  ok(re.test('tk_1') && re.test('a-b'), '常见的票号反被拦下');
+  ok(!re.test('../../etc') && !re.test('a b') && !re.test('a'.repeat(65)), '畸形串没拦住');
+});
+t('票不在了（删掉 / 不属于你）→ 空态，不是白屏', () => {
+  const js = strip(read('pages/detail/detail.js'));
+  const i = js.indexOf('const raw = await store.getTicket(');
+  ok(i > 0, '详情页不是这个取票写法（改了就要重看这条）');
+  const seg = js.slice(i, i + 320);
+  ok(/if \(!raw\)/.test(seg), '取不到票没有分支');
+  ok(/notFound: true/.test(seg), '取不到票不亮空态 —— 消息点开会白屏');
+});
+
+// ════════════════════════════════════════════════════════════
 (async () => {
   for (const [name, fn] of tests) {
     try {
