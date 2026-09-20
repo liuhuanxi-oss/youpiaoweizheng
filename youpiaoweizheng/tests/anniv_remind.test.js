@@ -34,8 +34,8 @@ function bjText(ts) {
 /** 北京「今天」—— 与 utils/subscribe.js 的 _ymd() 同口径（+8h 后取 UTC 字段，8.1.3 起）。
  *  千万别写成 toISOString().slice(0,10)：那是纯 UTC 日期，北京凌晨 0~8 点比它早一天，
  *  种进去的「今天问过」永远对不上（2026-09-19 凌晨 02:30 就是这么红的）。 */
-function localYmd() {
-  const d = new Date(Date.now() + 8 * 3600 * 1000);
+function localYmd(aheadDays = 0) {
+  const d = new Date(Date.now() + 8 * 3600 * 1000 + aheadDays * 86400000);
   const p = (x) => String(x).padStart(2, '0');
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
 }
@@ -238,6 +238,18 @@ console.log('\n【三、云端：排提醒 / 发消息（真跑）】');
 
 const recall = require('../cloudfunctions/saveTicket/recall.js');
 
+/** 待排的周年日：北京今天往后 5 天。
+ *  **不许写死**：云端闸门判的是「今天」—— 写死的「未来日期」到那一天就成了今天或过去，
+ *  整个【三】段一起红（2026-09-20 就是这么红的）。要「今天附近」的日子一律从 Date.now() 推。 */
+const FUT = localYmd(5);
+
+t('本套自己：走云端闸门的排提醒日期不许写死（写死的「未来」到期那天必红）', () => {
+  const src = decomment(read('tests/anniv_remind.test.js'));
+  const bad = src.match(/annivSave\([\s\S]{0,300}?ymd:\s*'20\d\d-\d\d-\d\d'/g) || [];
+  ok(bad.length === 0, '这些 annivSave 调用把日期写死了，而云端闸门判的是「今天」—— 到那一天必红，\n'
+    + '        要「今天附近」的日子一律从 Date.now() 推（用 FUT / localYmd(n)）：\n        ' + bad.join('\n        '));
+});
+
 /** 假 db：只实现用到的那几样；where 不真过滤，喂什么就返回什么 */
 function fakeDb(rows) {
   const updates = [], added = [];
@@ -274,9 +286,9 @@ t('bjYmd / bjDayStart：北京时间口径，脏数据返回 0', () => {
 t('排提醒：合法的排得上，发送时刻是**那天早上 9 点**（北京时间）', async () => {
   const f = fakeDb([]);
   const at = Date.now();
-  const out = await recall.annivSave(f.db, 'o1', { tmplId: 'T', ymd: '2026-09-20', years: 4, id: 'tk_1', title: '五月天' });
+  const out = await recall.annivSave(f.db, 'o1', { tmplId: 'T', ymd: FUT, years: 4, id: 'tk_1', title: '五月天' });
   ok(out.ok === true, '没排上：' + JSON.stringify(out));
-  ok(bjText(out.sendAt) === '2026-09-20 09:00', '发送时刻不对：' + bjText(out.sendAt));
+  ok(bjText(out.sendAt) === FUT + ' 09:00', '发送时刻不对：' + bjText(out.sendAt));
   ok(f.added.length === 1 && f.added[0].type === 'anniv' && f.added[0].status === 'pending', '没写进待发表');
   ok(f.added[0]._openid === 'o1', '没记是谁的提醒');
   ok(f.added[0].updatedAt >= at, '没记时间');
@@ -284,14 +296,14 @@ t('排提醒：合法的排得上，发送时刻是**那天早上 9 点**（北�
 
 t('排提醒：一人一条 —— 已经有记录就更新那一条，不堆文档', async () => {
   const f = fakeDb([{ _id: 'd1', _openid: 'o1', type: 'anniv' }]);
-  const out = await recall.annivSave(f.db, 'o1', { tmplId: 'T', ymd: '2026-09-20', years: 4 });
+  const out = await recall.annivSave(f.db, 'o1', { tmplId: 'T', ymd: FUT, years: 4 });
   ok(out.ok === true && f.added.length === 0 && f.updates.length === 1, '又新增了一条：' + JSON.stringify({ added: f.added.length, upd: f.updates.length }));
-  ok(f.updates[0].data.ymd === '2026-09-20', '更新的不是新日期');
+  ok(f.updates[0].data.ymd === FUT, '更新的不是新日期');
 });
 
 t('排提醒：模板空 / 日期非法 / 太近太远，一律拒（文案说的是「今天满 N 周年」）', async () => {
   const cases = [
-    [{ tmplId: '', ymd: '2026-09-20' }, '模板空'],
+    [{ tmplId: '', ymd: FUT }, '模板空'],
     [{ tmplId: 'T', ymd: '2026-02-30' }, '不存在的日子'],
     [{ tmplId: 'T', ymd: '' }, '空日期'],
     [{ tmplId: 'T', ymd: recall.bjYmd() }, '今天（今天那条排不上，彩蛋在管）'],
@@ -308,7 +320,7 @@ t('排提醒：模板空 / 日期非法 / 太近太远，一律拒（文案说�
 
 t('排提醒：票 id 与票名都要洗过（一个要塞进消息落页，一个要塞进消息体）', async () => {
   const f = fakeDb([]);
-  await recall.annivSave(f.db, 'o1', { tmplId: 'T', ymd: '2026-09-20', years: 2, id: 'https://evil/x?y=1', title: '很长很长很长很长很长很长很长很长很长很长的票名\n带换行' });
+  await recall.annivSave(f.db, 'o1', { tmplId: 'T', ymd: FUT, years: 2, id: 'https://evil/x?y=1', title: '很长很长很长很长很长很长很长很长很长很长的票名\n带换行' });
   const d = f.added[0];
   ok(d.ticketId === '', '来路不明的串被塞进了消息落页：' + d.ticketId);
   ok(recall.clip20(d.title).length <= 20, 'thing 类型上限 20 字，超了就是 47003：' + d.title.length);
