@@ -69,7 +69,8 @@ t('本页用到的图标名都在 utils/icons.js 里注册过（含类型兜底�
   ok(used.length >= 8, 'iconSrc 调用偏少：' + used.length);
   const kinds = [...jsClean.matchAll(/TYPE_ICONS = \{([^}]*)\}/g)]
     .flatMap((m) => [...m[1].matchAll(/'([\w]+)'/g)].map((x) => x[1]));
-  ok(kinds.length === 3, '类型兜底图标表被改：' + kinds.join(','));
+  // 8.1.6 加了「旅行」这一类。断言名单不数个 —— 同 scan_frame 那条的道理。
+  ok(kinds.join(',') === 'mask,film,train,plane', '类型兜底图标表被改：' + kinds.join(','));
   used.concat(kinds).forEach((n) => ok(ICONS.has(n), '图标未注册：' + n));
 });
 t('纯装饰图形都带 aria-hidden；唯一不带的是那张真的票根照片', () => {

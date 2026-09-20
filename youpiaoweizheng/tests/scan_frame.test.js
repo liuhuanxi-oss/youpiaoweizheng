@@ -222,11 +222,13 @@ t('类型选项的图标随主题编译，且用主题实色', () => {
   ok(/iconSrc\(TYPE_ICONS\[k\], m\.text,/.test(js), '类型图标没取主题实色');
   ok(!/iconSrc\([^)]*m\.text2/.test(js), 'iconSrc 收到了 m.text2（film/minimal 是 rgba）');
 });
-t('三种类型的图标名都在 icons.js 里注册', () => {
+t('四类类型的图标名都在 icons.js 里注册', () => {
   const m = /const TYPE_ICONS = \{([^}]*)\}/.exec(js);
   ok(m, '找不到 TYPE_ICONS');
   const names = [...m[1].matchAll(/'([a-zA-Z]+)'/g)].map((x) => x[1]);
-  ok(names.length === 3, '类型图标数不是 3');
+  // 8.1.6 加了「旅行」这一类。这里断言的是**名单**不是个数 —— 原来写 `length === 3`
+  // 只会在加类型时喊一句「不是 3」，说不出多/少了谁；名单能，而防「顺手动类型表」的原意不变。
+  ok(names.join(',') === 'mask,film,train,plane', '类型图标表被改：' + names.join(','));
   const bad = names.filter((n) => !ICONS.has(n));
   ok(bad.length === 0, '不存在：' + bad.join(', '));
 });

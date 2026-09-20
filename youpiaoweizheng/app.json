@@ -18,7 +18,8 @@
     "pages/art/art",
     "pages/wall/wall",
     "pages/legacy/legacy",
-    "pages/sign/sign"
+    "pages/sign/sign",
+    "pages/citybook/citybook"
   ],
   "__usePrivacyCheck__": true,
   "permission": {

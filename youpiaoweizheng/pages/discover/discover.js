@@ -165,7 +165,9 @@ Page({
         refresh: iconSrc('refresh', m.text, 0.28),
         // 8.1.0 一键成片：play 压在玫瑰实底（--stamp 六主题同值）上恒白，download 画在浅底上取正文色
         play: iconSrc('play', '#FFFFFF'),
-        download: iconSrc('download', m.text, 0.7)
+        download: iconSrc('download', m.text, 0.7),
+        // 8.1.6 集章册：与 play 同一块玫瑰实底，故同样恒白
+        chapter: iconSrc('bookmark', '#FFFFFF')
       },
       deco: {
         sprig: deco.decoSrc('sprig', m),
@@ -177,6 +179,7 @@ Page({
         show: iconSrc('mask', W),
         movie: iconSrc('film', W),
         traffic: iconSrc('train', W),
+        travel: iconSrc('plane', W),
         other: iconSrc('ticket', W)
       }
     });
@@ -372,6 +375,12 @@ Page({
 
   /** 空态：去票根墙收第一张 */
   goHome() { wx.switchTab({ url: '/pages/home/home' }); },
+
+  /** 8.1.6 集章册：同一份城市数据的另一个看法（地图讲「在哪儿」，册子讲「攒了多少」） */
+  goCitybook() {
+    haptics.tap();
+    wx.navigateTo({ url: '/pages/citybook/citybook' });
+  },
 
   /* ============================================================
      8.1.0 拉新 3/6「一键成片」

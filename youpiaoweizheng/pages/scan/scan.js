@@ -17,10 +17,10 @@ const invite = require('../../utils/invite.js'); // 7.3.0 R6：邀请奖励结�
 const { TYPE_TEXT } = require('../../utils/mock.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
-const TYPE_KEYS = ['show', 'movie', 'traffic'];
+const TYPE_KEYS = ['show', 'movie', 'traffic', 'travel'];
 const TYPE_LABELS = TYPE_KEYS.map((k) => TYPE_TEXT[k]);
 /** 类型选择用的图标名（蓝色稿屏3 全页无 emoji，图标一律走 utils/icons.js） */
-const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train' };
+const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train', travel: 'plane' };
 
 /**
  * AI 四步（稿屏3 的 识别 → 修复 → 重绘 → 入档）。

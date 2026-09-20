@@ -31,7 +31,7 @@ const CARD_W = 322, CARD_H = 218;   // 一张票根卡（(750 - 40×2 - 26) / 2 
 const GRID_N = 6;                   // 稿屏10 是 2 列 3 行
 
 /** 类型 → 无照片时的兜底图标名（与时光机页同一套；中文类型名这一页不出，卡面只放图标） */
-const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train' };
+const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train', travel: 'plane' };
 
 /** 绑定时间 → 同行天数（当天算第 1 天） */
 function daysTogether(boundAt) {

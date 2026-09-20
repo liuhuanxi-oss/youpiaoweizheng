@@ -12,7 +12,7 @@ const share = require('../../utils/share.js'); // 7.3.0 S1/S2：分享文案（�
 const track = require('../../utils/track.js'); // 7.3.0 S1：朋友圈分享埋点
 const { iconSrc } = require('../../utils/icons.js');
 
-const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通' };
+const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通', travel: '旅行' };
 
 Page({
 
@@ -77,14 +77,14 @@ Page({
       const items = m.items;
 
       // 类型分布（按占比画横条）
-      const counts = { show: 0, movie: 0, traffic: 0 };
+      const counts = { show: 0, movie: 0, traffic: 0, travel: 0 };
       items.forEach((t) => { if (counts[t.type] !== undefined) counts[t.type]++; });
       // 分母用「认得出的那几类」之和，不用总数：库里要是混进别的 type，
       // 按总数当分母会让三条加起来不到 100%（用户看着像丢票）。
-      const known = counts.show + counts.movie + counts.traffic;
+      const known = counts.show + counts.movie + counts.traffic + counts.travel;
       // 一张票都没有就不画：三根 0% 的空条比空态更像「数据丢了」（外层 wx:if 会整块收起）
       const bars = known > 0
-        ? ['show', 'movie', 'traffic']
+        ? ['show', 'movie', 'traffic', 'travel']
           .filter((k) => counts[k] > 0)
           .map((k) => ({ key: k, name: TYPE_TEXT[k], n: counts[k], pct: Math.round((counts[k] / known) * 100) }))
         : [];

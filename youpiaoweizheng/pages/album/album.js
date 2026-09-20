@@ -27,7 +27,7 @@ const PM_R = 51;           // 邮戳城市名的弧半径（rpx），落在双�
 const NO_YEAR = '更早';     // 日期缺失的票根归到这一组，避免凭空消失
 
 /** 类型 → 图标名（稿屏8 全页无 emoji，图标一律走 utils/icons.js） */
-const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train' };
+const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train', travel: 'plane' };
 /**
  * 胶带三色（黄 / 蓝 / 粉）。
  * 胶带是**实物**的颜色——贴在手账上的和纸胶带不会因为 App 换主题就变色，

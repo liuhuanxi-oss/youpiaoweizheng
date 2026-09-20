@@ -3,7 +3,7 @@
 // 请保持字段命名稳定（city/geo/weather/eventKey 都是 M2 要预埋的字段）。
 
 // 票根类型 → 标签文案
-const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通' };
+const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通', travel: '旅行' };
 
 // 演示票根（字段结构 = 未来 tickets 表结构）
 const tickets = [

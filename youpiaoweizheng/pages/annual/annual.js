@@ -52,8 +52,8 @@ function stampDate(dateStr) {
 }
 
 /** 类型 → 无照片时的兜底图标名与中文（与时光机页同一套） */
-const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train' };
-const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '出行' };
+const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train', travel: 'plane' };
+const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '出行', travel: '旅行' };
 
 /** 年度精选挑四张：有照片的优先，其次票价高的，其次时间近的（拼贴是照片墙，图最要紧） */
 function pickTop(ts) {

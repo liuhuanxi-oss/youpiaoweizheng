@@ -11,7 +11,7 @@ const sk = require('../../utils/skeleton.js');
 const { iconSrc } = require('../../utils/icons.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 
-const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通' };
+const TYPE_TEXT = { show: '演出', movie: '电影', traffic: '交通', travel: '旅行' };
 
 Page({
 

@@ -20,6 +20,11 @@ function matchType(flat) {
   if (/(大麦|秀动|票务|巡演|演唱会|音乐节|专场|巡回|LIVEHOUSE|livehouse|Livehouse|音乐|乐队|音乐会)/.test(flat)) return 'show';
   if (/(影城|影院|电影|cinema|CINEMA|号厅|3D|IMAX|厅)/.test(flat)) return 'movie';
   if (/(车次|候车|检票口|车厢|座号|航班|航空|机场|\b[GDCKT]\d{2,4}\b|MU\d+|CA\d+|ZH\d+|HU\d+)/.test(flat)) return 'traffic';
+  // 8.1.6：旅行排在最后 —— 它本质是「上面三类都不是」的那一类，抢不过演出/电影/交通。
+  // 两处故意的取舍：
+  //   ① 「门票」不进词表 —— 演出票面上也印着「门票」，写进去会把演唱会抢成旅行；
+  //   ② 用「博物」不用「博物馆」—— 票面上写的是「故宫博物院」的多，写「博物馆」的少。
+  if (/(景区|景点|乐园|公园|古镇|山庄|温泉|滑雪|索道|游船|轮渡|动物园|植物园|水族馆|海洋馆|博物|美术馆|酒店|民宿|客栈|度假|旅游|旅行|环球影城|迪士尼)/.test(flat)) return 'travel';
   return 'show'; // 主打名义默认演出，让用户改
 }
 
@@ -103,4 +108,6 @@ function parse(lines) {
   return draft;
 }
 
-module.exports = { parse };
+// 8.1.6：matchType 也导出 —— 类型判定要在四处各判一次，能单独钉住一处是一处
+// （见 tests/type_keys.test.js 的说明）
+module.exports = { parse, matchType };

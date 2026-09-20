@@ -1,0 +1,73 @@
+<!-- pages/citybook/citybook.wxml —— 城市集章册（8.1.6）
+     结构：标题 → 统计条 → 一枚一枚的章 → 实话条（没填城市的票）→ 三态
+     【章为什么不在 JS 里编成图形】一册子几十枚，每枚塞一张 data-uri 就是几十 KB 的 setData，
+     点一下全量过桥（7.4.3 把「类型图标」收成一张映射表，就是踩过这个坑改的）。
+     圆形与虚线圈纯 WXSS 就够，不欠这一张图；唯一由 JS 下发的是每座城的**识别色**。 -->
+<import src="/templates/sp.wxml" />
+
+<!-- 朋友圈单页模式：那模式下读不到云库、也不能跳页（switchTab 会被拒），
+     摆一个点了没反应的「去拍一张」，不如换成品牌落地卡 -->
+<block wx:if="{{sp}}"><template is="spGate" data="{{theme: theme, tip: '好友的集章册在这里，你的从第一张票根开始'}}" /></block>
+
+<scroll-view wx:else class="tk-page theme-{{theme}} cb-page {{enter ? 'fade-up' : ''}}" scroll-y enhanced show-scrollbar="{{false}}">
+
+  <!-- ① 标题行 -->
+  <view class="cb-head">
+    <view class="cb-title-wrap">
+      <image class="cb-title-ic" src="{{ic.compass}}" mode="aspectFit" aria-hidden="true" />
+      <text class="cb-title serif">集章册</text>
+    </view>
+    <image class="cb-head-sprig" src="{{deco.sprig}}" mode="aspectFit" aria-hidden="true" />
+  </view>
+
+  <!-- ② 统计条：一句关于用户的断言，所以按**全部**城市算，不因画不下而少算 -->
+  <view class="cb-stat" wx:if="{{!loading && !error && cityCount}}">
+    <text class="cb-stat-n">走过 {{cityCount}} 座城</text>
+    <text class="cb-stat-y" wx:if="{{yearNew}}">今年新增 {{yearNew}} 座</text>
+  </view>
+
+  <!-- ③ 云故障 / 超上限横幅：云读失败时 store 兜底成演示票根，册子上会凭空多出没去过的城 -->
+  <view wx:if="{{netBar}}" class="cb-net pressable" hover-class="press-item-hover" bindtap="onNetBarTap"
+        aria-role="button" aria-label="{{netBar.text}}">
+    <text class="cb-net-t">{{netBar.text}}</text>
+  </view>
+
+  <!-- ④ 册子：一枚一枚的章，按第一次去的时间先后排（顺序在 utils/citybook.js 里排好） -->
+  <view class="cb-book" wx:if="{{!loading && !error && cityCount}}">
+    <view class="cb-ch" wx:for="{{cities}}" wx:key="city" style="color:{{item.color}}">
+      <text class="cb-ch-n serif">{{item.city}}</text>
+      <text class="cb-ch-d" wx:if="{{item.ym}}">{{item.ym}}</text>
+      <text class="cb-ch-x" wx:if="{{item.times}}">{{item.times}}</text>
+    </view>
+  </view>
+
+  <!-- ⑤ 实话条：有票根、但它们没填城市 —— 这些人还盖不出章，得说明白，
+       不能让他们以为「册子是空的 = 我哪儿都没去过」 -->
+  <view class="cb-tip" wx:if="{{!loading && !error && cityCount && noCity}}">
+    <text>另有 {{noCity}} 张票根没填城市，暂未成章</text>
+  </view>
+
+  <!-- ⑥ 骨架：按 3 列 6 枚占位（同一屏大概就这么些） -->
+  <view class="cb-book" wx:if="{{skeleton && loading}}">
+    <view class="cb-sk tk-skeleton" wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this"></view>
+  </view>
+
+  <!-- ⑦ 三态里的两态：读失败与空册子。第三种（有票但没城市）见上面那条实话条 -->
+  <view wx:if="{{!skeleton && !loading && error}}" class="tk-empty">
+    <view class="tk-empty-title">没读到你的票根</view>
+    <view class="tk-empty-sub">可能是网络的事，点下面再试一次</view>
+    <view class="tk-empty-cta pressable" hover-class="press-item-hover" bindtap="refresh" aria-role="button">再试一次</view>
+  </view>
+
+  <view wx:elif="{{!skeleton && !loading && !total}}" class="tk-empty">
+    <view class="tk-empty-title">还没有章</view>
+    <view class="tk-empty-sub">拍下第一张票根，它就会盖上第一个城市</view>
+    <view class="tk-empty-cta pressable" hover-class="press-item-hover" bindtap="goScan" aria-role="button">去拍一张</view>
+  </view>
+
+  <view wx:elif="{{!skeleton && !loading && !cityCount}}" class="tk-empty">
+    <view class="tk-empty-title">还盖不出章</view>
+    <view class="tk-empty-sub">这 {{total}} 张票根都还没填城市。给票根填上城市，它就盖上那一枚章</view>
+  </view>
+
+</scroll-view>

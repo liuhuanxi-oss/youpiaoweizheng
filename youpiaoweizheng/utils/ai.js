@@ -97,7 +97,7 @@ function extractJSON(text) {
 /** 字段清洗：类型合法性 / 日期格式 / 价格数字 */
 function sanitizeDraft(d) {
   const out = {};
-  const TYPE_OK = ['show', 'movie', 'traffic'];
+  const TYPE_OK = ['show', 'movie', 'traffic', 'travel'];
   out.title = String(d.title || '').trim().slice(0, 40);
   out.type = TYPE_OK.includes(d.type) ? d.type : 'show';
   out.date = /^\d{4}-\d{2}-\d{2}$/.test(String(d.date || '')) ? d.date : '';
@@ -126,9 +126,9 @@ async function parseDraftByAI(lines, fallback) {
         role: 'user',
         content:
           '从以下 OCR 文本行中提取票根信息，严格输出一个 JSON 对象（不要输出其他文字）：\n' +
-          '{"title":"票名","type":"show或movie或traffic","date":"YYYY-MM-DD","time":"HH:mm",' +
+          '{"title":"票名","type":"show或movie或traffic或travel","date":"YYYY-MM-DD","time":"HH:mm",' +
           '"venue":"场馆","city":"城市(不带市字)","seat":"座位","price":票价数字或null,"source":"购票平台"}\n' +
-          '要求：type 三选一（show=演出/演唱会/livehouse，movie=电影，traffic=火车/飞机/大巴）；' +
+          '要求：type 四选一（show=演出/演唱会/livehouse，movie=电影，traffic=火车/飞机/大巴，travel=景区/乐园/酒店/旅游）；' +
           '日期补全年份；无法确定的字段用空字符串或 null。\n' +
           'OCR 文本行：' + JSON.stringify(lines.slice(0, MAX_LINES))
       }
@@ -161,7 +161,7 @@ const CAPTION_STYLES = {
 const { weatherHint } = require('./weather.js'); // V1.5：天气感官细节（无存档则不加）
 
 async function generateCaption(t, style, anniv) {
-  const typeName = { show: '演出', movie: '电影', traffic: '交通出行' }[t.type] || '活动';
+  const typeName = { show: '演出', movie: '电影', traffic: '交通出行', travel: '旅行' }[t.type] || '活动';
   const s = CAPTION_STYLES[style] || CAPTION_STYLES.restraint;
   const wHint = weatherHint(t.weather);
   const annivHint = Number(anniv) > 0

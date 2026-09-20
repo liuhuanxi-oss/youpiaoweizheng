@@ -153,6 +153,21 @@
     <image class="dc-film-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
   </view>
 
+  <!-- ②'' 集章册（8.1.6）：同一份城市数据换个看法 —— 地图讲「在哪儿」，册子讲「攒了多少」。
+       门槛比成片低：成片要「至少两座有坐标的城」，而盖章只要票上填了城市 ——
+       地图上画不下的城（查不到坐标的小地方），在册子里照样盖得上章。 -->
+  <view wx:if="{{cityCount && !loading && !error}}" class="dc-film pressable" hover-class="press-hover"
+        bindtap="goCitybook" aria-role="button" aria-label="集章册：去过的城市盖成一枚一枚的章">
+    <view class="dc-film-ic">
+      <image class="dc-film-ic-img" src="{{ic.chapter}}" mode="aspectFit" aria-hidden="true" />
+    </view>
+    <view class="dc-film-tx">
+      <text class="dc-film-t">集章册</text>
+      <text class="dc-film-s">去过的城市，一枚一枚盖成章</text>
+    </view>
+    <image class="dc-film-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+  </view>
+
   <!-- ③ 空态：确实一张票都没有时才说这句话（loading 期间与失败时都不许落到这里） -->
   <view wx:if="{{!loading && !error && !total}}" class="dc-empty pressable" hover-class="press-item-hover" bindtap="goHome"
         aria-role="button" aria-label="去收第一张票根">

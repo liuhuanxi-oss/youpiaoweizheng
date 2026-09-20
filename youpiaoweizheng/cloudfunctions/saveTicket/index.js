@@ -2361,7 +2361,7 @@ exports.main = async (event) => {
   t._openid = OPENID;
   t.createdAt = Date.now();
   t.eventKey = sameOptOut ? '' : makeEventKey(t.venue, t.date);
-  t.type = ['show', 'movie', 'traffic'].includes(t.type) ? t.type : 'show';
+  t.type = ['show', 'movie', 'traffic', 'travel'].includes(t.type) ? t.type : 'show';
   // 6.6.5（P1）：price 拒绝负数/Infinity/NaN（typeof NaN === 'number'，Number('-100') 原实现直接入库污染报表）
   const _pv = Number(t.price);
   t.price = Number.isFinite(_pv) && _pv >= 0 ? Math.min(_pv, 1e7) : null;
