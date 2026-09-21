@@ -2,7 +2,7 @@
 /* ⚠️ 样式隔离：app.wxss 的 .serif 进不到组件里，标题之前一直没吃到衬线体（自己留一份）。
    .serif 用 @import 会多一个文件、多一处构建依赖，两处各自留 4 行更符合本仓库既有做法
    （见 components/ticket-menu/index.wxss 的同类注释）。 */
-.serif { font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif; font-weight: 700; }
+.serif { font-family: var(--font-title-full); font-weight: 700; }
 
 .bs {
   position: fixed;

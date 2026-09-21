@@ -39,9 +39,9 @@ const ROWS = [
 
 Page({
   data: {
-    theme: 'paper',
+    theme: themeUtil.getTheme(),
     ic: {},
-    curTheme: themeUtil.getThemeMeta('paper'),
+    curTheme: themeUtil.getThemeMeta(themeUtil.getTheme()),
     themeDots: themeUtil.THEME_META.map((t) => ({ key: t.key, primary: t.primary })),
     rows: ROWS,
     // 同场印记：存的是「退出」（sameOptOut），开关展示的是「参与」。

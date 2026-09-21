@@ -2,6 +2,7 @@
 const { USE_CLOUD, CLOUD_ENV } = require('./utils/env.js');
 const track = require('./utils/track.js'); // 4.17.0：拉新埋点
 const invite = require('./utils/invite.js'); // 7.3.0 R6：邀请归因
+const font = require('./utils/font.js'); // 8.2.0：品牌字体（霞鹜文楷标题）
 
 // 4.19.2 全局异常节流计数：单次会话上限 5 条，防错误循环刷爆上报通道
 let _errCount = 0;
@@ -35,6 +36,10 @@ App({
     // 7.3.0 R6：冷启动捞邀请码（分享 path 的 ?ref= / 小程序码 scene 的 r=）。
     // 放在 wx.cloud.init 之后：invite 要调云函数，init 前调会失败。
     invite.boot(options);
+
+    // 8.2.0：品牌字体。异步挂载，挂不上就继续用系统字体，不拦任何启动流程。
+    // 放在最后：字体是锦上添花，不该排在云初始化/邀请归因前面抢时间。
+    font.boot(track);
   },
 
   // ===== 7.4.2 失效路径兜底 =====

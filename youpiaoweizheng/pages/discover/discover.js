@@ -45,7 +45,7 @@ const SWAP_MS = 180;
 
 Page({
   data: {
-    theme: 'paper',
+    theme: themeUtil.getTheme(),
     // 朋友圈单页模式：那模式下拿不到身份、也跳不了页，本页会空得只剩空态 —— 换成品牌落地卡
     sp: false,
     // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」

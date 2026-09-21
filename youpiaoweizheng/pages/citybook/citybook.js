@@ -32,7 +32,7 @@ function ymOf(d) {
 
 Page({
   data: {
-    theme: 'paper',
+    theme: themeUtil.getTheme(),
     sp: false,       // 朋友圈单页模式：那模式下不能跳页，整页换品牌落地卡
     enter: true,     // 入场动效（.fade-up 挂根节点）。本页是 navigateTo 打开的，每次都是新实例，会自然播
     loading: true,

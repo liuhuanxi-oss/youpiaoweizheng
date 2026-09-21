@@ -125,17 +125,19 @@ t('搜索框：放大镜 + 占位文案，点了去票夹页', () => {
   ok(/搜索演出、电影、城市\.\.\./.test(wxmlClean), '占位文案变了');
   ok(/bindtap="goSearch"/.test(wxmlClean), '搜索框不可点');
 });
-// 8.1.1：四枚胶囊原本常驻一行 90rpx，连搜索框一共吃掉 184rpx —— 首屏只装得下一行票根。
-// 收进按钮之后，「现在筛的是哪个分类」这件事只能靠按钮上那行字，所以那行字也得钉住。
-t('四个分类收进「筛选」按钮：点开是原生清单，按钮上写着当前分类', () => {
+// 8.2.0：四枚胶囊从「收进筛选按钮」改回品牌稿的常驻一行 —— 稿子上这一行是画着的，
+// 视觉优先，那 90rpx 还回去了（首屏靠「今天」三条挪到墙下腾出来，见下面那条断言）。
+t('四个分类是常驻四枚胶囊（品牌稿），选中态连图标一起反白', () => {
   ['show', 'movie', 'traffic', 'travel'].forEach((k) => {
     ok(new RegExp("key: '" + k + "'").test(jsClean), '少了分类 ' + k);
   });
   ['演出', '电影', '交通', '旅行'].forEach((n) => ok(jsClean.includes(n), '少了分类名 ' + n));
-  ok(!/hc-chip/.test(wxmlClean) && !/hc-chip/.test(wxssClean), '胶囊那行又回来了 —— 首屏装不下第二行票根就是它占的');
-  ok(/bindtap="onFilterOpen"/.test(wxmlClean), '筛选按钮没了');
-  ok(/wx\.showActionSheet\(\{/.test(jsClean), '没走原生清单 —— 自绘弹层要多几十行 WXML/WXSS，为 5 个选项不值当');
-  ok(/\{\{activeName \|\| '全部'\}\}/.test(wxmlClean), '按钮上没写当前分类：收进按钮之后，这是唯一能看出「现在筛的是哪个」的地方');
+  ok(/class="hc-tabs"/.test(wxmlClean), '四枚胶囊那行没了');
+  ok(/bindtap="onTabTap"/.test(wxmlClean), '胶囊不可点');
+  ok(/active === item\.key \? 'is-on' : ''/.test(wxmlClean), '胶囊没有选中态');
+  // 选中要连图标一起反白，而 iconSrc 生成的是 data-uri、颜色编译期写死，只能备两套地址
+  ok(/active === item\.key \? tabIc\.on\[item\.key\] : tabIc\.off\[item\.key\]/.test(wxmlClean),
+    '选中态的图标没换成反白那套');
 });
 t('票根墙两列走 colA / colB，卡片模板只写一遍', () => {
   ok(/wx:for="\{\{colA\}\}"/.test(wxmlClean) && /wx:for="\{\{colB\}\}"/.test(wxmlClean), '两列循环少了');
@@ -158,14 +160,16 @@ t('收藏心：实心 / 空心两个地址，点了有反馈', () => {
   ok(/heartOn: iconSrc\('heart'[\s\S]{0,60}true\)/.test(jsClean), 'heartOn 不是实心');
   ok(/\.hc-fav \{[\s\S]{0,80}width: 44rpx/.test(wxssClean), '心的热区不到 44rpx');
 });
-t('分类筛选：默认「全部」不过滤，同键不重复计算，换键才重分组', () => {
+t('分类筛选：默认「全部」不过滤，再点一次已选中的回到全部', () => {
   // 首页默认亮着「演出」时，只有电影票 / 车票的用户看到的是「这里还没贴上票根」——
   // 有票却被说成一张都没有。分类是筛选，不该决定首屏能不能看到自己的票。
   ok(/active: ''/.test(jsClean), '首页默认又变成按分类过滤了 —— 非演出类的用户会看到假空态');
-  // 胶囊那版「再点一下亮着的就取消筛选」是隐式的（用户得自己猜）；清单版把「全部」摆在第一项，
-  // 是一条看得见的路。选错了分类总得回得来。
-  ok(/\['全部'\]\.concat/.test(jsClean), '清单第一项不是「全部」，筛完就回不到全部票根了');
-  ok(/res\.tapIndex === 0 \? '' : FILTERS\[res\.tapIndex - 1\]\.key/.test(jsClean), '「全部」没映到空 key');
+  // 四枚胶囊里没有「全部」，「再点一下亮着的就取消筛选」是唯一的回头路：
+  // 少了它，点进一个空分类就再也回不到全部票根。这条路是隐式的（用户得自己猜），
+  // 所以它的无障碍标签也得把话说全（见 WXML 里那条 aria-label）。
+  ok(/key === this\.data\.active \? '' : key/.test(jsClean),
+    '再点已选中的分类没有回到全部 —— 没有「全部」胶囊，这就是唯一的回头路');
+  ok(/已筛选，再点一次看全部/.test(wxmlClean), '无障碍标签没说清「再点一次看全部」');
   ok(/if \(next === this\.data\.active\) return;/.test(jsClean), '重复选同一个分类会重算，整面墙白闪一下');
   ok(/filter\(\(t\) => t\.type === key\)/.test(jsClean), '筛选口径变了');
 });
@@ -203,12 +207,15 @@ t('CARD_W/CARD_H 与 .hc-card 盒子一一对应', () => {
   const b = box('.hc-card');
   ok(constant('CARD_W') === b.w && constant('CARD_H') === b.h, `JS ${constant('CARD_W')}×${constant('CARD_H')} ≠ WXSS ${b.w}×${b.h}`);
 });
-t('两列卡片加中缝正好铺满 750（左右各留 48，中缝 34）', () => {
-  const gap = 750 - 48 * 2 - constant('CARD_W') * 2;
-  ok(gap === 34, `按 CARD_W 算出来中缝是 ${gap}，与设计稿的 34 对不上`);
+t('两列之间留出与页边距同量级的缝（稿子的特征，也是「墙显挤」那次的病根）', () => {
   const g = rule('.hc-grid', wxssClean);
+  const side = num(/margin:\s*[\d.]+rpx\s+([\d.]+)rpx/, g);   // 第二个数才是左右
+  const gap = 750 - side * 2 - constant('CARD_W') * 2;
+  // 稿子上量下来：页边距 60rpx、两列之间 43rpx。从前是「宽卡 + 窄缝」（310 的卡、34 的缝），
+  // 缝只有页边距的七成，整面墙糊成一片 —— 这是首页显挤的主因之一。
+  ok(gap > 0, `卡片宽过头了 ${-gap}rpx，两列已经叠在一起`);
+  ok(gap >= side * 0.6, `中缝 ${gap} 比页边距 ${side} 窄太多 —— 两列会糊成一片`);
   ok(/justify-content:\s*space-between/.test(g), '.hc-grid 没靠 space-between 撑中缝');
-  ok(/margin:\s*20rpx 48rpx 0/.test(g), '.hc-grid 的左右留白不是 48 / 上边距不是 20');
 });
 t('卡内纵向相加正好等于卡高（多一分少一分都会顶出齿边）', () => {
   const c = rule('.hc-card', wxssClean);
@@ -225,36 +232,45 @@ t('卡内纵向相加正好等于卡高（多一分少一分都会顶出齿边�
   ok(sum === constant('CARD_H'), `纵向合计 ${sum} ≠ CARD_H ${constant('CARD_H')}`);
   ok(shot.w + 2 * Number(pad[2]) === constant('CARD_W'), `照片宽 ${shot.w} + 左右留白 ≠ 卡宽`);
 });
-// 8.1.1 这一版重排就为了这一件事：让首屏装得下两行完整的票根。
-// 原先「三条横条（时光签 / 那年今天 / 老票根专场）+ 搜索 + 四枚胶囊」一路把票根墙
-// 推到 614rpx，第二行正好卡在悬浮 tab 栏底下 —— 首屏只看得见一行，还露半行。
+// 这一版重排就为了这一件事：让首屏装得下三行完整的票根（品牌稿就是三行）。
+// 8.1.1 那次是把「今天」三条压成一张卡，只够塞下两行；8.2.0 直接把那张卡挪到
+// 票根墙**下面**，墙一下子提前 215rpx，三行全露出来了。
 // 数字一律从源码取：哪一处间距、行高、卡高被改回去，这里都会红。
-t('首屏装得下两行完整票根（最矮的常见机型，扣掉原生导航栏与悬浮 tab 栏）', () => {
+t('首屏装得下三行完整票根（最矮的常见机型，扣掉原生导航栏与悬浮 tab 栏）', () => {
   const rpx = (sel, prop) => num(new RegExp(prop + ':\\s*([\\d.]+)rpx'), rule(sel, wxssClean));
   const HEAD = rpx('.hc-head', 'padding') + box('.hc-logo').h;
   const GREET = rpx('.hc-greet', 'margin') + rpx('.hc-greet', 'min-height');
-  // 今天卡：上下内边距 + n 行（行高统一）+ (n-1) 条分隔线
-  // 今天卡：外边距 + 上下内边距 + 上下描边 + n 行（行高统一）+ (n-1) 条分隔线
-  const today = (n) => rpx('.hc-today', 'margin') + 2 * rpx('.hc-today', 'padding') + 2 * 2
-    + n * rpx('.hc-td', 'min-height') + (n - 1) * 2;
   const FIND = rpx('.hc-find', 'margin') + num(/height:\s*([\d.]+)rpx/, rule('.hc-search', wxssClean));
+  const TABS = rpx('.hc-tabs', 'margin') + num(/height:\s*([\d.]+)rpx/, rule('.hc-tab', wxssClean));
   const ROW = constant('CARD_H') + rpx('.hc-card', 'margin-bottom');
 
   // 可见高度（rpx）：375×667 的屏 = 750×1334rpx，扣掉
   //   状态栏 + 原生导航栏 128（20+44pt；home.json 没开 navigationStyle:custom）
   //   悬浮 tab 栏 112（custom-tab-bar/index.wxss .bar，不贴底但占住这一条）
   const BUDGET = 1334 - 128 - 112;
-  const row2Bottom = (n) => HEAD + GREET + today(n) + FIND + rpx('.hc-grid', 'margin') + ROW * 2;
+  const wallTop = HEAD + GREET + FIND + TABS + rpx('.hc-grid', 'margin');
+  const rowNBottom = (n) => wallTop + ROW * n;
 
-  // 今天卡露两行 = 签到 + （那年今天 / 老票根专场 二选一），这是常态的上限。
-  // 三行同时出现要同时满足「有票、一张五年前的都没有、今天又正好有往年今日」，
-  // 是罕见组合；那种情况下第二行会被切掉 30rpx（多一行 = 64 行高 + 2 描边），认了 —— 为它把六处间距各挤一点不值当。
-  const n = 2;
-  ok(row2Bottom(n) <= BUDGET,
-    '第二行票根沉到 tab 栏下面了：墙从 ' + (HEAD + GREET + today(n) + FIND + rpx('.hc-grid', 'margin'))
-    + 'rpx 开始，两行到 ' + row2Bottom(n) + 'rpx，而可见高度只有 ' + BUDGET + 'rpx');
-  // 今天卡的行数是「并成一张卡」省下多少的全部来源：加一行就等于把第一版的问题请回来
-  ok(countClass('hc-td') === 3, '今天卡里有 ' + countClass('hc-td') + ' 行，设计上是三行（签到 / 那年今天 / 老票根专场）');
+  // 375×667 这类矮屏保底两行完整；三行是 iPhone 15 Pro Max（430×932）那一档才有的
+  // —— 品牌稿本身就是按高屏画的（它按三行排）。矮屏上第三行露出大半行，不是缺憾。
+  ok(rowNBottom(2) <= BUDGET,
+    '第二行票根沉到 tab 栏下面了：墙从 ' + wallTop + 'rpx 开始，两行到 ' + rowNBottom(2)
+    + 'rpx，而可见高度只有 ' + BUDGET + 'rpx');
+
+  // 「今天」两条必须落在墙**后面**。它是首屏高度的全部来源：
+  // 一旦被挪回搜索框上面，墙立刻后退 215rpx，上面那条断言会同时红。
+  const wall = wxmlClean.lastIndexOf('class="hc-grid');
+  const today = wxmlClean.indexOf('class="hc-today');
+  ok(wall >= 0 && today > wall, '「今天」两条跑到票根墙上面去了 —— 首屏会被它挤掉一行卡');
+  // 两行一条都不能少：那年今天 / 老票根专场
+  ok(countClass('hc-td') === 2, '「今天」里有 ' + countClass('hc-td') + ' 行，设计上是两行（那年今天 / 老票根专场）');
+});
+
+t('签到只在「我的」页，首页不再拉签到接口（8.2.0）', () => {
+  // 首页这行曾是「我的」页时光签卡的副本。两处各画一遍，用户就得在两处分别点一下
+  // —— 每天要点的那一下该只有一个地方。首页连接口都不该再拉（省一次云调用）。
+  ok(!/utils\/sign\.js/.test(jsClean), '首页又把 sign.js 拉回来了 —— 签到入口只该在「我的」页');
+  ok(!/refreshSign|onCheckIn/.test(jsClean), '首页还有签到的方法残留');
 });
 
 t('邮戳直径与 PM_R 对得上（半径写进 JS 就得被盒子认领）', () => {
@@ -282,9 +298,14 @@ t('齿边底图只编一张，由六张卡共用（逐卡编会把 setData 撑�
   ok(/deco\.pinkedPanel\(CARD_W, CARD_H/.test(jsClean), '底图没用常量尺寸');
   ok(/art\.card/.test(wxmlClean), 'WXML 没引用这张底图');
 });
-t('邮戳的圈与线来自 deco.postmarkParts', () => {
-  ok(/const pm = deco\.postmarkParts\(m\)/.test(jsClean), '没调 postmarkParts');
+t('邮戳的圈与线来自 deco.postmarkParts，且首页这枚走白墨', () => {
+  ok(/deco\.postmarkParts\(/.test(jsClean), '没调 postmarkParts');
   ok(/pmRing: pm\.ring/.test(jsClean) && /pmWave: pm\.wave/.test(jsClean), 'ring/wave 没接上');
+  // 这枚戳压在票根照片上，用户上传的照片大半是深底（深色票纸、夜景、演唱会）——
+  // 跟着主题正文色编就是深褐线压深底，一片糊。品牌稿上它也是白线。
+  // 浅色照片那侧由 WXSS 里那圈深色 drop-shadow 托住，两边都得管。
+  ok(/postmarkParts\(\{\s*text:\s*'#FFFFFF'\s*\}\)/.test(jsClean),
+    '首页这枚戳不是白墨 —— 它压在照片上，深褐线在深底照片里读不出来');
 });
 t('z 序：底图在下、照片居中、邮戳在最上', () => {
   const z = (sel) => num(/z-index:\s*([\d.]+)/, rule(sel, wxssClean));

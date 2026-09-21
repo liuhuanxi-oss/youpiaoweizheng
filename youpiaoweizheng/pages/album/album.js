@@ -119,7 +119,7 @@ function buildTimeMachine(all, isDemo) {
 
 Page({
   data: {
-    theme: 'paper',
+    theme: themeUtil.getTheme(),
     // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
     enter: true,
     timeMachine: null,

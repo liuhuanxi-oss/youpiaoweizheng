@@ -1,15 +1,13 @@
-// tests/home_filter.test.js —— 8.1.1：首页「筛选」按钮（四枚胶囊收进原生清单之后）
+// tests/home_filter.test.js —— 8.2.0：首页四枚常驻胶囊（分类筛选）
 // ============================================================
-// 【为什么要真跑】home_wall.test.js 里那条是用正则钉源码的，钉得住「怎么写」，
-//   钉不住「写对了没有」—— 而这里恰好是个差一位就全错的映射：
+// 【为什么要真跑】home_wall.test.js 里那条是正则钉源码的，钉得住「怎么写」，
+//   钉不住「筛出来几张」。8.2.0 把「筛选按钮 + 原生清单」改回品牌稿的四枚常驻胶囊：
+//   每枚胶囊自带 data-key，原先「清单第 n 项 → FILTERS[n-1]」那个差一位就全错的映射没有了，
+//   但换来一条同样容易写错的新路 —— **再点一次已选中的胶囊要回到「全部」**。
 //
-//     this.onFilter(res.tapIndex === 0 ? '' : FILTERS[res.tapIndex - 1].key);
-//                                    ↑ 第一项是「全部」，所以分类从 -1 开始
-//
-//   写成 FILTERS[res.tapIndex] 的话：点「演出」筛出的是电影、点「旅行」筛出的是
-//   undefined（空 key，反而显示全部）—— 而「点下去列表变了」这件事本身看起来完全正常。
-//   所以这套用一份**每类张数都不一样**的票根，真调 onFilterOpen、真让桩弹窗回调，
-//   只看最后列出来的张数对不对。
+//   写成 onFilter(key) 而不是 onFilter('')，点下去列表照样会重排一次、看着完全正常，
+//   只有张数能揭穿它（没回到全部的话还是 3 张，不是 6 张）。所以这套用一份
+//   **每类张数都不一样**的票根，真调 onTabTap，只看最后列出来几张。
 // ============================================================
 const path = require('path');
 
@@ -19,8 +17,7 @@ const t = (name, fn) => tests.push([name, fn]);
 const ok = (c, m) => { if (!c) throw new Error(m || '断言失败'); };
 
 const ROOT = path.resolve(__dirname, '..');
-let sheet = null;      // 最近一次 showActionSheet 的入参
-let filters = [];      // applyFilter 被调了几次（用来钉「同键不重算」）
+let filters = 0;       // applyFilter 被调了几次（用来钉「同键不重算」）
 
 global.wx = {
   getStorageSync: () => '',
@@ -33,7 +30,7 @@ global.wx = {
   getWindowInfo: () => ({ pixelRatio: 2 }),
   getSystemInfoSync: () => ({ platform: 'ios' }),
   getTabBar: () => {},
-  showActionSheet: (o) => { sheet = o; },
+  showActionSheet: () => {},   // 8.2.0 起首页不再用它，留着是防别的路径顺手调到
   cloud: { callFunction: () => Promise.resolve({ result: {} }) }
 };
 
@@ -41,7 +38,7 @@ let page = null;
 global.Page = (o) => { page = o; };
 require(path.join(ROOT, 'pages/home/home.js'));
 
-/** 每类张数都不一样 —— 差一位的映射会筛出另一个数字，一眼看得出来 */
+/** 每类张数都不一样 —— 筛错了会筛出另一个数字，一眼看得出来 */
 const FIXTURE = [
   ...Array(3).fill('show'),
   ...Array(2).fill('movie'),
@@ -49,12 +46,12 @@ const FIXTURE = [
   // travel 一张都没有：分类里可以有空的，这是合法的（空态文案另说）
 ];
 
-/** 一个够用的页面实例：照着真页面的样子来 —— 方法从 page 上原样拿（onFilterOpen 里
- *  `this.onFilter(...)` 调的是**实例上**的方法，光给 data 是会炸的），
+/** 一个够用的页面实例：照着真页面的样子来 —— 方法从 page 上原样拿
+ *  （onTabTap 里 `this.onFilter(...)` 调的是**实例上**的方法，光给 data 是会炸的），
  *  data 与本页的状态换成干净的，好让每条断言从零开始。 */
 function ctx() {
   const c = Object.assign({}, page);
-  c.data = { active: '', activeName: '', colA: [], colB: [], total: 0, hasAny: false, loading: false };
+  c.data = { active: '', colA: [], colB: [], total: 0, hasAny: false, loading: false };
   c._all = FIXTURE.map((type, i) => ({ id: 't' + i, type, title: '票' + i }));
   c.setData = function (patch) { Object.assign(this.data, patch); };
   c.applyFilter = function () { filters++; page.applyFilter.call(this); };
@@ -62,92 +59,80 @@ function ctx() {
   return c;
 }
 
-/** 走完整条路：点按钮 → 桩弹窗把清单交出来 → 按 tapIndex 回调 */
-function tap(c, index) {
-  sheet = null;
-  page.onFilterOpen.call(c);
-  ok(sheet, 'onFilterOpen 没弹出清单');
-  sheet.success({ tapIndex: index });
+/** 走完整条路：点一枚胶囊，带的是 WXML 上那枚自己的 data-key */
+function tapKey(c, key) {
+  page.onTabTap.call(c, { currentTarget: { dataset: { key: key } } });
 }
 
 const shown = (c) => c.data.total;
 
 (async () => {
-console.log('\n【一、清单长什么样】');
+console.log('\n【一、四枚胶囊：key 与名字都得是稿子上那四类】');
 
-t('清单第一项是「全部」，后面四个是四个分类（不多不少）', () => {
-  const c = ctx();
-  page.onFilterOpen.call(c);
-  ok(sheet && Array.isArray(sheet.itemList), 'onFilterOpen 没弹出清单');
-  ok(sheet.itemList[0] === '全部', '第一项不是「全部」：' + sheet.itemList[0]);
+t('分类清单是演出 / 电影 / 交通 / 旅行，不多不少', () => {
+  const names = (page.data.tabs || []).map((x) => x.name);
+  ok(names.length === 4, '胶囊有 ' + names.length + ' 枚，稿子上是四枚：' + names.join('/'));
   ['演出', '电影', '交通', '旅行'].forEach((n) => {
-    ok(sheet.itemList.indexOf(n) > 0, '清单里少了分类「' + n + '」：' + sheet.itemList.join('/'));
+    ok(names.indexOf(n) >= 0, '少了分类「' + n + '」：' + names.join('/'));
   });
-  // showActionSheet 的 itemList 上限是 6 项，超了会静默失败（弹窗不出现，点了没反应）
-  ok(sheet.itemList.length <= 6, '清单 ' + sheet.itemList.length + ' 项，超出 showActionSheet 的 6 项上限');
 });
 
-console.log('\n【二、点哪一项就筛哪一类（差一位的映射在这儿现形）】');
-
-t('从分类回「全部」→ 六张全回来，按钮上回到「全部」', () => {
+t('默认不过滤：进来先看到全部六张，一枚都没亮', () => {
   const c = ctx();
-  tap(c, 1);
-  ok(shown(c) === 3, '点「演出」没筛出来，后面的断言就没意义了');
-  tap(c, 0);
-  ok(shown(c) === 6, '「全部」只列出 ' + shown(c) + ' 张');
-  ok(c.data.active === '', '「全部」没映到空 key：active = ' + JSON.stringify(c.data.active));
-  ok(c.data.activeName === '', '「全部」时按钮上的字该是空的（WXML 兜底成「全部」），实际：' + c.data.activeName);
+  ok(shown(c) === 6, '默认只列出 ' + shown(c) + ' 张，应当是全部 6 张');
+  ok(c.data.active === '', '默认亮着分类「' + c.data.active + '」—— 非演出类的用户会看到假空态');
 });
+
+console.log('\n【二、点哪一枚就筛哪一类】');
 
 t('演出 → 3 张｜电影 → 2 张｜交通 → 1 张｜旅行 → 0 张', () => {
-  const want = [['演出', 3], ['电影', 2], ['交通', 1], ['旅行', 0]];
-  want.forEach(([name, n], i) => {
+  const want = [['show', '演出', 3], ['movie', '电影', 2], ['traffic', '交通', 1], ['travel', '旅行', 0]];
+  want.forEach(([key, name, n]) => {
     const c = ctx();
-    tap(c, i + 1);   // 1..4 → FILTERS[0..3]
-    ok(shown(c) === n, '点「' + name + '」列出 ' + shown(c) + ' 张，应当是 ' + n + ' 张'
-      + '（差一位的映射会筛出隔壁那一类的数字）');
-    ok(c.data.activeName === name, '按钮上的字没跟上：点「' + name + '」，按钮却写「' + c.data.activeName + '」');
+    tapKey(c, key);
+    ok(shown(c) === n, '点「' + name + '」列出 ' + shown(c) + ' 张，应当是 ' + n + ' 张');
+    ok(c.data.active === key, '点了「' + name + '」，active 却是 ' + JSON.stringify(c.data.active));
   });
 });
 
-t('按钮上那行字与清单里的标签逐字一致 —— 否则用户看到两个名字', () => {
-  const c0 = ctx();
-  page.onFilterOpen.call(c0);
-  sheet.itemList.forEach((name, i) => {
-    const c = ctx();
-    tap(c, i);
-    const shownName = c.data.activeName || '全部';
-    ok(shownName === name, '清单写「' + name + '」，按钮写「' + shownName + '」');
-  });
+t('空分类筛出来是 0 张，但账还是记着的（空态文案另说）', () => {
+  const c = ctx();
+  tapKey(c, 'travel');
+  ok(shown(c) === 0, '「旅行」一张都没有，却列出了 ' + shown(c) + ' 张');
+  ok(c.data.hasAny === true, 'hasAny 没算上 —— 空态会把「这个分类没有」说成「你还没有票」');
 });
+
+console.log('\n【三、回头路：再点一次已选中的那枚】');
 
 t('每一类都能回到「全部」（筛完必须有路回家）', () => {
-  for (let i = 1; i <= 4; i++) {
+  ['show', 'movie', 'traffic', 'travel'].forEach((key) => {
     const c = ctx();
-    tap(c, i);
-    tap(c, 0);
-    ok(shown(c) === 6, '点第 ' + i + ' 项再回「全部」，只剩 ' + shown(c) + ' 张');
-  }
+    tapKey(c, key);
+    tapKey(c, key);            // 再点一次同一枚 = 取消筛选
+    ok(shown(c) === 6, '点「' + key + '」再点一次，只剩 ' + shown(c) + ' 张 —— 没回到全部');
+    ok(c.data.active === '', '回了全部，active 却是 ' + JSON.stringify(c.data.active));
+  });
 });
 
-console.log('\n【三、重复选同一个不重算】');
+console.log('\n【四、重复选同一个不重算】');
 
 t('连着选两次同一个分类，第二次不再重排列表', () => {
   const c = ctx();
   filters = 0;          // 进页面那一次不算，只数用户点出来的
-  tap(c, 1);
+  tapKey(c, 'show');
   const once = filters;
   ok(once === 1, '第一次选就重算了 ' + once + ' 次');
-  tap(c, 1);
-  ok(filters === once, '又选了一遍同一个分类，列表被重排了一次 —— 整面墙会白闪一下（胶囊那版的老毛病）');
+  tapKey(c, 'show');    // 这一下是「取消筛选」，会重算，属于正常
+  ok(filters === 2, '取消筛选没重排：' + filters + ' 次');
 });
 
-t('选完之后再选「全部」，是换键、要重排', () => {
+t('点同一枚胶囊来回切，每次都只重排一次（不会连闪）', () => {
   const c = ctx();
-  filters = 0;          // 同上
-  tap(c, 1);
-  tap(c, 0);
-  ok(filters === 2, '换键没重排：' + filters + ' 次');
+  filters = 0;
+  tapKey(c, 'show');
+  tapKey(c, 'show');
+  tapKey(c, 'show');
+  ok(filters === 3, '点三下重排了 ' + filters + ' 次，应当是 3 次（一下一次）');
 });
 
   for (const [name, fn] of tests) {

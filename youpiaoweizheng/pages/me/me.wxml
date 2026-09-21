@@ -140,32 +140,58 @@
     </view>
 
     <!-- ③′ 7.4.0 R1 时光签 + 积分（留存中心的第一屏：今天来过了吗、攒到多少了）
-         取不到服务端状态时整块不渲染 —— 不留一个点了没反应的假入口 -->
+         取不到服务端状态时整块不渲染 —— 不留一个点了没反应的假入口。
+         8.3.0 排版重做：原来是六段平铺，同一件事反复说 ——
+         「今天已收下」在标题和状态里各说一遍、「连签 9 天」说三遍（标题旁 / 副词 / 状态行），
+         而「积分怎么来」左对齐孤零零占一行，读起来像没写完。
+         现在只留四行：标题行 / 积分主行 / 操作行 / 页脚，每件事只在一处出现。 -->
     <view class="me-sign card stagger" wx:if="{{sign}}">
+      <!-- ① 标题行：标题固定，连签做成软底小胶囊（它答的是「坚持了多久」，不跟积分抢） -->
       <view class="me-sign-head">
-        <text class="me-sign-t">{{signText.title}}</text>
-        <text class="me-sign-streak" wx:if="{{sign.streak > 0}}">连续 {{sign.streak}} 天</text>
+        <text class="me-sign-t">时光签</text>
+        <view class="me-sign-streak" wx:if="{{sign.streak > 0}}">
+          <text>连签</text>
+          <text class="me-sign-streak-n">{{sign.streak}}</text>
+          <text>天</text>
+        </view>
       </view>
-      <text class="me-sign-sub">{{signText.sub}}</text>
+
+      <!-- ② 积分主行：数字是主角；右边一句只说「这分能干嘛」——
+           没签到时说今天收下能得多少（把人推向按钮），签过了说还差多少能换重绘 -->
+      <view class="me-sign-main">
+        <view class="me-sign-pts">
+          <text class="me-sign-num">{{signPoints}}</text>
+          <text class="me-sign-unit">积分</text>
+        </view>
+        <text class="me-sign-hint" wx:if="{{signText.btn ? signText.sub : pointsHint}}">{{signText.btn ? signText.sub : pointsHint}}</text>
+      </view>
+
+      <!-- ③ 操作行：左「今天收不收」、右「要不要花掉」——两个动作分主次，不再各占一行 -->
       <view class="me-sign-foot">
-        <text class="me-sign-points">积分 <text class="me-sign-num">{{signPoints}}</text></text>
         <view class="me-sign-btn pressable" wx:if="{{signText.btn}}"
               hover-class="press-hover" bindtap="onCheckIn"
               aria-role="button" aria-label="收下今日时光签">{{signing ? '收下中…' : signText.btn}}</view>
-        <text class="me-sign-done" wx:else>今天已收下</text>
-      </view>
-      <!-- 7.4.0 B 段：积分要让用户知道它能干嘛（终点比数字重要）；攒够了才出现兑换按钮 -->
-      <view class="me-sign-exchange-row">
-        <text class="me-sign-hint" wx:if="{{pointsHint}}">{{pointsHint}}</text>
+        <!-- 已收下不做成按钮（今天点不动了），做成一枚软标签，右边接一句「明天再来」：
+             把「今天没事做了」变成「明天记得来」 -->
+        <view class="me-sign-done" wx:else>
+          <text class="me-sign-done-t">今天已收下</text>
+          <text class="me-sign-done-s" wx:if="{{signText.sub}}">{{signText.sub}}</text>
+        </view>
+        <!-- 7.4.0 B 段：攒够了才出现兑换 —— 不够时不摆一个点了会失败的按钮。
+             8.3.0 改成描边次要按钮：一张卡里主按钮只该有一个，两个实心按钮会互相抢 -->
         <view class="me-sign-exchange pressable" wx:if="{{pointsReady}}"
               hover-class="press-hover" bindtap="onOpenRedeem"
               aria-role="button" aria-label="用积分兑换 1 次 AI 重绘">兑换</view>
       </view>
-      <!-- 8.0.5：终点有了（能换重绘），还差起点 —— 用户此前不知道分从哪来，
-           攒到 100 也不知道是自己做对了什么。规则由服务端下发，这里只负责摆出来 -->
+
+      <!-- ④ 页脚小字：8.0.5 的「积分怎么来」——终点有了（能换重绘），还差起点。
+           规则由服务端下发，这里只负责摆出来。8.3.0 改右对齐 + 箭头：读起来是「这儿还有个入口」 -->
       <view class="me-sign-rule pressable" hover-class="press-item-hover" bindtap="onPointsRule"
             aria-role="button" aria-label="查看积分怎么获得">
         <text class="me-sign-rule-t">积分怎么来</text>
+        <!-- 箭头走 utils/icons.js 的 chevron（和下面那几行入口同一个图形）——
+             写字符「›」真机字形覆盖不可控，tests/icon_purity.test.js 会把关 -->
+        <image class="me-sign-rule-a" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
 

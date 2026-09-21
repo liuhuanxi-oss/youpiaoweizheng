@@ -2,16 +2,46 @@
   "description": "有票为证 —— 纸质票根数字化珍藏小程序",
   "packOptions": {
     "ignore": [
-      { "type": "folder", "value": "node_modules" },
-      { "type": "folder", "value": "dist" },
-      { "type": "folder", "value": "tests" },
-      { "type": "folder", "value": "scripts" },
-      { "type": "folder", "value": "decision-logs" },
-      { "type": "folder", "value": ".git" },
-      { "type": "folder", "value": ".gitee" },
-      { "type": "file", "value": "package-lock.json" },
-      { "type": "file", "value": ".env" },
-      { "type": "suffix", "value": ".md" }
+      {
+        "value": "node_modules",
+        "type": "folder"
+      },
+      {
+        "value": "dist",
+        "type": "folder"
+      },
+      {
+        "value": "tests",
+        "type": "folder"
+      },
+      {
+        "value": "scripts",
+        "type": "folder"
+      },
+      {
+        "value": "decision-logs",
+        "type": "folder"
+      },
+      {
+        "value": ".git",
+        "type": "folder"
+      },
+      {
+        "value": ".gitee",
+        "type": "folder"
+      },
+      {
+        "value": "package-lock.json",
+        "type": "file"
+      },
+      {
+        "value": ".env",
+        "type": "file"
+      },
+      {
+        "value": ".md",
+        "type": "suffix"
+      }
     ],
     "include": []
   },
@@ -25,16 +55,30 @@
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    }
+    },
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "cloudfunctionRoot": "cloudfunctions/",
-  "libVersion": "3.7.1",
+  "libVersion": "3.17.2",
   "appid": "wx42ef98dfb4ecab23",
   "projectname": "youpiaoweizheng",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "simulatorPluginLibVersion": {}
 }

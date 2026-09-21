@@ -78,7 +78,7 @@ function buildGraphics(themeKey) {
 
 Page({
   data: {
-    theme: 'paper',
+    theme: themeUtil.getTheme(),
     // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
     enter: true,
     // 7.3.0 S1：朋友圈单页模式（无身份、不能跳页）→ 整页换品牌落地卡

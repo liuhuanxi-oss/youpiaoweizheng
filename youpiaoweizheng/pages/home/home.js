@@ -18,7 +18,6 @@ const deco = require('../../utils/deco.js');
 const enter = require('../../utils/enter.js');
 const { iconSrc } = require('../../utils/icons.js');
 const share = require('../../utils/share.js'); // 7.3.0 A6：长按菜单里的「分享」要转发这一张
-const sign = require('../../utils/sign.js');   // 7.4.0 R1：今日时光签（端上只读，判定在服务端）
 const memory = require('../../utils/memory.js'); // 7.4.0 R4 / 8.1.5：那年今天 → 同月 → 轮换重温（三级都说真话）
 const legacy = require('../../utils/legacy.js'); // 8.1.0 老票根专场：那一行的显示规则（不是每人都该看到）
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
@@ -26,12 +25,18 @@ const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别
 // —— 尺寸（rpx）：WXSS 里写死的宽高必须与这里一致 ——
 // 8.1.1：卡高 240 → 256，多出来的 16rpx 给了照片（132 → 144）与地点行（22 → 26）——
 // 照片是这张卡唯一「有内容」的部分；地点行原先 22rpx 的行高连 22rpx 的字都兜不住。
-const CARD_W = 310, CARD_H = 256;   // 一张票根卡（(750 - 48×2 - 34) / 2 的列宽）
-const PM_R = 48;                    // 邮戳半径（卡片右上角那枚，直径 96）
+const CARD_W = 293, CARD_H = 260;   // 一张票根卡（(750 - 60×2 - 44) / 2 的列宽）
+// 8.2.0 高 256 → 266 → 279 → 260：跟着宽高比走（稿子 1.13）。
+//   这一版真正动的是左右页边距 48 → 60、两列之间的缝 34 → 44 —— 稿子上这两个数差不多宽，
+//   卡片才像「一张张贴上去的」；从前是「宽卡 + 窄缝」，整面墙糊成一片。
+//   这个值必须和 home.wxss 的 .hc-card 一模一样 —— 齿边底图是按它画的。
+// 卡内分段（与 .hc-card 的 padding 逐项必须对上）：
+//   上留白 34 ┊ 照片 138 ┊ 12 ┊ 票名 26 ┊ 10 ┊ 地址行 22 ┊ 下留白 18 = 260
+const PM_R = 47;                    // 邮戳半径（卡片右上角那枚，直径 94；稿子上量到 94）
 
-/** 分类筛选。8.1.1 起这四枚不再自己占一行胶囊（见 home.wxml .hc-find），
- *  而是「筛选」按钮点开的那份清单 —— 所以这里只留 key 与显示名。
- *  图标不在这里写：没照片时的兜底图标由下面 TYPE_ICONS 那份管，两处各写一份必漏一处。 */
+/** 分类筛选。8.2.0 起对应首页那四枚常驻胶囊（见 home.wxml .hc-tabs）。
+ *  这里只留 key 与显示名 —— 胶囊的图标不在这里写：它和「没照片时的兜底图标」
+ *  是同一套（下面 TYPE_ICONS），两处各写一份必漏一处。 */
 const FILTERS = [
   { key: 'show', name: '演出' },
   { key: 'movie', name: '电影' },
@@ -39,14 +44,27 @@ const FILTERS = [
   { key: 'travel', name: '旅行' }
 ];
 
-/** key → 显示名（'' 或认不出的 key 都回空串，按钮上会兜底成「全部」） */
-function filterName(key) {
-  const f = FILTERS.find((x) => x.key === key);
-  return f ? f.name : '';
-}
-
-/** 类型 → 没照片时的兜底图标名 */
+/** 类型 → 没照片时的兜底图标名（8.2.0 起分类胶囊也用这同一套） */
 const TYPE_ICONS = { show: 'mask', movie: 'film', traffic: 'train', travel: 'plane' };
+
+/** 8.2.0 分类胶囊的图标得备两套色：未选深褐、选中反白。
+ *  为什么不能一套 —— iconSrc 生成的是 data-uri，颜色在编译期就写死了，运行时换不了。
+ *  色值取自品牌稿实测：胶囊字 #8D745F（比 --text 浅一档），选中态压在 #DE8F8B 上是纯白。 */
+const TAB_INK = '#8D745F';
+const TAB_ON_INK = '#FFFFFF';
+
+/** 4 个类型 × 2 套色 = 8 张，编一次就够（同 buildTypeIc 的道理：图形只跟 type 有关）。
+ *  线宽 3.2 远粗于别处（1.5）：稿子里这几枚是实心块面，细线撑不住那个分量。
+ *  3.2 是照着「放大到 36rpx 后看着像实心」试出来的，再粗笔画之间就要粘死了。 */
+function buildTabIc() {
+  const on = {};
+  const off = {};
+  Object.keys(TYPE_ICONS).forEach((k) => {
+    off[k] = iconSrc(TYPE_ICONS[k], TAB_INK, 1, 3.2);
+    on[k] = iconSrc(TYPE_ICONS[k], TAB_ON_INK, 1, 3.2);
+  });
+  return { on, off };
+}
 
 /** 7.4.3：把「类型 → 兜底图标」编成一张映射表（每个类型一张，外加未知类型的兜底）。
  *  原先每张票根各塞一个 data-uri，500 张就是 ~186KB，点一次分类胶囊全量过一遍 setData 桥；
@@ -85,7 +103,7 @@ function stampParts(t) {
 
 Page({
   data: {
-    theme: 'paper',
+    theme: themeUtil.getTheme(),
     // 入场动效开关（.fade-up 挂在根节点上）。初值为真：首次进场不该「先亮一帧再淡入」
     enter: true,
     // 品牌行吸顶态：滚过一点才浮出实底与描边（.is-stuck）。滚回顶部就收回去
@@ -97,12 +115,17 @@ Page({
     // 那样只有电影票 / 车票的用户进首页看到的是「这里还没贴上票根」——
     // 有票却被说成一张都没有，这是假空态；分类是筛选，不该决定首屏能不能看到自己的票。
     active: '',
-    activeName: '',      // 筛选按钮上那句当前分类（空 = 全部，WXML 里兜底）
+    // 8.2.0：稿子那四枚胶囊里没有「全部」，所以默认四枚都不亮 = 全部。
+    // 从 FILTERS 另拷一份浅表：不直接把常量数组塞进 data，免得哪天有人改 data 顺手把它连带改了。
+    tabs: FILTERS.map((f) => ({ key: f.key, name: f.name })),
     colA: [],
     colB: [],
     total: 0,
     hasAny: false,       // 账号里到底有没有票根 —— 空态文案要分清「这个分类没票」和「一张都没有」
-    ic: {}, art: {},
+    ic: {}, art: {}, tabIc: { on: {}, off: {} },
+    // 页边装饰（稿屏 2 两侧那圈枝叶 / 波浪 / 色块 / 星星）：编成一整屏的底图铺在根节点上。
+    // 不走 wxml 里加一层 view —— 页面根节点不能带 position，装饰层会和卡片抢层级（见 utils/deco.js）
+    edgeStyle: '',
     // 云故障 / 超上限横幅（{ text, retry }；null = 不显示）。同 album 的 netBar
     netBar: null,
     flyingId: '',        // A1：正在「飞向详情」的那张卡（照片放大淡出期间），其余时刻为空
@@ -110,8 +133,7 @@ Page({
     guide: 0, guideTitle: '', guideDesc: '', guideIc: '',
     // A6 长按快捷菜单（7.3.0）：menuId/menuTitle 是「被长按的那一张」
     menu: false, menuId: '', menuTitle: '',
-    // 7.4.0 R1 今日时光签：sign 为 null 时整块不渲染（演示模式 / 云失败都保持这样）
-    sign: null, signText: { title: '', sub: '', btn: '' }, signing: false,
+    // 7.4.0 R1 今日时光签：8.2.0 起整块在「我的」页（pages/me），首页不再拉这个接口
     // 7.4.0 R4 那年今天：null = 三档都不成立（票太少的新用户），整行不显示。见 utils/memory.js
     mem: null,
     // 8.1.0 老票根专场：只在「有票、但一张五年前的都没有」时露一次脸（见 utils/legacy.js）
@@ -131,7 +153,6 @@ Page({
     this.buildArt();
     this.getTabBar && this.getTabBar().setData({ selected: 0, theme: themeUtil.getTheme() });
     this.refresh();
-    this.refreshSign();
   },
 
   /**
@@ -191,37 +212,7 @@ Page({
     }
   },
 
-  // ===== 7.4.0 R1 今日时光签（每天来的第一个理由）=====
-
-  /** 拉签到状态：只看不动。取不到就整块不显示 —— 不摆一个点不动的假横条 */
-  refreshSign() {
-    sign.status().then((s) => {
-      if (!s) return;
-      this.setData({ sign: s, signText: sign.bannerText(s) });
-    });
-  },
-
-  /**
-   * 收下今日时光签。服务端判定 + 发奖，端上只负责把结果说出来：
-   * 命中连签阶梯（第 3/7/14 天）用弹窗，普通签到用轻提示 —— 重量级要和奖励匹配。
-   */
-  async onCheckIn() {
-    if (this.data.signing) return;
-    if (this.data.sign && this.data.sign.signed) return; // 已经收过就别再发一次请求
-    this.setData({ signing: true });
-    haptics.tap();
-    const r = await sign.checkIn();
-    this.setData({ signing: false });
-    if (!r || !r.ok) {
-      wx.showToast({ title: (r && r.msg) || '签到失败，请再点一次', icon: 'none' });
-      return;
-    }
-    track.track('sign_in', { streak: r.streak || 0, milestone: r.milestone || 0 });
-    this.setData({ sign: r, signText: sign.bannerText(r) });
-    const text = sign.rewardText(r);
-    if (r.milestone) wx.showModal({ title: '连签有礼', content: text, showCancel: false, confirmText: '收下' });
-    else wx.showToast({ title: text, icon: 'none' });
-  },
+  // ===== 7.4.0 R1 今日时光签：8.2.0 起归「我的」页（pages/me），本页不再有签到入口 =====
 
   /** 那年今天 → 直接进那一天（回忆该有的落点：点开就是那张票根本身）。
    *  8.1.5 起这一行有三档，埋点带上 kind：不然「今天真有回忆」和「只是轮到了这一张」
@@ -249,31 +240,23 @@ Page({
     this.setData({ colA, colB, total: list.length, hasAny: this._all.length > 0, loading: false });
   },
 
-  /** 8.1.1 筛选：点开一份原生清单（「全部」+ 四个分类）。
-   *  原先这四个是常驻胶囊，自己占一行 90rpx —— 而这一页的主角是墙，
-   *  筛选只是个偶尔动一下的动作，收进按钮里，还把「现在在哪个分类」写在按钮上。
-   *  用 showActionSheet 而不是自绘弹层：系统原生的，零 UI 代码，5 项也没到它的 6 项上限
-   *  （全项目已有多处在用，见 detail.js onMore）。 */
-  onFilterOpen() {
-    const names = ['全部'].concat(FILTERS.map((f) => f.name));
-    wx.showActionSheet({
-      itemList: names,
-      success: (res) => {
-        // 0 号是「全部」→ 空 key（不过滤）；其余按 FILTERS 的次序往后挪一位
-        this.onFilter(res.tapIndex === 0 ? '' : FILTERS[res.tapIndex - 1].key);
-      }
-    });
+  /** 8.2.0 分类胶囊（品牌稿那四枚）。
+   *  再点一次已选中的那枚 = 取消筛选、回到全部。
+   *  稿子里只有四个分类、没有「全部」胶囊，这条路只能藏在反选里 —— 少了它，
+   *  点进一个空分类就再也回不到全部票根（8.1.1 的下拉里是靠清单首项「全部」解决的同一件事）。 */
+  onTabTap(e) {
+    const ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    const key = String(ds.key || '');
+    this.onFilter(key === this.data.active ? '' : key);
   },
 
-  /** 切到某个分类；空 key = 回到全部。
-   *  「全部」这条路必须有 —— 否则点进一个空分类就再也回不到全部票根了。
-   *  也保留原来的规矩：同一个 key 再选一次不重算，免得整面墙白闪一下。 */
+  /** 切到某个分类；空 key = 回到全部。调用方只有 onTabTap。 */
   onFilter(key) {
     const next = String(key || '');
-    if (next === this.data.active) return;
+    if (next === this.data.active) return;   // 没变就什么都不做，免得整面墙白闪一下
     haptics.tap();
     track.track('home_filter', { key: next });
-    this.setData({ active: next, activeName: filterName(next) });
+    this.setData({ active: next });
     this.applyFilter();
     this._replayListIn();
   },
@@ -330,16 +313,17 @@ Page({
     const m = themeUtil.getThemeMeta(themeUtil.getTheme());
     if (this._ink === m.text && this.data.art.card) return;
     this._ink = m.text;
-    const pm = deco.postmarkParts(m);
+    // 邮戳的圈与注销线走**白墨**，不跟主题正文色：这枚戳是压在票根照片上的，
+    // 而票根照大半是深色的（深底票纸、夜景、演唱会）—— 深褐线压深底就是一片糊。
+    // 品牌稿上这枚戳也是白线。浅色照片那侧由 WXSS 里那圈深色 drop-shadow 托住。
+    // 只覆盖首页这一处：时光机页的戳落在浅色卡纸上，跟着走白线会看不见。
+    const pm = deco.postmarkParts({ text: '#FFFFFF' });
     // 图标一律按主题的正文色编（SVG 不认 CSS 变量）—— 所以主题一变就得整批重编
     this.setData({
       ic: {
         brand: iconSrc('user', m.text, 0.72, 1.6),
         search: iconSrc('search', m.text, 0.5, 1.5),
         pin: iconSrc('pin', m.text, 0.5, 1.4),
-        // 8.1.1 今天卡：签到那行没收下是日历（今天这件事），收下了换对勾（今天已了结）
-        signIc: iconSrc('calendar', m.text, 0.5, 1.5),
-        signDone: iconSrc('check', m.text, 0.5, 1.5),
         memIc: iconSrc('clock', m.text, 0.5, 1.5),   // 7.4.0 R4 那年今天
         legacyIc: iconSrc('ticket', m.text, 0.5, 1.5), // 8.1.0 老票根专场
         goIc: iconSrc('chevron', m.text, 0.4, 1.5),
@@ -349,9 +333,19 @@ Page({
       },
       // 没照片时的兜底图标：编成映射表，列表里每张票根只带一个 type 字符串
       typeIc: buildTypeIc(m.text),
+      tabIc: buildTabIc(),
+      // 页边装饰只在 collage（品牌稿本身的主题）下铺：film 是暗房、minimal 是留白，
+      // 页边上长花枝不是它们该有的样子。其它主题的 --page-deco 各自照旧。
+      edgeStyle: themeUtil.getTheme() === 'collage'
+        ? 'background-image:url("' + deco.homeEdges() + '");'
+        : '',
       art: {
         // 卡片是等高网格 → 底图只编一张，六张卡共用（见文件头）
-        card: deco.pinkedPanel(CARD_W, CARD_H, { fill: '#FFFDF8', ink: '#C9A469', tooth: 16, amp: 4, inset: 4, strokeAlpha: 0.28 }),
+        // strokeAlpha 0.28 → 0.42 → 0.5：齿边在奶油底上原来几乎看不出来，稿子上那圈齿孔是清楚的。
+        // 卡纸 #FFFDF8 → #FBF5EA 是按稿子量的：稿子上卡纸比页底只亮 2/5/9 ——
+        // 卡片"浮起来"靠的是齿边与那圈投影（见 home.wxss 的 .hc-card-bg），不是靠把纸调白，
+        // 之前调成近白反而让齿边更没得可看。
+        card: deco.pinkedPanel(CARD_W, CARD_H, { fill: '#FBF5EA', ink: '#C9A469', tooth: 16, amp: 4, inset: 4, strokeAlpha: 0.5 }),
         pmRing: pm.ring,
         pmWave: pm.wave,
         bloom: deco.decoSrc('bloom', Object.assign({}, m, { paper: '#FFFDF8', leaf: '#A9C3A6', core: '#EFB7AE' })),

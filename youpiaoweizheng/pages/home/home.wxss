@@ -6,7 +6,20 @@
    8.1.1 排版收口：字号只剩五档（40 品牌 / 34 问候 / 30 区块标题 / 26 正文 / 22 辅助），
    块与块之间一律 20rpx。原先这里混着 20 / 22 / 26 / 30 四种外边距、七种字号，
    光「问候语到搜索框」之间就三套间距 —— 每多一档就多一次「这个该用哪个」。
-   间距、字号各只留一档，看完这行就不用再往下猜了。 */
+   间距、字号各只留一档，看完这行就不用再往下猜了。
+
+   8.2.0 间距改回「照稿子逐段量」：上面那条 20rpx 一刀切是 8.1.1 为了「省高度给票根墙」
+   定的，结果整页比稿子紧 46rpx（量法见下），第一眼的感觉就是「空、扁」。
+   现在三处分别是 40 / 18 / 40 —— 数字看着散，但每一个都是稿子上量出来的：
+     · 品牌行 → 问候语 40（稿子这段就是最松的）
+     · 搜索框 → 胶囊 18（这两行在稿子里几乎贴在一起，本该比 20 更紧）
+     · 胶囊 → 票根墙 40
+   这一页的松紧是稿子定的，不是「统一档位」定的。 */
+
+/* 页边装饰底图（稿屏 2）：一整屏 750×1454rpx 一张，纵向重复 —— 每翻一屏边上都有一轮花草。
+   图由 home.js 的 buildArt 编好、以行内 style 铺在根节点上（颜色编译期写死，进不了 WXSS），
+   这里只管它铺多大。非 collage 主题的 edgeStyle 是空串，背景仍是各自的 --page-deco。 */
+.tk-page { background-size: 750rpx 1454rpx; }
 
 /* —— 品牌行 —— */
 /* 品牌行：往下滚吸顶。
@@ -21,7 +34,7 @@
   z-index: 30;
   display: flex;
   align-items: center;
-  padding: 20rpx 48rpx 0;
+  padding: 20rpx 60rpx 0;
   transition: background-color 200ms ease-out, box-shadow 200ms ease-out;
 }
 .hc-head.is-stuck {
@@ -66,7 +79,10 @@
    何况这一版省下来的高度已经够把票根墙提到首屏第二行了。 */
 .hc-greet {
   position: relative;
-  margin: 20rpx 48rpx 0;
+  /* 8.2.0：40 → 24。这一段到票根墙顶的四个上边距（24 / 14 / 14 / 36）是照品牌稿配的：
+     稿子从 logo 到墙顶是 378rpx，改之前我这里是 418 —— 多出来的 40rpx 正好把第三行卡
+     顶出了首屏（稿子上首屏是三行整）。四个数一起改才有用，单独压一个只是把空隙挪个地方。 */
+  margin: 24rpx 60rpx 0;
   min-height: 96rpx;
 }
 .hc-greet-daisy { position: absolute; left: -18rpx; top: -6rpx; width: 84rpx; height: 109rpx; z-index: 1; }
@@ -88,24 +104,25 @@
 .hc-greet-star { width: 32rpx; height: 24rpx; margin-left: 12rpx; margin-bottom: 22rpx; flex-shrink: 0; }
 .hc-greet-wave { position: absolute; right: -10rpx; top: 8rpx; width: 108rpx; height: 47rpx; z-index: 1; }
 
-/* ===== 8.1.1「今天」卡：今日时光签 / 那年今天 / 老票根专场三行并一张 =====
-   三行原本各是一块，各带各的底色与边距（一共 280rpx）。合成一张卡之后：
+/* ===== 8.1.1「今天」卡：那年今天 / 老票根专场两行并一张 =====
+   两行原本各是一块，各带各的底色与边距（一共 280rpx）。合成一张卡之后：
    · 只有一个外边距、一个底色，行与行之间用细描边分开；
-   · 行高统一 64rpx —— 三行各自「自然高」会排出参差的节奏，
-     统一行高之后不管今天露几行，这张卡的高度都是整齐的。 */
+   · 行高统一 64rpx —— 各自「自然高」会排出参差的节奏，
+     统一行高之后不管今天露几行，这张卡的高度都是整齐的。
+   8.2.0 起只剩两条：签到那行搬去「我的」页（那儿本来就有完整的时光签卡），
+   首页不再需要 .hc-td-btn 那颗深色按钮。 */
+/* 8.2.0：这一块「退到背景里」，最后连"块"都不再是块。
+   它原先有 --soft(#FBF3D9) 实底 + 描边，在奶油底(#F9F1E3)上就是一整块亮黄；
+   退成半透明纸白之后，剩下那道描边又把它读成了一个「设置项列表」—— 方框本身就是首屏最扎眼的东西。
+   品牌稿里压根没有这一块（这仨是我们的运营入口，不是稿子的内容），
+   所以现在只留两行字 + 行间一道细线，没有任何容器：功能一个没删，存在感拿掉。
+   上下 margin 20rpx 是本页唯一的间距档（见文件头）。 */
 .hc-today {
-  margin: 20rpx 48rpx 0;
-  padding: 10rpx 24rpx;
-  border-radius: 24rpx;
-  background: var(--soft, #F4EFE7);
-  border: 2rpx solid var(--border, #E2D9C7);
-  box-sizing: border-box;
+  margin: 20rpx 60rpx 0;
+  padding: 0 20rpx;
 }
-/* 今天还没收下时是虚线齿孔边 = 一张待撕的签；收下了就是实线，这件事今天已了结。
-   （原先这条规矩在「时光签」那一块上，并成一张卡之后挪到整张卡上） */
-.hc-today.is-pending { border-style: dashed; }
-.hc-td { display: flex; align-items: center; min-height: 64rpx; }
-.hc-td + .hc-td { border-top: 2rpx solid var(--border, #E2D9C7); }
+.hc-td { display: flex; align-items: center; min-height: 60rpx; }
+.hc-td + .hc-td { border-top: 2rpx solid rgba(169, 133, 82, 0.13); }
 .hc-td-ic { width: 32rpx; height: 32rpx; margin-right: 16rpx; flex-shrink: 0; }
 .hc-td-body { flex: 1; min-width: 0; }
 .hc-td-t { display: block; font-size: var(--fs-md, 26rpx); font-weight: 600; color: var(--brown, #6B5B50); }
@@ -131,81 +148,93 @@
   white-space: nowrap;
 }
 .hc-td-go { width: 24rpx; height: 24rpx; margin-left: 10rpx; flex-shrink: 0; }
-.hc-td-btn {
-  flex-shrink: 0;
-  margin-left: 20rpx;
-  padding: 0 26rpx;
-  height: 56rpx;
-  line-height: 56rpx;
-  border-radius: 28rpx;
-  font-size: var(--fs-md, 26rpx);
-  color: var(--on-primary, #FFF8F2);
-  background: var(--stamp, #C26B5E);
-}
 
-/* —— 找票：搜索框 + 筛选按钮同一行 —— */
-.hc-find { display: flex; align-items: center; margin: 20rpx 48rpx 0; }
+/* —— 找票：搜索框（8.2.0 按品牌稿通栏铺满，不再与筛选按钮同行）——
+   下面这一组颜色是品牌稿上直接取的（实测，不是估的）：
+     搜索框底 #F3E8D8 · 占位字 #B39F88 · 胶囊底 #FBF5EB · 胶囊字 #8D745F · 选中底 #DE8F8B
+   比 collage 的 --soft(#FBF3D9) 明显灰、比 --text(#5A4D42) 明显浅，套现有令牌会偏黄偏黑。
+   8.2.0：由「就地写死」改为「读 --*、兜底值就是稿子取的那个色」——
+   值本身一个没变，但这几个色现在是主题变量，暗房/留白那几套皮肤想接管就能接管
+   （它们在 app.wxss 的 .theme-collage 里定义，别的主题不定义，走这里的兜底）。 */
+.hc-find { margin: 14rpx 60rpx 0; }
 .hc-search {
+  display: flex;
+  align-items: center;
+  height: 70rpx;
+  padding: 0 26rpx;
+  border-radius: 35rpx;
+  background: var(--search-bg, #F3E8D8);
+  box-sizing: border-box;
+}
+.hc-search-ic { width: 34rpx; height: 34rpx; margin-right: 14rpx; flex-shrink: 0; }
+.hc-search-ph { font-size: var(--fs-md, 26rpx); letter-spacing: 1rpx; color: var(--search-ph, #B39F88); }
+
+/* —— 分类胶囊：四枚等宽 ——
+   宽 = (750 - 48×2 页边距 - 12×3 间距) ÷ 4 = 154.5rpx，稿子实测 154.3rpx。
+   用 flex:1 均分而不是写死宽度：窄屏/大屏都自动跟着缩，只有间距是定值。 */
+.hc-tabs { display: flex; margin: 14rpx 60rpx 0; }
+.hc-tab {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  height: 64rpx;
-  padding: 0 26rpx;
-  border-radius: 34rpx;
-  background: var(--soft, #E8DFD0);
+  justify-content: center;
+  height: 66rpx;
+  border-radius: 33rpx;
+  background: var(--chip-bg, #FBF5EB);
   box-sizing: border-box;
+  transition: background-color .18s var(--ease-smooth);
 }
-.hc-search-ic { width: 34rpx; height: 34rpx; margin-right: 14rpx; flex-shrink: 0; }
-.hc-search-ph { font-size: var(--fs-md, 26rpx); letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
-/* 筛选按钮。选中态只改字色与字重、不给玫瑰实底 —— 实底就得连箭头图标一起反白，
-   而这个箭头是 data-uri、颜色编译时写死（做胶囊那版为此备了两套图标地址）。
-   按钮上本来就写着「全部 / 演出 / 电影」，谁是当前分类一眼看得见，不值当再备一套图。 */
-.hc-filter {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  height: 64rpx;
-  margin-left: 16rpx;
-  padding: 0 22rpx;
-  border-radius: 34rpx;
-  background: var(--soft, #E8DFD0);
-  box-sizing: border-box;
-}
-.hc-filter-t { font-size: var(--fs-md, 26rpx); letter-spacing: 1rpx; color: var(--text2, #8A7B66); }
-.hc-filter.on .hc-filter-t { color: var(--stamp, #C26B5E); font-weight: 600; }
-/* 列表那个右箭头转 90 度当「点开」用（省一个只为它画的雪佛龙图标） */
-.hc-filter-ic { width: 24rpx; height: 24rpx; margin-left: 8rpx; flex-shrink: 0; transform: rotate(90deg); }
+/* 间距用相邻兄弟给，不用 flex 的 gap：gap 在部分基础库版本上不生效，会挤成一坨 */
+.hc-tab + .hc-tab { margin-left: 12rpx; }
+.hc-tab.is-on { background: var(--chip-on, #DE8F8B); }
+.hc-tab-ic { width: 36rpx; height: 36rpx; margin-right: 10rpx; flex-shrink: 0; }
+.hc-tab-t { font-size: 28rpx; letter-spacing: 1rpx; color: var(--chip-fg, #8D745F); }
+.hc-tab.is-on .hc-tab-t { color: var(--chip-on-fg, #FFFFFF); font-weight: 600; }
 
-/* —— 云故障 / 超上限横幅（视觉同 album 的 .tm-net，左右边距跟本页的 48rpx） ——
+/* —— 云故障 / 超上限横幅（视觉同 album 的 .tm-net，左右边距跟本页的 60rpx） ——
    本类不写 transition：让全局 .pressable 的按压回弹原样生效（页面级同名属性会盖掉它） */
-.hc-net { margin: 20rpx 48rpx 0; padding: 16rpx 24rpx; background: var(--soft, #E9E2D4); border-radius: 18rpx; }
+.hc-net { margin: 20rpx 60rpx 0; padding: 16rpx 24rpx; background: var(--soft, #E9E2D4); border-radius: 18rpx; }
 .hc-net-t { font-size: var(--fs-sm, 22rpx); color: var(--text2, #8A7B66); line-height: 1.5; }
 
 /* —— 票根墙：左右两列等高卡（不是瀑布流，见 home.js 文件头） —— */
+/* 上边距 40 → 36：四个上边距一起改，见 .hc-greet 那段注释。 */
 .hc-grid {
   display: flex;
   justify-content: space-between;
-  margin: 20rpx 48rpx 0;
+  margin: 36rpx 60rpx 0;
 }
-.hc-col { width: 310rpx; }
+.hc-col { width: 293rpx; }
 
+/* 8.2.0 卡内分段照品牌稿重新配平（下面每个数都是稿子上量的，加起来正好 260）：
+     上留白 34 ┊ 照片 138 ┊ 12 ┊ 票名 26 ┊ 10 ┊ 地址行 22 ┊ 下留白 18 = 260
+   这一版动的其实只有两处（原先 310×279）：
+     · 左右页边距 48 → 60、两列之间的缝 34 → 44。稿子上这俩差不多宽（60 / 43），
+       卡片因此是「一张张贴上去的」；从前是「宽卡 + 窄缝」，整面墙糊成一片，
+       这是首页显挤的主因。卡片宽度是逼出来的：(750 − 60×2 − 44) / 2 = 293。
+     · 高 279 → 260：跟着宽高比走（稿子量到 1.13），照片仍占卡宽 81%、卡高 53%。
+       照片 252×150 → 237×138，左右留白 (293 − 237) / 2 = 28rpx。 */
 .hc-card {
   position: relative;
-  width: 310rpx;
-  height: 256rpx;
-  margin-bottom: 28rpx;
-  padding: 28rpx 10rpx 8rpx;
+  width: 293rpx;
+  height: 260rpx;
+  margin-bottom: 26rpx;
+  padding: 34rpx 28rpx 18rpx;
   box-sizing: border-box;
 }
+/* 8.2.0：稿子上卡片外沿有一圈柔和投影（实测最深处比页底暗约 11%，往内渐隐约 9rpx）——
+   有这圈，纸才像"贴上去、又翘起来一点"；之前没有投影，卡片就只是同色系里的一块。
+   用 drop-shadow 不用 box-shadow：它跟的是底图 PNG 的 alpha，也就是齿边那圈花边；
+   box-shadow 会画成一个方框，齿孔就白做了。 */
 .hc-card-bg {
   position: absolute;
   left: 0; top: 0;
   width: 100%; height: 100%;
   z-index: 0;
+  filter: drop-shadow(0 3rpx 9rpx rgba(123, 96, 76, 0.2));
 }
-/* 卡顶那排小圆点 */
-.hc-card-dots { position: absolute; left: 20rpx; top: 12rpx; display: flex; z-index: 3; }
+/* 卡顶那排小圆点：左端与照片左边对齐（照片的 left 就是卡的 padding-left） */
+.hc-card-dots { position: absolute; left: 28rpx; top: 16rpx; display: flex; z-index: 3; }
 .hc-card-dot {
   width: 8rpx;
   height: 8rpx;
@@ -215,10 +244,25 @@
 }
 .hc-card-dot.is-on { background: var(--rose, #D9A0A6); }
 
-/* 邮戳：圆心落在卡的右上角，压在照片上、且探出卡边（所以卡不能 overflow:hidden） */
-.hc-pm { position: absolute; right: 28rpx; top: -14rpx; width: 96rpx; height: 96rpx; z-index: 4; }
-.hc-pm-ring { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
-.hc-pm-wave { position: absolute; left: 92%; top: 10%; width: 77rpx; height: 84rpx; }
+/* 邮戳：压在照片右上角，只有右边的注销线探出卡外（所以卡不能 overflow:hidden）。
+   8.2.0：从「圆心挂在卡右上角、top:-14rpx 探出卡顶」改成整个圆落在卡内 ——
+   稿子上这枚戳是**完全在卡里**的，探出去的只有那几道波浪线。
+   8.2.0 第三版：92 → 94、位置按稿子重摆。稿子上量到直径 113px（切图 900px = 750rpx，
+   即 94rpx）、圆心距卡右边 80rpx / 距卡顶 58rpx —— 也就是 right 33 / top 11。
+   「戳里两行字看不清」这条反馈最后是这么解的：不是把戳继续放大，是把它摆对位置
+   （从前 top:10rpx 让它压在照片正中偏上，圈里的字正好和最花的那块底撞在一起）。 */
+.hc-pm { position: absolute; right: 33rpx; top: 11rpx; width: 94rpx; height: 94rpx; z-index: 4; }
+/* 圆环与注销线是**白线**（见 home.js buildArt 那行注释），这里裹一层深色描边：
+   白线压在浅色照片（票纸、白底登机牌）上会消失，有这圈才两侧都读得出来。
+   光晕方向与文字相反 —— 上一版两者都是浅色光晕，因为那时线本身是深褐的。 */
+.hc-pm-ring {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  filter: drop-shadow(0 0 2rpx rgba(74, 60, 48, 0.75));
+}
+.hc-pm-wave {
+  position: absolute; left: 92%; top: 10%; width: 77rpx; height: 68rpx;
+  filter: drop-shadow(0 0 2rpx rgba(74, 60, 48, 0.7));
+}
 .hc-pm-in {
   position: absolute;
   left: 0; top: 0;
@@ -228,22 +272,30 @@
   align-items: center;
   justify-content: center;
 }
-/* 戳压在照片上，字要压得住任何底图 */
+/* 戳压在照片上，字要压得住任何底图。
+   8.2.0 定稿：**白字 + 深色光晕**。中间试过两版 —— 先是深褐字（浅底上好看，深底照片上糊），
+   再是深褐字 + 奶白光晕（深底能读了，但浅色票纸上白得发虚）。
+   白字配深晕两头都立得住，品牌稿上这枚戳本来就是白线。 */
 .hc-pm-city, .hc-pm-year {
-  max-width: 74rpx;
+  max-width: 72rpx;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   text-align: center;
-  color: var(--brown, #6B5B50);
-  text-shadow: 0 0 8rpx rgba(var(--text-rgb, 107, 91, 80), 0.45);
+  color: var(--pm-ink, #FFFFFF);
+  text-shadow: 0 1rpx 3rpx rgba(74, 60, 48, 0.85), 0 0 8rpx rgba(74, 60, 48, 0.6);
 }
-/* 17/15 → 18/16：这枚戳压在照片上、还带一层阴影，原尺寸在深色照片上基本糊成一团 */
-.hc-pm-city { font-size: 18rpx; font-weight: 600; letter-spacing: 1rpx; }
-.hc-pm-year { font-size: 16rpx; margin-top: 2rpx; opacity: 0.85; }
+/* 17/15 → 18/16 → 21/19：这枚戳压在照片上、还带一层阴影，原尺寸在深色照片上基本糊成一团；
+   8.2.0 戳直径从 78 放到 94，字跟着放大同比例，否则圈里空出一圈 */
+.hc-pm-city { font-size: 21rpx; font-weight: 600; letter-spacing: 1rpx; }
+.hc-pm-year { font-size: 19rpx; margin-top: 2rpx; opacity: 0.85; }
 
-/* 照片：本身裁圆角，角上的花与叶要探出去，所以裁的是内层 */
-.hc-shot { position: relative; width: 290rpx; height: 144rpx; z-index: 2; }
+/* 照片：本身裁圆角，角上的花与叶要探出去，所以裁的是内层。
+   8.2.0：290→252 宽、144→137 高 —— 宽度不再是「卡宽减两个 10rpx」，而是卡宽减两侧留白，
+   照片因此四周都空出一圈，照稿子。
+   8.2.0 第三版：252×150 → 237×138。照片占卡宽 81%、卡高 53%（稿子上量的），
+   左右那圈 28rpx 留白 = (293 − 237) / 2，改宽度时两边一起调。 */
+.hc-shot { position: relative; width: 237rpx; height: 138rpx; z-index: 2; }
 .hc-shot-frame {
   position: absolute;
   left: 0; top: 0;
@@ -277,13 +329,18 @@
 .hc-shot-bloom { position: absolute; left: -16rpx; bottom: -14rpx; width: 46rpx; height: 54rpx; z-index: 2; }
 .hc-shot-sprig { position: absolute; right: -14rpx; bottom: 4rpx; width: 52rpx; height: 35rpx; z-index: 2; }
 
+/* 8.2.0 修复：票名与地点·日期原先被卡纸底图整块吃掉。
+   纸底 .hc-card-bg 是 position:absolute + z-index:0，绘制顺序上会盖过静态定位的兄弟节点，
+   而这两行恰恰是静态的 —— 于是 DOM 里有文字、屏幕上一片空白（同 duo.wxss 的 .duo-hero-in 注释）。
+   给内容列补 z-index 即可：压过纸底(0)与照片(2)，又低于卡顶圆点(3)和邮戳(4)。 */
 .hc-title {
+  position: relative;
+  z-index: 2;
   display: block;
-  margin-top: 10rpx;
-  height: 34rpx;
-  padding-left: 4rpx;
-  font-size: 26rpx;
-  line-height: 34rpx;
+  margin-top: 12rpx;
+  height: 26rpx;
+  font-size: 24rpx;
+  line-height: 26rpx;
   font-weight: 700;
   letter-spacing: 1rpx;
   color: var(--brown, #6B5B50);
@@ -291,8 +348,9 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-/* 行高给到 26：字号从 20 提到 22 之后，22rpx 的行高连笔画的下缘都容不下 */
-.hc-meta { display: flex; align-items: center; margin-top: 6rpx; height: 26rpx; padding-left: 4rpx; }
+/* 行高给到 22：字号从 20 提到 22 之后，22rpx 的行高连笔画的下缘都容不下 */
+/* position/z-index 同 .hc-title：这一行连同里面的爱心一起被纸底盖住过 */
+.hc-meta { position: relative; z-index: 2; display: flex; align-items: center; margin-top: 10rpx; height: 22rpx; }
 .hc-meta-ic { width: 22rpx; height: 22rpx; margin-right: 6rpx; flex-shrink: 0; }
 .hc-meta-t {
   flex: 1;
@@ -317,21 +375,21 @@
 .hc-fav-ic { width: 30rpx; height: 30rpx; }
 
 /* —— 骨架屏 —— */
-/* 骨架块的盒子与 .hc-card 一一对应（shot 144 / title 34 / meta 26）——
+/* 骨架块的盒子与 .hc-card 一一对应（padding / 照片 / 票名 / 地址行逐项抄它）——
    对不上的话，真数据一进来整面墙会跳一下 */
 .hc-sk-card {
-  height: 256rpx;
-  margin-bottom: 28rpx;
-  padding: 28rpx 10rpx 8rpx;
+  height: 260rpx;
+  margin-bottom: 26rpx;
+  padding: 34rpx 28rpx 18rpx;
   border-radius: var(--card-r, 28rpx);
   box-sizing: border-box;
 }
-.hc-sk-shot { width: 290rpx; height: 144rpx; border-radius: 10rpx; }
-.hc-sk-title { width: 180rpx; height: 24rpx; margin-top: 16rpx; border-radius: 12rpx; }
-.hc-sk-meta { width: 240rpx; height: 18rpx; margin-top: 12rpx; border-radius: 9rpx; }
+.hc-sk-shot { width: 237rpx; height: 138rpx; border-radius: 10rpx; }
+.hc-sk-title { width: 170rpx; height: 24rpx; margin-top: 14rpx; border-radius: 12rpx; }
+.hc-sk-meta { width: 200rpx; height: 18rpx; margin-top: 10rpx; border-radius: 9rpx; }
 
 /* —— 空态 —— */
-.hc-empty { padding: 60rpx 48rpx 0; }
+.hc-empty { padding: 60rpx 60rpx 0; }
 .hc-empty-ic { display: block; width: 96rpx; height: 96rpx; margin: 0 auto 22rpx; opacity: 0.75; }
 .hc-empty-t { font-size: var(--fs-lg, 30rpx); font-weight: 700; letter-spacing: 2rpx; color: var(--text, #2B2420); }
 .hc-empty-s { margin-top: 12rpx; font-size: var(--fs-sm, 22rpx); letter-spacing: 1rpx; color: var(--text2, #8A7B66); }

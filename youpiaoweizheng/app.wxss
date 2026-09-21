@@ -37,6 +37,14 @@ page {
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性：FAB 子钮弹出/印章落下等「落定感」动效 */
   --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);    /* 平滑：页面进场/弹层/展开收起 */
 
+  /* —— 8.2.0 字体栈（品牌字体 + 系统字体兜底）——
+     YPWZTitle / YPWZBody 由 utils/font.js 在启动时挂载。
+     字体没挂上（网络失败、域名没配白名单、老基础库）时，后面的系统字体接着顶，
+     所以这两条永远要留足兜底，不能只写自定义字体名。
+     组件里也用这两个变量：CSS 自定义属性会被继承进自定义组件，不受样式隔离影响。 */
+  --font-title-full: "YPWZTitle", "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+  --font-body-full: "YPWZBody", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+
   /* —— 字号 —— */
   --fs-xs: 20rpx;
   --fs-sm: 22rpx;
@@ -143,11 +151,14 @@ page {
   color: var(--ink);
   font-size: var(--fs-md);
   line-height: 1.6;
+  /* 8.2.0：全站正文字体栈。正文体没启用时，这一串最终落到平台默认无衬线，
+     与改动前完全一致 —— 所以这条今天不会改变任何观感，只是把字体收口到一处。 */
+  font-family: var(--font-body-full);
 }
 
 /* 衬线标题字：只在标题/票名/仪式性文字上使用 */
 .serif {
-  font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+  font-family: var(--font-title-full);
   font-weight: 700;
 }
 
@@ -454,7 +465,7 @@ page {
    v6.5 六主题系统（8 套风格方案保留 1/2/4/5/6/8）
    paper 纸感杂志 / glass 柔和玻璃 / collage 手账拼贴
    film 胶片电影 / literary 清新文艺 / minimal 极简留白
-   页面根节点挂 theme-{{theme}} 即整页换肤；Storage key = app_theme，默认 paper。
+   页面根节点挂 theme-{{theme}} 即整页换肤；Storage key = app_theme，默认 collage（8.2.0 起）。
    兼容令牌：--bg/--card/--primary/--accent/--soft/--text/--text2/
              --border/--on-primary/--chip/--radius + 分类辅助色
    差异维度（6 套风格分化）：--font-title/--card-bg/--card-blur/
@@ -527,7 +538,11 @@ page {
 
 /* —— collage · 手账拼贴：胶带贴纸 + 便签 + 手写 —— */
 .theme-collage {
-  --bg: #FAF5EE;
+  /* 8.2.0：底色 #FAF5EE → #F9F1E3，底纹关掉。两处都是照品牌稿实测改的：
+     稿子的底是偏黄的奶油色，而 #FAF5EE 偏白 —— 白到首页那排胶囊（底 #FBF5EB）
+     压上去几乎看不出块，设计里它们是四枚清楚的米色胶囊。
+     底纹那层点阵也是稿子里没有的，一并去掉（别的主题各自保留）。 */
+  --bg: #F9F1E3;
   --card: #FFFFFF;
   --primary: #D9A0A6;
   --accent: #F6DFA8;
@@ -539,19 +554,30 @@ page {
   --on-primary: #FFFFFF;
   --chip: #FBF3D9;
   --radius: 16px;
-  --font-title: "Songti SC", "Noto Serif CJK SC", serif;
+  --font-title: var(--font-title-full);   /* 8.2.0：默认皮肤，标题走品牌字体霞鹜文楷 */
   --card-bg: #FFFFFF;
   --card-blur: none;
   --card-border: none;
   --card-shadow: 0 6rpx 16rpx rgba(107, 91, 80, 0.18);
   --card-r: 16px;
   --btn-r: 8rpx;
-  --page-deco: radial-gradient(rgba(107, 91, 80, 0.14) 0.9px, transparent 1.2px);
-  --page-deco-size: 32rpx 32rpx;
-  --cream: #FAF5EE; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
+  --page-deco: none;
+  --page-deco-size: auto;
+  --cream: #F9F1E3; --peach: #F4C6B4; --butter: #F6DFA8; --rose: #D9A0A6;
   --sage: #A9C3A6; --sage-soft: #F1F4EA; --sage-line: rgba(169,195,166,.5); --brown: #6B5B50; --stamp: #C26B5E;
   --cat-show: #D9A0A6; --cat-movie: #F6DFA8; --cat-transport: #A9C3A6; --cat-travel: #F4C6B4;
   --hero-top: #FBF3D9; --hero-mid: #FDF8EC;
+  /* 首页搜索框与四枚胶囊：下面这六个值是从品牌稿上直接取的（实测，不是估的），
+     套现有令牌会偏 —— 搜索框底比 --soft 明显灰、比 --text 明显浅，硬套要么发黄要么发黑。
+     只写在 collage 里，别的主题不定义、走 home.wxss 那侧的兜底值（与它们原本的样子一致）：
+     真给 film / minimal 配一套，是设计活儿，不该由这行代码替它们拍板。 */
+  --search-bg: #F3E8D8;   /* 搜索框底 */
+  --search-ph: #B39F88;   /* 搜索框占位字 */
+  --chip-bg: #FBF5EB;     /* 胶囊底（未选中） */
+  --chip-fg: #8D745F;     /* 胶囊字（未选中） */
+  --chip-on: #DE8F8B;     /* 胶囊底（选中） */
+  --chip-on-fg: #FFFFFF;  /* 胶囊字（选中） */
+  --pm-ink: #FFFFFF;      /* 票根墙上那枚邮戳的墨色：白线白字，压在照片上才读得出来 */
 }
 
 /* —— film · 胶片电影：深褐暗底 + 暖黄光晕（深色页）—— */
@@ -656,7 +682,7 @@ page {
   background-size: var(--page-deco-size, auto);
   background-repeat: repeat;
   color: var(--text, #4A3F3A);
-  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-body-full);
 }
 
 /* 柔和投影（跟随主题差异档：minimal 无阴影 / paper 极浅 / film 深投影） */

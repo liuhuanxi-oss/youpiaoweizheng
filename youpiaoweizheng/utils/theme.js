@@ -1,9 +1,9 @@
 // utils/theme.js —— 主题系统（双轨）
 // ============================================================
 // 轨道一（v6.5 · 六主题「皮肤」）—— 由 8 套风格方案保留 1/2/4/5/6/8 而来
-//   paper    纸感杂志 —— 米白纸底 · 衬线刊头 · 编辑网格 · 墨黑主色（默认）
+//   paper    纸感杂志 —— 米白纸底 · 衬线刊头 · 编辑网格 · 墨黑主色
 //   glass    柔和玻璃 —— 弥散光斑 · 磨砂玻璃卡 · 大圆角 · 灰玫粉
-//   collage  手账拼贴 —— 胶带贴纸 · 便签卡 · 轻微旋转 · 手写衬线
+//   collage  手账拼贴 —— 胶带贴纸 · 便签卡 · 轻微旋转 · 手写衬线（默认）
 //   film     胶片电影 —— 深褐暗底 · 胶片颗粒 · 暖黄光晕 · 暗房感（深色）
 //   literary 清新文艺 —— 水彩晕染 · 淡彩 · 大圆角白卡 · 鼠尾草绿
 //   minimal  极简留白 —— 纯白底 · 大字标题 · 细线分隔 · 图片主导
@@ -21,7 +21,10 @@
 // —— 轨道一：v6.5 六主题 ——
 const THEME_KEY = 'app_theme';
 const THEMES = ['paper', 'glass', 'collage', 'film', 'literary', 'minimal'];
-const DEFAULT_THEME = 'paper';
+// 8.2.0：默认主题由 paper 改为 collage —— 品牌稿是奶油底 + 灰玫粉的手账风，
+// 与 collage 的背景 #FAF5EE / 主色 #D9A0A6 / 强调 #F6DFA8 逐项对得上（paper 是墨黑+砖红，差得最远）。
+// 注意：老用户若自己在「主题」页选过，storage 里已有值，这里不会覆盖他们的选择 —— 这是对的。
+const DEFAULT_THEME = 'collage';
 
 /** 六主题元数据：供选择页与 me 页卡片渲染
  *  每套含 dark（深色页，导航栏文字反白）与 serif（标题衬线）两个工程标志 */
@@ -82,14 +85,14 @@ const THEME_META = [
     tagline: '胶带贴纸 · 便签 · 手写',
     desc: '奶油底上贴满胶带和便签，松弛随性的手账',
     swatches: [
-      { name: '背景', hex: '#FAF5EE' },
+      { name: '背景', hex: '#F9F1E3' },
       { name: '卡片', hex: '#FFFFFF' },
       { name: '主色', hex: '#D9A0A6' },
       { name: '强调', hex: '#F6DFA8' },
       { name: '柔光', hex: '#FBF3D9' },
       { name: '正文', hex: '#5A4D42' }
     ],
-    bg: '#FAF5EE',
+    bg: '#F9F1E3',
     card: '#FFFFFF',
     primary: '#D9A0A6',
     accent: '#F6DFA8',
@@ -210,7 +213,7 @@ const META = {
 // 轨道一 API：getTheme / setTheme
 // ============================================================
 
-/** 读取当前主题 key，异常/缺省回落 paper */
+/** 读取当前主题 key，异常/缺省回落 DEFAULT_THEME（collage） */
 function getTheme() {
   try {
     const v = wx.getStorageSync(THEME_KEY);
@@ -231,7 +234,7 @@ function setTheme(k) {
   }
 }
 
-/** 取主题元数据（key 非法时回落 paper 的 meta） */
+/** 取主题元数据（key 非法时回落 DEFAULT_THEME 的 meta） */
 function getThemeMeta(k) {
   const key = THEMES.indexOf(k) !== -1 ? k : DEFAULT_THEME;
   return THEME_META.find((t) => t.key === key) || THEME_META[0];
@@ -247,7 +250,7 @@ function isDark(k) {
 const THEME_NAV = {
   paper: { bg: '#F5F0E6', front: '#000000' },
   glass: { bg: '#FAF5EE', front: '#000000' },
-  collage: { bg: '#FAF5EE', front: '#000000' },
+  collage: { bg: '#F9F1E3', front: '#000000' },   // 与 --bg 同步（8.2.0 照品牌稿改）
   film: { bg: '#1F1A17', front: '#ffffff' },
   literary: { bg: '#FAF5EE', front: '#000000' },
   minimal: { bg: '#FFFFFF', front: '#000000' }

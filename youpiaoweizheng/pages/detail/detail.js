@@ -112,7 +112,7 @@ Page({
     if (this._failTimer) { clearTimeout(this._failTimer); this._failTimer = null; }
   },
   data: {
-    theme: "paper",
+    theme: themeUtil.getTheme(),
     icons: {},        // 7.0.0：按主题编译的线性图标 data-uri（onShow 填充）
     // A3 滚动视差与顶栏渐变（onPageScroll 填充；初值即「未滚动」的样子）
     psDy: 0,

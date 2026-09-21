@@ -1,10 +1,17 @@
-<!-- custom-tab-bar/index.wxml —— v7.0 自定义 tabBar（按《精修》规范图重做）
-     票根墙 / 时光机 /〔中央凸起相机〕/ 回忆地图 / 我的
+<!-- custom-tab-bar/index.wxml —— 自定义 tabBar（v7.0 建，8.2.0 按品牌稿屏02 重排）
+     票根墙 / 时光机 /〔中央相机〕/ 回忆地图 / 我的
      ⚠️ 图标走 <image> + data-uri SVG（src 由 index.js 拼好，选中/未选两套色），
         不可改回内联 svg 标签 —— 微信 WXML 不支持内联 svg，会整组不显示。 -->
 <view class="bar theme-{{theme}}">
 
-  <!-- 中央凸起相机钮（规范图：直径 56pt、凸起 12pt、玫瑰实底白描线相机，CSS 绘制） -->
+  <!-- 栏体两端的装饰（稿上有；先画，让下面那一行压在它上面）。
+       与页面是同一套图形，只是颜色在 index.js 里按主题编进 SVG ——
+       自定义组件是独立渲染树，拿不到页面那份 CSS 变量。 -->
+  <image class="bar-deco bar-deco-l" src="{{deco.wave}}" mode="aspectFit" aria-hidden="true" />
+  <image class="bar-deco bar-deco-r" src="{{deco.wave}}" mode="aspectFit" aria-hidden="true" />
+  <image class="bar-star" src="{{deco.star}}" mode="aspectFit" aria-hidden="true" />
+
+  <!-- 中央相机钮（稿：直径 75rpx、钮顶与栏体上沿齐平、无白描边、实心白相机，CSS 绘制） -->
   <view class="fab" hover-class="fab-hover" hover-stay-time="120" bindtap="goFab" aria-role="button" aria-label="拍一张新票根">
     <view class="fab-cam"></view>
   </view>

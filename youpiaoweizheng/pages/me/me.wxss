@@ -255,31 +255,60 @@
 }
 
 /* ===== 7.2.0 L1：AI 重绘额度（从设置页迁来） ===== */
-/* ===== 7.4.0 R1 时光签 + 积分 ===== */
-.me-sign { margin: 24rpx 44rpx 0; padding: 28rpx 32rpx; }
-.me-sign-head { display: flex; align-items: baseline; justify-content: space-between; }
-.me-sign-t { font-size: 29rpx; font-weight: 600; color: var(--brown, #6B5B50); }
-.me-sign-streak { font-size: 23rpx; color: var(--text2, #A5968A); }
-.me-sign-sub { display: block; margin-top: 10rpx; font-size: 23rpx; color: var(--text2, #A5968A); }
-.me-sign-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 22rpx; }
-.me-sign-points { font-size: 24rpx; color: var(--brown, #6B5B50); }
-.me-sign-num { font-size: 34rpx; font-weight: 700; }
-.me-sign-btn {
-  padding: 0 34rpx;
-  height: 62rpx;
-  line-height: 62rpx;
-  border-radius: 31rpx;
-  font-size: 25rpx;
-  color: var(--on-primary, #FFF8F2);
-  background: var(--stamp, #C26B5E);
+/* ===== 7.4.0 R1 时光签 + 积分（8.3.0 排版重做 + 收小，见 me.wxml 那段注释） =====
+   四行：标题行 / 积分主行 / 操作行 / 页脚。
+   改动前是六段平铺且互相重复，行间又没有主次 —— 一眼看不出这卡是干什么的。
+
+   8.3.0 第二轮「小而精致」——整卡的**排版没动**，只把每一档尺寸收了一号：
+     数字 56→40（顺带和下面额度卡的数字同一档）、主按钮高 68→52、兑换 62→46、
+     行距 22/26/20 → 12/16/12、内边距 28/32 → 22/28。
+   收的是**尺寸**，不是内容：四行一句没少，字号之间的级差也还在（40 / 23 / 19）。
+   这一卡的信息量本来就小于下面那张额度卡，占一样大的地方会显得虚。 */
+.me-sign { margin: 24rpx 44rpx 0; padding: 22rpx 28rpx; }
+.me-sign-head { display: flex; align-items: center; justify-content: space-between; }
+.me-sign-t { font-size: 25rpx; font-weight: 600; color: var(--brown, #6B5B50); }
+/* 连签：软底小胶囊。原先是一行 23rpx 的灰字，跟副标题、状态行混在一起分不出轻重 */
+.me-sign-streak {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 19rpx;
+  color: var(--brown, #6B5B50);
+  background: var(--soft, #FBF3D9);
 }
-.me-sign-done { font-size: 24rpx; color: var(--sage, #A9C3A6); }
-/* 8.0.5 积分怎么来：积分行下方一行小字入口（低频动作，视觉重量压到最低） */
-.me-sign-rule { display: flex; margin-top: 12rpx; }
-.me-sign-rule-t { font-size: 22rpx; color: var(--text2, #A5968A); }
-.me-sign-exchange-row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-top: 14rpx; }
-.me-sign-hint { flex: 1; min-width: 0; font-size: 22rpx; color: var(--text2, #A5968A); }
-.me-sign-exchange {
+.me-sign-streak-n { font-size: 22rpx; font-weight: 700; }
+
+/* 积分主行：数字最大（40rpx，与下面额度卡的数字同一档语汇），
+   单位小一号跟在后面，右边一句右对齐的说明 —— 一行说完「有多少 / 还差多少」 */
+.me-sign-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 12rpx;
+}
+.me-sign-pts { display: flex; align-items: baseline; gap: 7rpx; flex: 0 0 auto; }
+.me-sign-num { font-size: 40rpx; font-weight: 700; line-height: 1; color: var(--brown, #6B5B50); }
+.me-sign-unit { font-size: 19rpx; color: var(--text2, #A5968A); }
+.me-sign-hint {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 19rpx;
+  line-height: 1.45;
+  color: var(--text2, #A5968A);
+}
+
+.me-sign-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+.me-sign-btn {
   flex: 0 0 auto;
   padding: 0 28rpx;
   height: 52rpx;
@@ -289,6 +318,25 @@
   color: var(--on-primary, #FFF8F2);
   background: var(--stamp, #C26B5E);
 }
+/* 已收下：不是按钮（今天点不动了），是「今天这步已完成」的软标签 + 一句「明天再来」 */
+.me-sign-done { display: flex; align-items: baseline; gap: 12rpx; min-width: 0; }
+.me-sign-done-t { font-size: 22rpx; font-weight: 600; color: var(--sage, #A9C3A6); }
+.me-sign-done-s { font-size: 19rpx; color: var(--text2, #A5968A); }
+.me-sign-exchange {
+  flex: 0 0 auto;
+  padding: 0 24rpx;
+  height: 46rpx;
+  line-height: 44rpx;    /* 减掉上下各 1rpx 的描边，文字才在正中 */
+  border-radius: 23rpx;
+  font-size: 21rpx;
+  color: var(--stamp, #C26B5E);
+  background: transparent;
+  border: 1rpx solid var(--stamp, #C26B5E);
+}
+/* 页脚：右对齐 + 箭头。原先左对齐孤零零一行，读起来像没写完的半句 */
+.me-sign-rule { display: flex; align-items: center; justify-content: flex-end; gap: 4rpx; margin-top: 12rpx; }
+.me-sign-rule-t { font-size: 19rpx; color: var(--text2, #A5968A); }
+.me-sign-rule-a { flex: 0 0 20rpx; width: 20rpx; height: 20rpx; opacity: 0.55; }
 
 .me-quota { margin: 24rpx 44rpx 0; padding: 28rpx 32rpx; }
 .me-quota-head { display: flex; align-items: baseline; justify-content: space-between; }

@@ -35,16 +35,23 @@
 }
 .theme-collage {
   --bg: #FAF5EE; --card: #FAF5EE;
-  --primary: #D9A0A6;
+  /* 8.2.0 主色 #D9A0A6 → #DE8F8B。品牌稿上这条栏的选中态是**珊瑚红**，不是灰粉：
+     实测钮底 #E09087、选中字 #CE675F。取 #DE8F8B 是因为首页那四枚胶囊已经用的就是它
+     （app.wxss 的 --chip-on），两处同色，栏和页面才不会一个粉一个橘。
+     注意 app.wxss 全局的 --primary 仍是 #D9A0A6（管的是别处的按钮），这次没跟着动。 */
+  --primary: #DE8F8B;
   --accent: #F6DFA8;
   --soft: #FBF3D9;
   --text: #5A4D42;
-  --text2: rgba(107, 91, 80, 0.4);
+  /* 8.2.0 未选态：#6B5B50 的 40% 透明压在奶油底上淡到几乎看不见（截图里那三个灰字）。
+     稿上是**实的**暖棕，实测字 #A59179 / 图标 #9B8469 —— 取 #A5968A，与 app.wxss 同主题的 --text2 一致。 */
+  --text2: #A5968A;
   --border: #EFE5D8;
   --on-primary: #FFFFFF;
   --chip: #FBF3D9;
   --peach: #D9A0A6;
-  --tabbar-bg: rgba(250, 245, 238, 0.92);
+  /* 稿实测：栏体 #FAF3E7 / 页面 #F9F1E3，几乎同色（这条栏不是一块「浮起来的白卡」） */
+  --tabbar-bg: rgba(250, 243, 231, 0.96);
 }
 .theme-film {
   --bg: #1F1A17; --card: #241E1A;
@@ -86,29 +93,37 @@
   --tabbar-bg: rgba(255, 255, 255, 0.95);
 }
 
-/* —— 栏体（6.4.0 规范图：毛玻璃白浮动圆角栏，非通栏贴底） —— */
+/* —— 栏体（8.2.0 按品牌稿重做：**通栏**贴底，只有上沿两角是圆的） ——
+   稿上这条栏是满宽的，不是浮在页面上的一块圆角卡。从前左右各留 18rpx 的缝、配 28rpx 的投影，
+   在满屏票根的页面上读起来像"又一张卡"，而不是"贴在底部的导航"。
+   稿上也没有顶部那排虚线（.bar::before，已删）—— 那不是设计的一部分。 */
 .bar {
   position: relative;
-  margin: 0 18rpx;
+  margin: 0;
   height: 112rpx;
   border-radius: 26rpx 26rpx 0 0;
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--tabbar-bg, rgba(255, 255, 255, 0.86));
   backdrop-filter: blur(16rpx);
   border-top: 1rpx solid var(--border, rgba(255, 255, 255, 0.65));
-  box-shadow: 0 -8rpx 28rpx rgba(0, 0, 0, 0.10);
-}
-.bar::before {
-  content: '';
-  position: absolute;
-  top: 10rpx;
-  left: 48rpx;
-  right: 48rpx;
-  border-top: 2rpx dotted var(--border);
-  opacity: 0.9;
+  box-shadow: 0 -6rpx 20rpx rgba(0, 0, 0, 0.06);
 }
 
-.row { display: flex; align-items: center; height: 100%; }
+/* —— 栏体两端的装饰（稿上有：左端三道珊瑚波浪、右端一颗四角星拖着三道波浪）——
+   与页面用的是同一套图形（utils/deco.js 的 wavelines / star4），
+   颜色在 index.js 里按主题编进 SVG —— 自定义组件是独立渲染树，拿不到页面那份令牌。 */
+/* 透明度压到一半：稿上这两簇是**很淡**的一层，压在奶油底上刚看得出。
+   满色（1.0）时它们比四个 tab 还抢眼 —— 那是页面的主角，不是装饰该有的分量。 */
+.bar-deco { position: absolute; opacity: 0.45; }
+.bar-deco-l { left: 0; top: 24rpx; width: 60rpx; height: 32rpx; }
+.bar-deco-r { right: 0; top: 34rpx; width: 62rpx; height: 30rpx; }
+.bar-star { position: absolute; right: 34rpx; top: 26rpx; width: 26rpx; height: 20rpx; opacity: 0.55; }
+
+/* —— 列宽照稿子量（8.2.0）——
+   稿实测四个标签的中心在 115 / 242 / 509 / 636rpx 处：左右各留 51rpx，
+   四个 tab 各占约 128rpx，中间给相机钮让出 137rpx。
+   相机钮是绝对定位、不占行内位次的，所以那 137rpx 靠第 2 项的外边距撑出来。 */
+.row { display: flex; align-items: center; height: 100%; padding: 0 51rpx; }
 
 .item {
   flex: 1;
@@ -116,83 +131,88 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6rpx;
+  /* 竖向用「从上往下数」定位，不用居中：稿上图标墨水带的中心距栏体上沿 35.7rpx、
+     文字带中心 70rpx。居中的话位置会绑在「图标+间隙+文字」的总高上 ——
+     以后动其中任何一个，图标都会跟着上下漂，而稿上它是钉死的。
+     15rpx 是这样试出来的：截图量到图标带 26.4..45.0（中心 35.7 = 稿）、
+     文字带 61.7..80.3（中心 71 = 稿 70）。 */
+  justify-content: flex-start;
+  padding-top: 15rpx;
+  box-sizing: border-box;
+  gap: 10rpx;
   height: 100%;
   color: var(--text2);
   transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+/* 中间那道 137rpx 的缝：给相机钮让位（见 .row 的注释） */
+.item:nth-child(2) { margin-right: 137rpx; }
 .item-hover { transform: scale(0.92); opacity: 0.8; }
 .item .ico {
-  width: 48rpx; height: 48rpx;          /* 规范图：图标 24pt = 48rpx */
+  width: 34rpx; height: 34rpx;          /* 稿实测：房子图标 34.5 × 31.3rpx（原来 48rpx，大了四成） */
   display: flex; align-items: center; justify-content: center;
   transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.item .ico-img { width: 48rpx; height: 48rpx; }
+.item .ico-img { width: 34rpx; height: 34rpx; }
 .item .txt {
-  font-size: 20rpx;
-  letter-spacing: 2rpx;
+  /* 稿实测：三个字宽 48.8rpx、字高 15.6rpx → 字号约 18rpx（原来 20rpx 偏大）。
+     字距归零 —— 稿上的标签是紧排的，2rpx 的字距会把它推得比图标还宽。 */
+  font-size: 18rpx;
+  line-height: 1.15;
+  letter-spacing: 0;
   color: var(--text2);
 }
-/* 选中态：主色图标 + 主色文字 + 图标下方小圆点（规范图口径） */
+/* 选中态：主色图标 + 主色文字。
+   稿上**没有**图标下那枚小圆点，也没有把图标抬高 —— 四个标签共用一条基线，
+   选中只靠颜色说话（原来多一个圆点 + 图标上移 4rpx，标签会跟着错开）。 */
 .item.on { color: var(--primary); }
-.item.on .ico { transform: translateY(-4rpx) scale(1.06); }
 .item.on .txt { color: var(--primary); font-weight: 700; }
-.item.on::after {
-  content: '';
-  position: absolute;
-  bottom: 10rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8rpx;
-  height: 8rpx;
-  border-radius: 50%;
-  background: var(--primary);
-}
 
-/* —— 中央凸起相机钮（规范图：直径 56pt=112rpx、凸起 12pt=24rpx、灰玫粉实底白描线相机） ——
+/* —— 中央相机钮（8.2.0 按品牌稿重做）——
+   稿实测：钮径 115/1152 屏宽 = 75rpx（原来 112rpx，大了五成）、
+   钮顶与栏体上沿**齐平**（原来凸起 24rpx）、外圈**没有**白色描边。
+   这一版的相机也是实心的：白的机身压在珊瑚钮上，镜头留一圈主色。
    v6.6.0 动效2：按下 0.94/100ms，抬起 250ms 弹性回冲 + box-shadow 呼吸实感 */
 .fab {
   position: absolute;
   left: 50%;
-  top: -24rpx;              /* 规范图：凸起 12pt = 24rpx */
+  top: 0;
   transform: translateX(-50%);
-  width: 112rpx;
-  height: 112rpx;
+  width: 76rpx;
+  height: 76rpx;
   border-radius: 50%;
   background: var(--primary);
   color: var(--on-primary);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(217, 160, 166, 0.55);
-  border: 6rpx solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6rpx 16rpx rgba(222, 143, 139, 0.45);
   transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
   animation: fab-breath 2.6s ease-in-out 1s infinite;
   z-index: 2;
 }
 @keyframes fab-breath {
-  0%, 100% { box-shadow: 0 8rpx 24rpx rgba(217, 160, 166, 0.55); }
-  50% { box-shadow: 0 10rpx 30rpx rgba(217, 160, 166, 0.68); }
+  0%, 100% { box-shadow: 0 6rpx 16rpx rgba(222, 143, 139, 0.45); }
+  50% { box-shadow: 0 8rpx 22rpx rgba(222, 143, 139, 0.58); }
 }
 @media (prefers-reduced-motion: reduce) {
   .fab { animation: none; transition: box-shadow 150ms ease-out; }
 }
-/* 白色描线相机（CSS 绘制，零 svg 依赖） */
+/* 实心白相机（CSS 绘制，零 svg 依赖）：白机身 + 顶部取景器 + 主色镜头圈。
+   稿上就是这么画的 —— 描线版在 76rpx 的钮里细得糊成一团。 */
 .fab-cam {
-  width: 46rpx;
-  height: 34rpx;
-  border: 4rpx solid #FFFFFF;
-  border-radius: 9rpx;
+  width: 36rpx;
+  height: 28rpx;
+  background: var(--on-primary, #FFFFFF);
+  border-radius: 6rpx;
   position: relative;
 }
 .fab-cam::before {
   content: '';
   position: absolute;
-  top: -10rpx;
+  top: -6rpx;
   left: 50%;
   transform: translateX(-50%);
-  width: 18rpx;
-  height: 6rpx;
-  background: #FFFFFF;
+  width: 16rpx;
+  height: 7rpx;
+  background: var(--on-primary, #FFFFFF);
   border-radius: 4rpx 4rpx 0 0;
 }
 .fab-cam::after {
@@ -201,15 +221,16 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 14rpx;
-  height: 14rpx;
-  border: 4rpx solid #FFFFFF;
+  width: 21rpx;
+  height: 21rpx;
+  box-sizing: border-box;
+  border: 4rpx solid var(--primary);
   border-radius: 50%;
 }
 .fab-hover {
   /* v6.6.0 动效2：按下 0.94/100ms + 阴影收紧；注意保留 translateX(-50%) 定位 */
   transform: translateX(-50%) scale(0.94);
-  box-shadow: 0 4rpx 12rpx rgba(217, 160, 166, 0.45);
+  box-shadow: 0 3rpx 10rpx rgba(222, 143, 139, 0.4);
   transition: transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 100ms ease-out;
   animation: none;
 }

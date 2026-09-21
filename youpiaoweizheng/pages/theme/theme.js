@@ -32,8 +32,8 @@ function buildCards() {
 
 Page({
   data: {
-    theme: 'paper',           // 当前生效主题（已落库）
-    preview: 'paper',         // 预览中主题（未落库时与 theme 不同）
+    theme: themeUtil.getTheme(),   // 当前生效主题（已落库）
+    preview: themeUtil.getTheme(), // 预览中主题（未落库时与 theme 不同）
     cards: [],
     typeScale: themeUtil.TYPE_SCALE,
     ic: {}

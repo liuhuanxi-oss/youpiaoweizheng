@@ -279,24 +279,51 @@ const DECO_VIEWBOX_DEFAULT = '0 0 64 44';
 
 // ============================================================
 // IP 头像：六套一致形象，仅换色（渔夫帽 + 卷发 + 白卫衣）
-// 肤色 #FFE0C8 与卫衣 #FFFFFF 是固定值，不随主题走
+// 肤色 #FFE0C8 与卫衣 #FFFFFF 是固定值，不随主题走。
+// 授权前 / 没设过头像时，「我的」页那个圆头像就是它 —— 尺寸只有 152rpx，
+// 细枝末节全糊，靠的是**大色块 + 清楚的剪影**：帽子盖住额头、两侧各露出一撮卷发、
+// 底下一条白肩膀。改这里时先照 5 倍图看一眼，别只在代码里挪数字。
 // ============================================================
 const SKIN = '#FFE0C8';
 const HOODIE = '#FFFFFF';
 
 function avatarBody(c) {
-  return '<ellipse cx="40" cy="27" rx="26" ry="8" ' + fillOf(c.primary, '#2B2420', 0.92) + '/>' +
-    '<path d="M24 27Q24 12 40 12Q56 12 56 27Z" ' + fillOf(c.accent, '#C26B5E') + '/>' +
-    '<circle cx="27" cy="37" r="7" ' + fillOf(c.text, '#2B2420', 0.86) + '/>' +
-    '<circle cx="53" cy="37" r="7" ' + fillOf(c.text, '#2B2420', 0.86) + '/>' +
-    '<ellipse cx="40" cy="43" rx="18" ry="17" fill="' + SKIN + '"/>' +
-    '<circle cx="33" cy="42" r="2.6" ' + fillOf(c.text, '#2B2420') + '/>' +
-    '<circle cx="47" cy="42" r="2.6" ' + fillOf(c.text, '#2B2420') + '/>' +
-    '<ellipse cx="28" cy="49" rx="4" ry="2.4" ' + fillOf(c.primary, '#2B2420', 0.34) + '/>' +
-    '<ellipse cx="52" cy="49" rx="4" ry="2.4" ' + fillOf(c.primary, '#2B2420', 0.34) + '/>' +
-    '<path d="M36 51Q40 55 44 51" fill="none" ' +
-      strokeOf(c.accent, '#C26B5E', 2, '') + ' stroke-linecap="round"/>' +
-    '<path d="M22 68Q22 58 40 58Q58 58 58 68Z" fill="' + HOODIE + '"/>';
+  // 画布 80×80，外面套的是**圆形裁切**（半径 40，圆心 40,40）—— 四角看不见，
+  // 所以头发、帽檐这些贴着边缘的部分要按「离圆心 40」来算，不是按 80×80 的方框。
+  // 叠放次序＝数组次序，后面的盖前面的：脖子 → 卷发 → 脸 → 五官 → 帽檐 → 帽顶 → 卫衣。
+  // 帽子必须画在脸**之后**（帽子就该压在额头上），卷发必须画在脸**之前**（才露得出边）。
+  //
+  // ⚠️ 卫衣**不能**画成「一个从中间往两边淌下来的圆顶」（`M-6 88Q-6 60 40 60Q86 60 86 88Z`）。
+  //    那样在圆框里切出来的是一块**底边收成一个尖的三角**，152rpx 下就是一枚挂在脸下面的白围兜。
+  //    要的是「两个肩峰 + 中间一个领口凹」：肩峰落在 y=58，领口凹到 y=68 —— 有了这个凹，
+  //    下巴和领口之间那一段肤色脖子才露得出来，人才是「头长在肩膀上」而不是「头压着一块布」。
+  return ''
+    // 脖子：一段肤色，只在「下巴(y61) 到 领口(y68)」这 7 个单位里露出来，
+    //   不铺的话那道缝会透出页面底色，看着像脸和衣服断开了。
+    + '<rect x="35.5" y="48" width="9" height="16" fill="' + SKIN + '"/>'
+    // 卷发：两颗圆。原来放在 cx=27/53，整颗躲在脸后面（脸横跨 22..58），只剩 2 单位宽的缝；
+    //   挪到 24.5/55.5 才有 5 单位露在外面 —— 那是这套形象的识别点，不能被脸吃掉。
+    + '<circle cx="24.5" cy="36" r="6.6" ' + fillOf(c.text, '#2B2420', 0.86) + '/>'
+    + '<circle cx="55.5" cy="36" r="6.6" ' + fillOf(c.text, '#2B2420', 0.86) + '/>'
+    // 脸：rx 小于 17 就会「头小脖子粗」—— 脖子固定 9 单位宽，脸一窄，下巴和脖子就糊成一根柱子。
+    + '<ellipse cx="40" cy="39" rx="17" ry="17" fill="' + SKIN + '"/>'
+    + '<circle cx="33.8" cy="37" r="2.5" ' + fillOf(c.text, '#2B2420') + '/>'
+    + '<circle cx="46.2" cy="37" r="2.5" ' + fillOf(c.text, '#2B2420') + '/>'
+    + '<ellipse cx="29.8" cy="44" rx="3.7" ry="2.3" ' + fillOf(c.primary, '#2B2420', 0.34) + '/>'
+    + '<ellipse cx="50.2" cy="44" rx="3.7" ry="2.3" ' + fillOf(c.primary, '#2B2420', 0.34) + '/>'
+    + '<path d="M36.4 48.5Q40 52.8 43.6 48.5" fill="none" '
+      + strokeOf(c.accent, '#C26B5E', 2, '') + ' stroke-linecap="round"/>'
+    // 帽檐：一个**扁**椭圆，铺满前额。原来是 ry=8 的厚椭圆，两侧各露出 4×16 的实心块，
+    //   配上旁边的卷发就成了两只耳朵；压到 ry=4.5 才读得出是「檐」。
+    + '<ellipse cx="40" cy="25" rx="22.5" ry="4.5" ' + fillOf(c.primary, '#2B2420', 0.92) + '/>'
+    // 帽顶：原来的穹顶从 y12.5 盖到 y31（18.5 高，占了大半个头），像个扣在头上的碗；
+    //   压到 13 高、顶从 12.5 抬到 12，才是一顶渔夫帽的比例。
+    + '<path d="M24.5 25Q24.5 12 40 12Q55.5 12 55.5 25Z" ' + fillOf(c.accent, '#C26B5E') + '/>'
+    // 卫衣：肩峰(20,54)/(60,54)、领口凹到 y60；两端画到 -12/92 故意超出圆框，
+    //   让圆去切，切出来的才是「肩膀出画」。
+    // ⚠️ 肩峰必须**离开正中**再往两边塌下去。把上沿画成一条水平的直线，
+    //    152rpx 下读出来是一块横着的白餐巾；斜着塌才是肩。
+    + '<path d="M-12 92V68Q-2 54 20 54Q30 54 36 60H44Q50 54 60 54Q82 54 92 68V92Z" fill="' + HOODIE + '"/>';
 }
 
 /** 包一层 svg 根节点并转成可直接塞进 <image src> 的 data-uri */
@@ -553,4 +580,148 @@ function flowerStamp(c) {
   return toUri('0 0 48 48', 48, 48, body);
 }
 
-module.exports = { decoSrc, avatarSrc, previewSrc, postmarkParts, artFrame, flowerStamp, pinkedPanel };
+// ============================================================
+// 首页票根墙（稿屏2）的页边装饰层
+// ============================================================
+// 稿子两侧的页边铺满了枝叶、波浪、色块、星星 —— 这是这一版「手账感」的主要来源。
+// 8.2.0 之前这些一个都没有，整页光秃秃，所以看着素、看着空。
+//
+// 【为什么做成一张整屏大图铺成页面底纹，而不是 wxml 里的一层 view】
+//   1) 底纹天然在内容之下，不用跟一摞 z-index 打架；
+//   2) 页面根节点带 .fade-up，动画播完仍留着 transform: translateY(0)，
+//      fixed 后代会把它当包含块、跟着页面一起滚（见 home.wxml 里 .guide-mask 的注释）；
+//   3) 底纹随背景重复，翻到第几屏边上都有东西，不会只有首屏好看。
+//
+// 【坐标怎么来的】稿子 1152×2048，机器 750×1454rpx，两个方向缩放比不同（稿子是
+//   9:16，机器不是），所以 x 与 y 各按各的比例量：x_rpx = x_稿 × 750/1152，
+//   y_rpx = y_稿 × 1454/2048。每个位置都是从稿子上按行扫出来的色差段（见
+//   docs/UI复刻差异清单.md 稿屏 02），不是目测。颜色也是从稿子取的，落回品牌标准色。
+
+/** 一片叶：从 (x,y) 出发，叶尖朝 ang 方向（度，0 = 正上，正值顺时针），长 len
+ *  edge 是描边色。8.2.0 补的：这张底图铺在根节点上、按 750rpx 宽的 viewBox 缩到屏幕，
+ *  实机缩放比约 0.5 —— 纯色块缩完边缘就化成糊，只有一圈略深的描边能把叶形留住。 */
+function leafAt(x, y, ang, len, col, op, edge) {
+  const w = round2(len * 0.44);
+  const b = round2(len * 0.72);
+  const l = round2(len * 0.3);
+  return '<path d="M0 0C' + w + ' -' + l + ' ' + w + ' -' + b + ' 0 -' + len +
+    'C-' + w + ' -' + b + ' -' + w + ' -' + l + ' 0 0Z" ' +
+    fillOf(col, '#A9C3A6', op) +
+    (edge ? ' stroke="' + edge + '" stroke-width="1.4" stroke-opacity="' + (op == null ? 1 : op) + '"' : '') +
+    ' transform="translate(' + x + ' ' + y + ') rotate(' + ang + ')"/>';
+}
+
+/** 一枝叶 = 一条弯茎 + 沿途交错长出的叶（稿里两侧全是这个长相，不是单摆的叶子） */
+function twigAt(d, leaves, col, stemCol) {
+  let s = '<path d="' + d + '" fill="none" ' +
+    strokeOf(stemCol, '#A9C3A6', 3, '', 1) + ' stroke-linecap="round"/>';
+  for (let i = 0; i < leaves.length; i++) {
+    const L = leaves[i];
+    s += leafAt(L[0], L[1], L[2], L[3], col, L[4] == null ? 1 : L[4], stemCol);
+  }
+  return s;
+}
+
+/**
+ * 有机色块：稿子两侧那些"圆"其实都不是正圆，是水彩一样化开的块。
+ * 8 个控制点、半径各自扰动，再用「相邻点中点为锚、控制点落在点上」的二次曲线连成闭环 ——
+ * 这是画平滑闭合曲线最省事的写法（不用算切线），出来的边自然是软的。
+ * seed 决定扰动序列：同一个 seed 每次编译结果一样，不会每次进页面形状都变。
+ */
+function blobAt(cx, cy, rx, ry, col, op, seed) {
+  const n = 8;
+  const s0 = seed || 0;
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const k = 0.84 + 0.24 * Math.abs(Math.sin(s0 * 7.3 + i * 2.1));
+    pts.push([round2(cx + Math.cos(a) * rx * k), round2(cy + Math.sin(a) * ry * k)]);
+  }
+  const mid = (p, q) => [round2((p[0] + q[0]) / 2), round2((p[1] + q[1]) / 2)];
+  const m0 = mid(pts[0], pts[1]);
+  let d = 'M' + m0[0] + ' ' + m0[1];
+  for (let i = 1; i <= n; i++) {
+    const p = pts[i % n];
+    const m = mid(p, pts[(i + 1) % n]);
+    d += 'Q' + p[0] + ' ' + p[1] + ' ' + m[0] + ' ' + m[1];
+  }
+  return '<path d="' + d + 'Z" ' + fillOf(col, '#C4C89E', op) + '/>';
+}
+
+/** 四角星（凹边，像一颗小火花）：尖角到中心 r */
+function star4At(x, y, r, col, op) {
+  const k = round2(r * 0.14);
+  return '<path d="M' + x + ' ' + (y - r) +
+    'Q' + x + ' ' + (y - k) + ' ' + (x + r) + ' ' + y +
+    'Q' + (x + k) + ' ' + y + ' ' + x + ' ' + (y + r) +
+    'Q' + x + ' ' + (y + k) + ' ' + (x - r) + ' ' + y +
+    'Q' + (x - k) + ' ' + y + ' ' + x + ' ' + (y - r) + 'Z" ' +
+    fillOf(col, '#F6DFA8', op) + '/>';
+}
+
+/** 手绘波浪：从 (x,y) 起，n 个波峰，每峰宽 seg */
+function waveAt(x, y, n, seg, w, col, op) {
+  let d = 'M' + x + ' ' + y;
+  for (let i = 0; i < n; i++) d += 'q' + round2(seg / 2) + ' -' + round2(seg * 0.5) + ' ' + seg + ' 0';
+  return '<path d="' + d + '" fill="none" ' + strokeOf(col, '#F4C6B4', w, '', op) +
+    ' stroke-linecap="round"/>';
+}
+
+/**
+ * @param {object} o 可选色：leaf 叶 / leafDeep 深叶 / petal 花与色块 / gold 金，缺省取下面这四个
+ * @return {string} 750×1454rpx 的整屏页边装饰 data-uri（供 .tk-page 的 background-image）
+ *
+ * 下面这四个色不是"品牌标准色"，是从稿子上取的**落地值**（即已经和奶油底混过之后的成品色，
+ * 见 docs/UI复刻差异清单.md 稿屏 02）。所以它们直接不透明铺上去就是稿子的样子；
+ * 用品牌色 + 透明度去凑，混出来的绿会偏冷偏灰（第一版就是这么错的）。
+ */
+function homeEdges(o) {
+  const c = o || {};
+  // 8.2.0 第三版：叶色退回稿子的实测值，色块也压了一档不透明度。
+  // 中间为了「看得见」把这一层加深加大过一轮（叶 #BFC58F、色块 op 1）—— 那是卡片 279 高、
+  // 整页挤在一起时的补偿：页边不抢眼就压不住满屏的卡。卡片收小、三行归位之后，
+  // 这层就该退回去当背景了 —— 稿子上它本来就是很淡的一层。
+  const leaf = c.leaf || '#D2D2B2';        // 叶（稿实测 #D4D4B3）
+  const leafDeep = c.leafDeep || '#B4B284'; // 深叶、茎、叶的描边（稿子叶脉实测 #ACAA6D）
+  const petal = c.petal || '#F6CDB4';      // 桃色色块（稿 #F7D6C2）
+  const gold = c.gold || '#E9C77F';        // 金（稿 #F8E0B0 略深一档才看得见）
+  const BLOB = 0.7;                        // 实心色块压在米底上最扎眼，单独压一档
+
+  let s = '';
+
+  // ——— 左页边 ———
+  s += twigAt('M26 296Q52 262 92 214', [
+    [46, 274, -56, 54], [68, 246, 42, 50], [88, 218, -52, 46]
+  ], leaf, leafDeep);
+  s += blobAt(6, 488, 84, 64, petal, BLOB, 1);
+  s += twigAt('M12 650Q38 614 78 566', [
+    [32, 628, -54, 50], [54, 600, 44, 46], [74, 570, -50, 42]
+  ], leaf, leafDeep);
+  s += blobAt(-4, 668, 78, 60, leaf, BLOB, 2);
+  s += blobAt(-6, 796, 74, 58, leaf, BLOB, 3);
+  s += blobAt(-10, 958, 70, 64, petal, BLOB, 4);
+  s += twigAt('M18 1214Q44 1178 86 1128', [
+    [38, 1192, -56, 52], [60, 1164, 42, 48], [82, 1132, -50, 44]
+  ], leaf, leafDeep);
+  s += star4At(96, 1146, 15, gold, 1);
+  s += waveAt(6, 1252, 3, 34, 3, gold, 1);
+
+  // ——— 右页边 ———
+  s += waveAt(618, 186, 4, 38, 3.2, petal, 1);
+  s += waveAt(618, 204, 4, 38, 2.8, petal, 1);
+  s += waveAt(618, 220, 4, 38, 2.4, petal, 0.8);
+  s += blobAt(772, 450, 80, 62, petal, BLOB, 5);
+  s += twigAt('M770 792Q742 742 728 686', [
+    [756, 764, 34, 52], [742, 730, -132, 50], [732, 698, 30, 46]
+  ], leaf, leafDeep);
+  s += waveAt(694, 866, 3, 34, 3, gold, 1);
+  s += waveAt(712, 892, 3, 34, 2.6, gold, 0.85);
+  s += star4At(736, 1072, 19, gold, 1);
+  s += blobAt(780, 1206, 76, 66, leaf, BLOB, 6);
+
+  return toUri('0 0 750 1454', 750, 1454, s);
+}
+
+module.exports = {
+  decoSrc, avatarSrc, previewSrc, postmarkParts, artFrame, flowerStamp, pinkedPanel, homeEdges
+};

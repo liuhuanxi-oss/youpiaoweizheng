@@ -50,29 +50,22 @@ async function checkIn() {
 }
 
 /**
- * 横条 / 卡片的文案（首页与我的页共用一套 —— 同一个动作在两处说不一样的话最伤人）。
- * 从没签过的人不提「连签」：那是给已经连着来的人看的。
+ * 卡片的文案（8.3.0 起只剩「我的」页在用）。
+ * 8.3.0：sub 里不再带「连签 N 天」—— 卡片标题旁已经有一枚连签胶囊了，
+ * 同一句话在二三十像素内说两遍，用户读到的是啰嗦，不是信息。
+ * 连签天数由 sign.streak 单独给，谁要谁摆（原来是文案里塞一份、数据里再给一份）。
  */
 function bannerText(s) {
   const signed = !!(s && s.signed);
-  const streak = (s && s.streak) || 0;
   if (signed) {
-    return {
-      title: '今天已收下',
-      sub: streak > 0 ? `已连签 ${streak} 天 · 明天再来` : '明天再来收一张',
-      btn: ''
-    };
+    return { title: '今天已收下', sub: '明天再来', btn: '' };
   }
   // 服务端给了数字才说具体数字，没给就只说「有积分」—— 宁可少说一句，不说错一句
   const base = (s && s.base) || 0;
   return {
     title: '今日时光签',
-    sub: streak > 0
-      ? (base
-        ? `连签 ${streak} 天 · 再收一张得 ${base} 积分`
-        : `连签 ${streak} 天 · 再收一张有积分`)
-      : '每天来收一张 · 攒积分换 AI 重绘',
-    btn: '收下'
+    sub: base ? `再收一张得 ${base} 积分` : '再收一张有积分',
+    btn: '收下今日时光签'
   };
 }
 
