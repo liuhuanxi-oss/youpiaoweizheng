@@ -1,0 +1,53 @@
+<!-- pages/song/song.wxml —— 生日歌单：选日期 → 翻出那首歌 → 存成图 -->
+<view class="page">
+
+  <view class="hero">
+    <text class="hero-t">生日歌单</text>
+    <text class="hero-s">选一个日子，从{{artist}}的 {{total}} 首歌里，翻出属于这一天的</text>
+  </view>
+
+  <!-- 分享进来的那一句说明：不写的话，他会以为这就是「自己的」结果 -->
+  <view class="hint" wx:if="{{fromShare}}">这是朋友分享的那一天 —— 换成你的生日，再翻一次</view>
+
+  <!-- 选日期：月 + 日两列（生日不需要年份） -->
+  <picker mode="multiSelector" range="{{range}}" value="{{pick}}" bindchange="onPick" bindcolumnchange="onCol">
+    <view class="pick pressable" hover-class="press-item-hover" aria-role="button" aria-label="选择生日">
+      <text class="pick-t">{{dateText}}</text>
+      <text class="pick-h">点击选择</text>
+    </view>
+  </picker>
+
+  <!-- 生成：忙碌时按钮本身就是动效文案（不再另开一个 loading 图层） -->
+  <view class="gen {{busy ? 'off' : ''}}" hover-class="press-main-hover" bindtap="onDraw"
+        aria-role="button" aria-label="翻出我的那首歌">
+    <text>{{busy ? step : '翻出我的那首歌'}}</text>
+  </view>
+
+  <!-- 结果卡 -->
+  <view class="card" wx:if="{{r}}">
+    <view class="card-meta">
+      <text class="card-date">{{r.m}} / {{r.d}}</text>
+      <text class="card-chip">{{r.label}}</text>
+    </view>
+    <text class="card-song">《{{r.song.t}}》</text>
+    <text class="card-img">{{r.song.img}}</text>
+
+    <view class="card-line"></view>
+
+    <text class="card-why">{{r.reasonA}}</text>
+    <text class="card-why">{{r.reasonB}}</text>
+    <view class="card-cheer">{{r.cheer}}</view>
+
+    <view class="card-btns">
+      <view class="btn-ghost pressable" hover-class="press-item-hover" bindtap="onSave"
+            aria-role="button" aria-label="把这张图存进相册">存成图</view>
+      <!-- open-type="share" 只有 button 认，所以这一个必须是 button（样式已在 wxss 里抹平） -->
+      <button class="btn-ghost" open-type="share" aria-label="发给朋友">发给朋友</button>
+    </view>
+    <view class="card-again pressable" hover-class="press-item-hover" bindtap="onAgain"
+          aria-role="button" aria-label="换一个生日再翻一次">换一个生日，再翻一次</view>
+  </view>
+
+  <!-- 出图画布：留在屏幕外，用户看不到，只用来导出海报（保存与分享都用它） -->
+  <canvas type="2d" id="songCanvas" class="canvas-off" aria-hidden="true"></canvas>
+</view>

@@ -1,0 +1,174 @@
+/* pages/song/song.wxss —— 生日歌单
+   全部走 app.wxss 的主题变量：六套主题下这一页不用改一个字（包括深色主题 B）。
+   深色下唯一会「漏出来」的是画布出图，所以海报固定纸感浅色（见 pages/song/poster.js 顶部）。 */
+
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 40rpx 32rpx 96rpx;
+  background: var(--paper);
+}
+
+/* ── 标题区 ── */
+.hero { margin-bottom: 40rpx; }
+.hero-t {
+  display: block;
+  font-family: var(--font-title-full);
+  font-size: 58rpx;
+  letter-spacing: 4rpx;
+  color: var(--ink);
+}
+.hero-s {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.hint {
+  margin: -16rpx 0 28rpx;
+  padding: 20rpx 24rpx;
+  border-radius: var(--r-item);
+  background: rgba(var(--accent-rgb), 0.08);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--accent);
+}
+
+/* ── 选日期 ── */
+.pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 36rpx;
+  border: 2rpx solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+}
+.pick-t {
+  font-family: var(--font-title-full);
+  font-size: 46rpx;
+  letter-spacing: 2rpx;
+  color: var(--ink);
+}
+.pick-h { font-size: var(--fs-sm); color: var(--ink-faint); }
+
+/* ── 主按钮（忙碌时它就是那句动效文案） ── */
+.gen {
+  margin-top: 28rpx;
+  height: 104rpx;
+  border-radius: 52rpx;
+  background: var(--accent);
+  box-shadow: 0 12rpx 26rpx rgba(var(--accent-rgb), 0.26);
+  font-size: var(--fs-lg);
+  letter-spacing: 2rpx;
+  color: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gen.off { opacity: 0.7; }
+.press-main-hover { opacity: 0.88; }
+
+/* ── 结果卡 ── */
+.card {
+  margin-top: 44rpx;
+  padding: 44rpx 40rpx 36rpx;
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  animation: song-pop 420ms var(--ease-spring) both;
+}
+@keyframes song-pop {
+  from { opacity: 0; transform: translateY(26rpx) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.card-meta { display: flex; align-items: center; justify-content: space-between; }
+.card-date {
+  font-family: var(--font-title-full);
+  font-size: 42rpx;
+  letter-spacing: 2rpx;
+  color: var(--ink-soft);
+}
+.card-chip {
+  padding: 6rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(var(--accent-rgb), 0.10);
+  font-size: var(--fs-sm);
+  color: var(--accent);
+}
+
+.card-song {
+  display: block;
+  margin: 30rpx 0 16rpx;
+  font-family: var(--font-title-full);
+  font-size: 62rpx;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.card-img {
+  display: block;
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.card-line { height: 2rpx; margin: 34rpx 0; background: var(--line); }
+
+.card-why {
+  display: block;
+  font-size: var(--fs-sm);
+  line-height: 1.9;
+  color: var(--ink-soft);
+}
+.card-why + .card-why { margin-top: 12rpx; }
+
+.card-cheer {
+  margin-top: 30rpx;
+  padding: 28rpx 30rpx;
+  border-radius: var(--r-item);
+  background: rgba(var(--accent-rgb), 0.07);
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  color: var(--accent);
+}
+
+/* ── 卡里的两个按钮 ── */
+.card-btns { display: flex; gap: 20rpx; margin-top: 38rpx; }
+/* view 与 button 共用一套长相：button 的默认边框/内边距必须抹掉，否则两个按钮不一样高 */
+.btn-ghost {
+  flex: 1;
+  height: 92rpx;
+  padding: 0;
+  margin: 0;
+  border: 2rpx solid var(--line-strong);
+  border-radius: 46rpx;
+  background: var(--softbg);
+  font-size: var(--fs-md);
+  line-height: 92rpx;
+  text-align: center;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.btn-ghost::after { border: none; }
+
+.card-again {
+  margin-top: 26rpx;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--ink-faint);
+}
+
+/* ── 出图画布：放屏外（同 annual 的 .an-canvas）。
+   这里的 CSS 尺寸只是给节点一个盒子，真正的画布分辨率由 js 里 node.width/height 决定；
+   但**不能用 wx:if 包住它** —— 那样 createSelectorQuery 取不到节点，出图会一直是空白。 */
+.canvas-off {
+  position: fixed;
+  left: -3000rpx;
+  top: 0;
+  width: 750rpx;
+  height: 1334rpx;
+}

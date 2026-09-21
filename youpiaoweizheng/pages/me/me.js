@@ -33,14 +33,16 @@ const TINT = {
 };
 
 /**
- * 2 个功能入口（7.2.0 L1：收藏夹 / 时光机 / 回忆地图 是底部 tab，不再重复摆一遍；
- * 设置挪到右上角齿轮。留下的两个都是没有别的入口的二级页）。
+ * 3 个功能入口（7.2.0 L1：收藏夹 / 时光机 / 回忆地图 是底部 tab，不再重复摆一遍；
+ * 设置挪到右上角齿轮。留下的都是没有别的入口的二级页）。
  * icon  : utils/icons.js 的图标名，白色线性图形压在圆形水彩底上
  * decoL/decoR : 卡左右两侧的手绘装饰（走 utils/deco.js，随主题换色）
  */
 const ENTRIES = [
   { key: 'duo',    name: '双人空间', icon: 'users', tint: TINT.rose,   decoL: 'sprig',     decoR: 'heartsmall' },
-  { key: 'annual', name: '年度报告', icon: 'chart', tint: TINT.butter, decoL: 'wavelines', decoR: 'star4'     }
+  { key: 'annual', name: '年度报告', icon: 'chart', tint: TINT.butter, decoL: 'wavelines', decoR: 'star4'     },
+  // 生日歌单（8.4.0 拉新玩法）：不占首屏，落在留存中心这一页，道理同 7.4.0 的签到
+  { key: 'song',   name: '生日歌单', icon: 'music', tint: TINT.sage,   decoL: 'doodle',    decoR: 'dots'      }
 ];
 
 /**
@@ -461,7 +463,7 @@ Page({
   /** 两个入口的路由：都是没有别的入口的二级页（tab 与设置另有入口） */
   _route(key) {
     haptics.tap();
-    const PAGE = { duo: '/pages/duo/duo', annual: '/pages/annual/annual', setting: '/pages/setting/setting' };
+    const PAGE = { duo: '/pages/duo/duo', annual: '/pages/annual/annual', song: '/pages/song/song', setting: '/pages/setting/setting' };
     if (PAGE[key]) wx.navigateTo({ url: PAGE[key] });
   },
 

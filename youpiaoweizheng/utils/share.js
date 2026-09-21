@@ -89,6 +89,16 @@ const SCENES = {
     path: (d) => (d && d.code ? `/pages/bind/bind?code=${d.code}` : '/pages/duo/duo'),
     query: () => '',
     cover: COVERS.duo
+  },
+  // 生日歌单（8.4.0 拉新玩法）：落点就是玩法页本身，**生日必须写进 path / query** ——
+  // 好友点开看到的要跟他朋友看到的是同一个结果，否则点进来只有一对没选过的空选择器。
+  // cover 故意留空：分享那一刻已经有画布了，走 promise 把海报当卡片图（见 song.js）；
+  // 没出图时不给 imageUrl，微信拿当前页截图当封面 —— 有内容的一页胜过硬塞一张不相干的图。
+  song: {
+    title: (d) => (d && d.song ? `我生日那天翻出来的是《${d.song}》，你的是哪首` : '你的生日，对应哪首歌'),
+    path: (d) => (d && d.m ? `/pages/song/song?m=${d.m}&d=${d.d}` : '/pages/song/song'),
+    query: (d) => (d && d.m ? `m=${d.m}&d=${d.d}` : ''),
+    cover: ''
   }
 };
 
@@ -111,18 +121,19 @@ function message(key, d, extra) {
     path: invite.withRef(s.path(data))
   };
   if (extra && extra.promise) out.promise = extra.promise;
-  else out.imageUrl = s.cover;
+  else if (s.cover) out.imageUrl = s.cover; // 没有专属封面的场景不给 imageUrl，吃微信默认截图
   return out;
 }
 
 /** 朋友圈分享（onShareTimeline）：只能带 query，落地页固定当前页 */
 function timeline(key, d) {
   const s = scene(key);
-  return {
+  const out = {
     title: withSlogan(s.title(d || {})),
-    query: invite.withRef(s.query(d || {})),
-    imageUrl: s.cover
+    query: invite.withRef(s.query(d || {}))
   };
+  if (s.cover) out.imageUrl = s.cover;
+  return out;
 }
 
 /**
