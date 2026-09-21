@@ -8,7 +8,7 @@
 // 【日期为什么用「月 + 日」两列，不用日期控件】生日不需要年份，带上年份反而怪
 //   （「我 1998 年生的，跟这首歌有关系吗」）。两列的日数跟着月份变，2 月按 29 天。
 //
-// 【分享带 m/d】好友点开的落地页会自动翻出**同一个结果**（只是换成他能看的界面），
+// 【分享带 m/d + 歌手】好友点开的落地页会自动翻出**同一个结果**（同一天、同一位歌手），
 //   否则他点进来只会看到一对没选过的空选择器 —— 这条见 utils/share.js 的 song 场景。
 // ============================================================
 const engine = require('../../utils/birthdaySong.js');
@@ -32,8 +32,9 @@ const steps = (m, d) => ['在 366 天里翻找…', '翻到 ' + m + ' 月 ' + d 
 
 Page({
   data: {
-    artist: engine.ARTIST,
-    total: engine.total(),
+    artists: engine.names(),  // 顶部的歌手切换（顺序就是引擎里 ARTISTS 的顺序）
+    artist: engine.DEFAULT_ARTIST,
+    total: engine.total(engine.DEFAULT_ARTIST),
     range: [MONTHS, dayLabels(1)],
     pick: [0, 0],          // picker 的选中下标（月、日）
     dateText: '1 月 1 日',
@@ -47,9 +48,13 @@ Page({
     const o = options || {};
     const m = parseInt(o.m, 10);
     const d = parseInt(o.d, 10);
-    const r = engine.match(m, d);
+    // 歌手名走 query，中文要自己解码；微信有的版本已解码过一次，这里解第二次也无害
+    const want = o.a ? decodeURIComponent(o.a) : '';
+    const artist = engine.names().indexOf(want) >= 0 ? want : engine.DEFAULT_ARTIST;
+    const r = engine.match(m, d, artist);
     if (r) this._show(m, d, r, true); // 分享进来的：直接把那一天的结果摆出来
-    track.track('song_open', { from: r ? 'share' : 'me', m: m || 0, d: d || 0 });
+    this.setData({ artist, total: engine.total(artist) });
+    track.track('song_open', { from: r ? 'share' : 'me', artist, m: m || 0, d: d || 0 });
   },
 
   onUnload() {
@@ -78,13 +83,25 @@ Page({
     return (pick[0] + 1) + ' 月 ' + (pick[1] + 1) + ' 日';
   },
 
+  // ── 换歌手：已经翻出结果的就地重翻，不要求他再点一次「翻出」 ──
+  onWho(e) {
+    const a = (e.currentTarget.dataset || {}).a;
+    if (!a || a === this.data.artist) return;
+    haptics.tap();
+    const r = this.data.r ? engine.match(this.data.r.m, this.data.r.d, a) : null;
+    // fromShare 要清掉：换了歌手，「这是朋友分享的那一天」这句话就不成立了
+    this.setData({ artist: a, total: engine.total(a), r, fromShare: false });
+    if (r) this._paint();
+    track.track('song_artist', { artist: a });
+  },
+
   // ── 翻出结果 ──
   onDraw() {
     if (this.data.busy) return;
     haptics.tap();
     const m = this.data.pick[0] + 1;
     const d = this.data.pick[1] + 1;
-    const r = engine.match(m, d);
+    const r = engine.match(m, d, this.data.artist);
     if (!r) return wx.showToast({ title: '这一天不存在，换一个', icon: 'none' });
 
     // 三步文案走完再落结果：这一秒是「仪式感」的全部预算，多了就烦人
@@ -147,7 +164,7 @@ Page({
     if (!this.data.r) return Promise.resolve(false);
     return this._ensureCanvas().then((ok) => {
       if (!ok) return false;
-      poster.render(this._ctx, Object.assign({ artist: engine.ARTIST }, this.data.r));
+      poster.render(this._ctx, this.data.r); // r 里已经带了 artist，不用在这儿补
       return true;
     });
   },
@@ -187,13 +204,13 @@ Page({
         .then((res) => ({ imageUrl: res.tempFilePath }))
         .catch(() => ({}))
       : null;
-    return share.message('song', { m: r.m, d: r.d, song: r.song && r.song.t }, { promise });
+    return share.message('song', { m: r.m, d: r.d, song: r.song && r.song.t, artist: this.data.artist }, { promise });
   },
 
   onShareTimeline() {
     track.track('share_timeline', { from: 'song' });
     const r = this.data.r || {};
     // 朋友圈落地页是当前页、只能带 query —— 把生日带上，别人点开看到的才是同一个结果
-    return share.timeline('song', { m: r.m, d: r.d, song: r.song && r.song.t });
+    return share.timeline('song', { m: r.m, d: r.d, song: r.song && r.song.t, artist: this.data.artist });
   }
 });

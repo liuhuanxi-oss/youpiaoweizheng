@@ -9,6 +9,13 @@
   <!-- 分享进来的那一句说明：不写的话，他会以为这就是「自己的」结果 -->
   <view class="hint" wx:if="{{fromShare}}">这是朋友分享的那一天 —— 换成你的生日，再翻一次</view>
 
+  <!-- 换歌手：日期不变，结果就地重翻（换了一行就是另一个人，见 song.js 的 onWho） -->
+  <view class="who">
+    <view wx:for="{{artists}}" wx:key="*this" class="who-i {{item === artist ? 'on' : ''}}"
+          data-a="{{item}}" bindtap="onWho" hover-class="press-item-hover"
+          aria-role="button" aria-label="换成 {{item}}">{{item}}</view>
+  </view>
+
   <!-- 选日期：月 + 日两列（生日不需要年份） -->
   <picker mode="multiSelector" range="{{range}}" value="{{pick}}" bindchange="onPick" bindcolumnchange="onCol">
     <view class="pick pressable" hover-class="press-item-hover" aria-role="button" aria-label="选择生日">

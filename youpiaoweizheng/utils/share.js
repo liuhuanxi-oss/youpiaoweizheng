@@ -35,6 +35,11 @@ function withSlogan(title) {
   return t.indexOf(SLOGAN) >= 0 ? t : t + ' · ' + SLOGAN;
 }
 
+/** 生日歌单的歌手名要进分享链接：中文必须 encodeURIComponent（页面 onLoad 里 decode 回来） */
+function who(d) {
+  return d && d.artist ? '&a=' + encodeURIComponent(d.artist) : '';
+}
+
 // 场景表：一个场景 = 一套标题 + 落地页（path 给好友分享，query 给朋友圈）＋ 一张专属封面。
 // 例外：卡片页/年度报告在**有画布**时传 promise 自取配图（内容即配图），用不到封面。
 const SCENES = {
@@ -90,14 +95,20 @@ const SCENES = {
     query: () => '',
     cover: COVERS.duo
   },
-  // 生日歌单（8.4.0 拉新玩法）：落点就是玩法页本身，**生日必须写进 path / query** ——
+  // 生日歌单（8.4.0 拉新玩法）：落点就是玩法页本身，**生日 + 歌手都要写进 path / query** ——
   // 好友点开看到的要跟他朋友看到的是同一个结果，否则点进来只有一对没选过的空选择器。
+  // 歌手名是中文，query 里必须 encodeURIComponent（页面 onLoad 里再 decode 回来）。
   // cover 故意留空：分享那一刻已经有画布了，走 promise 把海报当卡片图（见 song.js）；
   // 没出图时不给 imageUrl，微信拿当前页截图当封面 —— 有内容的一页胜过硬塞一张不相干的图。
   song: {
-    title: (d) => (d && d.song ? `我生日那天翻出来的是《${d.song}》，你的是哪首` : '你的生日，对应哪首歌'),
-    path: (d) => (d && d.m ? `/pages/song/song?m=${d.m}&d=${d.d}` : '/pages/song/song'),
-    query: (d) => (d && d.m ? `m=${d.m}&d=${d.d}` : ''),
+    title: (d) => {
+      if (!(d && d.song)) return '你的生日，对应哪首歌';
+      return d.artist
+        ? `我生日那天翻出的是${d.artist}的《${d.song}》，你的是哪首`
+        : `我生日那天翻出来的是《${d.song}》，你的是哪首`;
+    },
+    path: (d) => (d && d.m ? `/pages/song/song?m=${d.m}&d=${d.d}${who(d)}` : '/pages/song/song'),
+    query: (d) => (d && d.m ? `m=${d.m}&d=${d.d}${who(d)}` : ''),
     cover: ''
   }
 };

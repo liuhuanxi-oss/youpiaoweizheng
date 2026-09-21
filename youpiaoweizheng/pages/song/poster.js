@@ -50,7 +50,7 @@ function divider(ctx, y) {
 /**
  * 画整张分享图。
  * @param {CanvasRenderingContext2D} ctx
- * @param {object} v birthdaySong.match() 的结果，另加 v.artist（歌手名）
+ * @param {object} v birthdaySong.match() 的结果（artist / song / cheer 都在里面，不用另拼）
  */
 function render(ctx, v) {
   ctx.textAlign = 'center';

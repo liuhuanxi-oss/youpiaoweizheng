@@ -36,6 +36,28 @@
   color: var(--accent);
 }
 
+/* ── 换歌手 ── */
+/* flex-wrap + flex-basis：4 位正好一行平分，以后加到 6 位会自己折行（不用改这里） */
+.who { display: flex; flex-wrap: wrap; gap: 14rpx; margin-bottom: 28rpx; }
+.who-i {
+  flex: 1 1 150rpx;
+  height: 76rpx;
+  border: 2rpx solid var(--line);
+  border-radius: 38rpx;
+  background: var(--card);
+  font-size: var(--fs-sm);
+  line-height: 72rpx;
+  text-align: center;
+  color: var(--ink-soft);
+  box-sizing: border-box;
+}
+.who-i.on {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.10);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* ── 选日期 ── */
 .pick {
   display: flex;
