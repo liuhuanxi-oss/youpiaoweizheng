@@ -19,6 +19,7 @@ const deco = require('../../utils/deco.js');
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 const { safeDpr } = require('../../utils/canvas-deco.js'); // 画布倍率回夹（iOS 单边 4096 上限）
 const saveimg = require('../../utils/saveimg.js'); // 8.1.3：存相册的失败分类只此一份
+const { CANVAS_TITLE: FT } = require('../../utils/font.js'); // 画布字体：ctx.font 不认 CSS 变量，导出图里的手写体只能这么拼
 
 const LS_QUOTA = 'sp_art_quota'; // { ym: 'YYYY-MM', used: n }
 const LS_TOTAL = 'sp_art_total'; // 藏品编号（全局第几幅，跳号不回收）
@@ -535,16 +536,16 @@ Page({
     const dy = Math.min(Math.max(48, (H - dh) / 2 - 90), H - dh); // 略上移给签留白；clamp 保证图完整不出界
     ctx.drawImage(img, dx, dy, dw, dh);
 
-    // —— 藏品签：圆角米白纸签 + 墨棕三行（手写感 serif） ——
+    // —— 藏品签：圆角米白纸签 + 墨棕三行（品牌手写体，见 FT） ——
     const t = this.data.t || {};
     const title = String(t.title || '无题票根');
     const titleShort = title.length > 14 ? title.slice(0, 14) + '…' : title;
     const dateTxt = String(t.date || '').replace(/-/g, '.') || '—';
     const no = Math.max(1, this.data.plateNo || this._plateNo(false)); // 4.22.5（BUG审查④）：clamp≥1 防「Plate No.00」
     const lines = [
-      { txt: titleShort, font: '600 46px serif' },
-      { txt: dateTxt, font: '30px serif' },
-      { txt: `Plate No.${String(no).padStart(2, '0')} · 有票为证藏`, font: '22px serif' }
+      { txt: titleShort, font: '600 46px ' + FT },
+      { txt: dateTxt, font: '30px ' + FT },
+      { txt: `Plate No.${String(no).padStart(2, '0')} · 有票为证藏`, font: '22px ' + FT }
     ];
     const pad = 34;
     let maxW = 0;

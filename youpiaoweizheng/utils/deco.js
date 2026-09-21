@@ -1,7 +1,7 @@
-// utils/deco.js —— 主题装饰图形（主题预览票根 + IP 头像 + 19 款装饰元素）  v7.0 新增
+// utils/deco.js —— 主题装饰图形（主题预览票根 + 19 款装饰元素）  v7.0 新增
 // ============================================================
 // 【为什么需要这个文件】
-//   theme 页的 IP 头像与 4 个装饰元素，原来是用**内联 <svg> 标签**写的。
+//   theme 页的装饰元素原来是用**内联 <svg> 标签**写的。
 //   微信小程序 wxml 不渲染 <svg>（详见 utils/icons.js 顶部说明：视图层没有
 //   SVG 原生渲染树，<svg>/<path> 被当未知自定义组件容器，子元素全部丢弃）。
 //   结果是真机上这 20 处图形**全是空白**，只剩底下的中文角标。
@@ -15,7 +15,6 @@
 // 【用法】
 //   const deco = require('../../utils/deco.js');
 //   deco.previewSrc(themeMeta)         // → 主题预览票根 data-uri（theme 页顶部）
-//   deco.avatarSrc(themeMeta)          // → 头像 data-uri（「我的」页）
 //   deco.decoSrc('postmark', themeMeta) // → 装饰元素 data-uri
 //   themeMeta 直接传 utils/theme.js 里的 THEME_META 元素（含 bg/primary/accent…）
 // ============================================================
@@ -277,89 +276,6 @@ const DECO_VIEWBOX = {
 };
 const DECO_VIEWBOX_DEFAULT = '0 0 64 44';
 
-// ============================================================
-// 默认头像：珊瑚渐变圆盘 + 暖白剪影（环状头 + 穹顶身 + 一颗心 + 六道光芒）
-// 造型照《有票为证·精修11个人中心》那张稿的头像抠下来的 —— 稿上整套插画都是
-// 「水彩色块 + 极简剪影」，渔夫帽小人那种卡通形象跟它不是一个方向，所以换掉。
-//
-// 尺寸只有 152rpx（≈73px），细枝末节全糊，能立住的只有**大色块和清楚的比例**。
-// 下面这几个数都是在稿子上量出来的（稿上圆盘直径按 245 设计px 算），别凭手感改：
-//   · 头环外径 = 盘径 × 0.367，圈粗 = 3.0 单位，环心在盘心上方 10 单位
-//   · 身体穹顶的顶在 y=43，底边两端撑到 x=6.5 / 73.5（几乎铺满盘底）
-//   · 心 9×9 单位，坐在 y≈55 的胸口
-//   · 光芒每侧 3 道，落在「距盘心 25→34 单位、以 (40,33) 为原点」那圈上
-// 改完先照 5 倍图看一眼，别只在代码里挪数字。
-// ============================================================
-const AVATAR_INK = '#FFF8F2';
-/** 光芒每侧的角度（相对正左/正右，度）—— 稿上是斜着往外撇的三道 */
-const AVATAR_RAYS = [-14, 0, 14];
-
-function avatarBody(c) {
-  // 画布 80×80，外面套的是**圆形裁切**（半径 40，圆心 40,40）—— 四角看不见，
-  // 所以身体、光芒这些贴着边缘的部分要按「离圆心 40」来算，不是按 80×80 的方框。
-  // 叠放次序＝数组次序，后面的盖前面的：圆盘 → 光芒 → 头环 → 身体 → 心。
-  // 头环必须**先于身体**画：它的下缘要被身体压住一截，后画就压不住了，
-  //   头会变成浮在身体上的一枚圆环。
-  const ink = c.paper || AVATAR_INK;
-  // 剪影色走 c.paper（暖白），和圆盘、和整个 app 的纸白同族；
-  //   换成纯白 #FFF 在奶油底上会「发青」，看着像贴上去的。
-  //
-  // ⚠️ 圆盘不能用主色一刀切：paper / minimal 两套的 primary 是**墨黑** (#2B2420 / #1A1A1A)，
-  //    照搬会得到一颗黑盘——配暖白剪影读出来是「还没设头像」的占位黑块，不是头像。
-  //    主色太黑就退到该主题的强调色（paper→砖红、minimal→藕荷），六套就都是暖的了。
-  const priRaw = parseColor(c.primary, '#DE8F8B');
-  const lum = (parseInt(priRaw.hex.slice(1, 3), 16) * 299 + parseInt(priRaw.hex.slice(3, 5), 16) * 587 +
-    parseInt(priRaw.hex.slice(5, 7), 16) * 114) / 1000;
-  const pri = (lum < 90 ? parseColor(c.accent, '#C26B5E') : priRaw).hex;
-
-  // 圆盘：稿上是左边深玫红、往右淡到蜜桃的一层水彩。**基本上是横向的**，
-  //   别写成「左上深、右下淡」的斜角 —— 斜着走会把圆盘的左上角和右下角一起淡掉，
-  //   圆框切出来就不是一个整圆，是一块发糊的印子。
-  //   深浅两端用同一个主色只差透明度，六套主题各自还原本色，不会串味。
-  // ⚠️ 淡的那端最低只到 0.62。再往下压圆盘右半就跟页面分不出边界了。
-  let s = '<defs><linearGradient id="avd" x1="0" y1="0.45" x2="1" y2="0.5">'
-    + '<stop offset="0.12" stop-color="' + pri + '" stop-opacity="0.95"/>'
-    + '<stop offset="1" stop-color="' + pri + '" stop-opacity="0.62"/>'
-    + '</linearGradient></defs>'
-    // ⚠️ 渐变靠 fill="url(#...)"。id 在 data-uri 里是**独立文档**，不会跟别处撞；
-    //    万一哪天渲染不出来（渲染器会整块涂黑），退路是删掉这段 defs，
-    //    把这里的 fill 换回 fillOf(c.primary, '#DE8F8B', 0.62)。
-    + '<circle cx="40" cy="40" r="40" fill="url(#avd)"/>';
-
-  // 光芒：六道短粗线，从 (40,32) 往外撇。稿上它们在**盘内靠边一圈**（约 0.75~0.9 半径处），
-  //   不是飘在头像外面的装饰 —— 以前那两道飘在圆外的写法已经删了。
-  //   起点别往圆心挪：挪到 25 以下就贴到脸边，读出来是几根胡子。
-  //   线宽 2.6 是下限，再细在 152rpx 下就断成虚点。
-  for (let i = 0; i < AVATAR_RAYS.length; i++) {
-    for (let side = -1; side <= 1; side += 2) {
-      // 左右镜像：右侧 θ 度 → 左侧 180-θ 度
-      const a = side < 0 ? 180 - AVATAR_RAYS[i] : AVATAR_RAYS[i];
-      const rad = a * Math.PI / 180;
-      const x1 = round2(40 + Math.cos(rad) * 30), y1 = round2(32 + Math.sin(rad) * 30);
-      const x2 = round2(40 + Math.cos(rad) * 36.5), y2 = round2(32 + Math.sin(rad) * 36.5);
-      s += '<path d="M' + x1 + ' ' + y1 + 'L' + x2 + ' ' + y2 + '" stroke="' + ink +
-        '" stroke-width="2.6" stroke-linecap="round"/>';
-    }
-  }
-
-  return s
-    // 头环：描边圆，不是实心 —— 稿上头圈**里面是透出圆盘色**的，填成实心就成了一颗白蛋。
-    //   环心压在盘心上方 10 单位：稿上人头就是明显偏上的，摆正了会显得人往下出溜。
-    + '<circle cx="40" cy="30" r="13.1" fill="none" stroke="' + ink + '" stroke-width="3"/>'
-    // 身体：一个从 y=43 撑到盘底的穹顶，底边几乎铺满（x 6.5 / 73.5）。
-    // ⚠️ 稿上的身体是**光秃秃的穹顶**，没有领口凹、也没有两个肩峰 —— 那是渔夫帽那版的画法。
-    //    加肩峰会在 152rpx 下读成「一件衣服」，把整个人撑矮；这里要的就是一块干净的白色。
-    // ⚠️ 底边也不能收窄。收到 17/62 那种宽度，圆框切出来会是一根白冰棍，头重脚轻。
-    + '<path d="M6.5 92Q6.5 43 40 43Q73.5 43 73.5 92Z" fill="' + ink + '"/>'
-    // 心：胸口那颗。稿上是**淡珊瑚**压在暖白身体上，不是实心深红 ——
-    //   深红在 152rpx 下缩成一个墨点，会被当成脏东西。
-    //   但也不能太淡：0.42 那版在暖白身体上几乎看不见，0.55 才刚好读得出一颗心。
-    // ⚠️ 心跟圆盘**同色**（都用 pri）—— 直接用 c.primary 的话，paper / minimal
-    //    这两套会在白身体上落一颗黑心，像个墨点。
-    + '<path d="M0-2C-1.6-5.2-6-5.2-6-1.6C-6 1.6-2 4 0 6.2C2 4 6 1.6 6-1.6C6-5.2 1.6-5.2 0-2Z" '
-      + 'transform="translate(39.5 54.2) scale(0.75)" ' + fillOf(pri, '#DE8F8B', 0.55) + '/>';
-}
-
 /** 包一层 svg 根节点并转成可直接塞进 <image src> 的 data-uri */
 function toUri(viewBox, w, h, body) {
   const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='" + viewBox +
@@ -378,14 +294,6 @@ function decoSrc(name, theme) {
   const vb = DECO_VIEWBOX[name] || DECO_VIEWBOX_DEFAULT;
   const parts = vb.split(' ');
   return toUri(vb, parts[2], parts[3], fn(c));
-}
-
-/**
- * IP 头像 → data-uri
- * @param {object} theme  THEME_META 里的一个主题
- */
-function avatarSrc(theme) {
-  return toUri('0 0 80 80', 80, 80, avatarBody(theme || {}));
 }
 
 // ============================================================
@@ -757,5 +665,5 @@ function homeEdges(o) {
 }
 
 module.exports = {
-  decoSrc, avatarSrc, previewSrc, postmarkParts, artFrame, flowerStamp, pinkedPanel, homeEdges
+  decoSrc, previewSrc, postmarkParts, artFrame, flowerStamp, pinkedPanel, homeEdges
 };

@@ -72,6 +72,54 @@ t('app.wxss 的标题字体栈留着系统字体兜底', () => {
 });
 
 // ════════════════════════════════════════════════════════════
+// 三′、画布：导出成图片的那些字，必须也接到品牌字体上
+//
+// 为什么单列一节：`ctx.font` **不认 CSS 变量、也不走 app.wxss 的字体栈**。
+// 页面上写着 `var(--font-title-full)` 生效了，导出图里还是系统字体 ——
+// 图片是画布画的，跟 CSS 一点关系没有。8.3.2 之前 28 处画布字体全写着裸 `serif`，
+// 所以「页面上换了字体、海报没换」这件事肉眼很难当场发现（要导出一张图才看得见）。
+// ════════════════════════════════════════════════════════════
+const CANVAS_FILES = [
+  'pages/card/card.js',       // 纪念卡片（四套风格 + 小红书三件套）
+  'pages/annual/poster.js',   // 年度报告海报
+  'pages/discover/film.js',   // 回忆地图一键成片
+  'pages/art/art.js'          // AI 图版藏品签
+];
+
+t('画布里不许再有裸 serif —— 那就是「页面换了字体、导出图没换」', () => {
+  const bad = [];
+  for (const rel of CANVAS_FILES) {
+    const p = path.join(ROOT, rel);
+    if (!fs.existsSync(p)) continue;
+    fs.readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
+      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;          // 注释不算
+      if (/(^|[^-\w])serif/.test(line) && /px\s+serif/.test(line)) {
+        bad.push(rel + ':' + (i + 1) + '  ' + line.trim());
+      }
+    });
+  }
+  ok(!bad.length, '这些画布字体还在用系统衬线体，没接品牌字体：\n        ' + bad.join('\n        '));
+});
+
+t('画布字体只从 utils/font.js 取，不在页面里手写族名', () => {
+  for (const rel of CANVAS_FILES) {
+    const p = path.join(ROOT, rel);
+    if (!fs.existsSync(p)) continue;
+    const src = fs.readFileSync(p, 'utf8');
+    ok(/CANVAS_TITLE:\s*FT\s*\}\s*=\s*require\(/.test(src),
+      rel + ' 没有从 utils/font.js 引 CANVAS_TITLE —— 画布字体得统一从那儿拿');
+    ok(!/"YPWZTitle"/.test(src), rel + ' 直接手写了族名 "YPWZTitle"，该用 FT 常量');
+  }
+});
+
+t('CANVAS_TITLE 的族名与 FACES 里真正加载的那个对得上', () => {
+  ok(font.CANVAS_TITLE.indexOf('"' + font.FACES[0].family + '"') === 0,
+    'CANVAS_TITLE 写的族名（' + font.CANVAS_TITLE + '）跟 FACES[0] 挂的（' +
+    font.FACES[0].family + '）不是同一个 —— 画布会静默回落到兜底字体');
+  ok(/\bserif\b/.test(font.CANVAS_TITLE), 'CANVAS_TITLE 没留系统兜底字体');
+});
+
+// ════════════════════════════════════════════════════════════
 // 四、boot 的行为：只挂一次、失败不影响任何事
 // ════════════════════════════════════════════════════════════
 t('boot 里每个字体都开了 global —— 不开的话 App 层调用等于没挂', () => {

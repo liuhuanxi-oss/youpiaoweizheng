@@ -21,9 +21,13 @@ function loadDrawers() {
   // 画笔（roundRect / pinkedRect / wrapText / 花枝 / 星点…）在 utils/canvas-deco.js，
   // 是纯函数、不碰 wx.*，这里按绝对路径真 require 进来 —— 测的就是真在跑的那几支笔。
   const brush = path.join(ROOT, 'utils/canvas-deco.js').replace(/\\/g, '/');
+  // 画布字体常量走的是 card.js 的 require，而下面那步会把所有 `const … require(…)` 行剥掉，
+  // 所以得跟 weekday 一样在序言里补一份 —— 少了它，预览和测试都会报 FT is not defined
+  const fontjs = path.join(ROOT, 'utils/font.js').replace(/\\/g, '/');
   const code = `
 const weekday = (d) => ['周日','周一','周二','周三','周四','周五','周六'][new Date(String(d).replace(/-/g,'/')).getDay()] || '';
 const annivYears = () => 0;
+const FT = require('${fontjs}').CANVAS_TITLE;
 const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape } = require('${brush}');
 ${src.slice(0, cut).replace(/^const .*require\(.*\);.*$/gm, '')}
 return { DRAWERS, W, H, XHS_ART, XHS_W, XHS_H };

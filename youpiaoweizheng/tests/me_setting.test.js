@@ -119,6 +119,14 @@ t('hero 副标题是 slogan，不再是「收藏天数·署名」', () => {
   ok(meWxml.includes('时光不回头，票根存温柔'), '未找到 slogan');
   ok(!/collectDays|signature/.test(meWxml), '旧字段仍在新 wxml 里');
 });
+t('默认头像走品牌 LOGO，且图真的在包里（8.3.3）', () => {
+  // 必须是 wx:else 那一支：授权过微信头像的用户仍然优先，LOGO 只做兜底
+  ok(/<image\s+wx:else\s+class="me-avatar"\s+src="\/images\/brand-logo\.png"/.test(meWxml),
+    '默认头像没接品牌 LOGO（或没挂在 wx:else 分支上，会盖掉用户自己设的头像）');
+  ok(fs.existsSync(path.join(ROOT, 'images/brand-logo.png')), 'images/brand-logo.png 不在包里，真机上是空白');
+  // 旧的 SVG 头像已连同 utils/deco.js 里的 avatarBody 一起删掉，别再被引回来
+  ok(!/avatarSrc|ic\.avatar/.test(meWxml + meJs), 'me 页仍引用已删除的 SVG 头像');
+});
 t('Lv 徽章与旧页脚已移除', () => {
   ok(!/me-lv|Lv\./.test(meWxml), 'Lv 徽章仍在');
   ok(!/me-foot/.test(meWxml), '旧页脚仍在');

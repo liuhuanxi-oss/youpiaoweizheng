@@ -27,6 +27,7 @@
 const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawSprig, safeDpr } =
   require('../../utils/canvas-deco.js');
 const mapArt = require('../../utils/mapArt.js');
+const { CANVAS_TITLE: FT } = require('../../utils/font.js'); // 画布字体：ctx.font 不认 CSS 变量，导出图里的手写体只能这么拼
 
 const C = {
   paper: '#FAF5EE', card: '#FFFDF8', ink: '#4A3B2E', soft: '#8A7B66', faint: '#B3A690',
@@ -93,14 +94,14 @@ function masthead(ctx, d, fit, W) {
   ctx.fillText(String(d.brand || '有票为证'), W / 2, b.y + 78);
 
   ctx.fillStyle = C.ink;
-  ctx.font = '600 46px serif';
+  ctx.font = '600 46px ' + FT;
   const total = Number(d.total) || 0;
   ctx.fillText(total ? '这些年，你走过 ' + total + ' 座城' : '这些年，你走过的路', W / 2, b.y + 156);
 
   // 年份跨度：一座有日期的城都没有时这条是空串 —— 不编年份
   if (d.span) {
     ctx.fillStyle = C.roseD;
-    ctx.font = '30px serif';
+    ctx.font = '30px ' + FT;
     ctx.fillText(String(d.span), W / 2, b.y + 226);
   }
   drawStar4(ctx, PAD + 18, b.y + 148, 9, C.gold);
@@ -269,7 +270,7 @@ function ledger(ctx, cities, d, fit) {
     ctx.fillText(c.year || '——', PAD + 34, y + 9);
 
     ctx.fillStyle = C.ink;
-    ctx.font = '600 30px serif';
+    ctx.font = '600 30px ' + FT;
     ctx.fillText(c.city, PAD + 132, y + 10);
 
     ctx.textAlign = 'right';
@@ -295,7 +296,7 @@ function foot(ctx, d, fit, W) {
   drawSprig(ctx, W - PAD - 20, f.y + f.h - 76, 74, Math.PI + 0.35, true, SPRIG_PAL);
   ctx.textAlign = 'center';
   ctx.fillStyle = C.ink;
-  ctx.font = '600 34px serif';
+  ctx.font = '600 34px ' + FT;
   ctx.fillText(String(d.slogan || '让时光有票为证'), W / 2, f.y + 72);
   ctx.fillStyle = C.faint;
   ctx.font = '22px sans-serif';

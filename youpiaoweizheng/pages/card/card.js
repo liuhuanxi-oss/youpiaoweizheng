@@ -25,6 +25,7 @@ const invite = require('../../utils/invite.js');           // 7.3.0 R6：海报�
 const pay = require('../../utils/pay.js');                 // 4.20.3：署名（昵称 → 卡面落款）
 const points = require('../../utils/points.js');           // 7.4.0 B 段 R2：生成卡片 +2（端上唯一的得分上报）
 const { iconSrc } = require('../../utils/icons.js');       // 稿屏6：按钮与空态图标（全页无 emoji）
+const { CANVAS_TITLE: FT } = require('../../utils/font.js'); // 画布字体：ctx.font 不认 CSS 变量，导出图里的手写体只能这么拼
 const decoUtil = require('../../utils/deco.js');           // 稿屏6：卡外那几处手绘点缀
 // 与年报长图共用的画笔（齿边 / 圆角 / 折行 / 花枝 / 星点 / 水彩晕）。
 // ⚠️ 必须写成一整行：scripts/dev/preview-card.js 靠「行首 const … require(…);」整行删掉
@@ -147,7 +148,7 @@ function drawPostmark(ctx, x, y, r, color) {
   // 印面白「证」
   ctx.fillStyle = '#FDF6EC';
   ctx.textAlign = 'center';
-  ctx.font = `700 ${Math.round((r - 7) * 1.12)}px serif`;
+  ctx.font = `700 ${Math.round((r - 7) * 1.12)}px ${FT}`;
   ctx.fillText('证', x, y + (r - 7) * 0.36);
   ctx.restore();
 }
@@ -163,7 +164,7 @@ function drawDuoBadge(ctx, x, y, r, duo) {
     ctx.lineWidth = 2.5;
     ctx.stroke();
     ctx.fillStyle = '#FFF6E8';
-    ctx.font = `700 ${Math.round(r * 0.92)}px serif`;
+    ctx.font = `700 ${Math.round(r * 0.92)}px ${FT}`;
     ctx.textAlign = 'center';
     ctx.fillText(char, cx, y + r * 0.34);
     ctx.restore();
@@ -248,7 +249,7 @@ function drawPolaroid(ctx, img, t, cx, cy, w, h, angle, duo) {
   const cap = [t.seat, t.price ? '¥' + t.price : ''].filter(Boolean).join(' · ');
   if (cap) {
     ctx.fillStyle = '#8A7B66';
-    ctx.font = 'italic 17px serif';
+    ctx.font = 'italic 17px ' + FT;
     ctx.textAlign = 'center';
     ctx.fillText(cap, 0, h / 2 - 24);
   }
@@ -307,7 +308,7 @@ function drawClassic(ctx, t, quote, img, duo, same, qr, sig) {
   // 文案
   if (quote) {
     const quoteY = photoY + photoH + 66;
-    ctx.font = 'italic 22px serif';
+    ctx.font = 'italic 22px ' + FT;
     ctx.fillStyle = '#6B5F52';
     ctx.textAlign = 'left';
     const qLines = wrapText(ctx, `「${quote}」`, W - 120, 2);
@@ -392,7 +393,7 @@ function drawPoster(ctx, t, quote, img, duo, same, qr, sig) {
   // 文案
   if (quote) {
     const quoteY = 712;
-    ctx.font = 'italic 24px serif';
+    ctx.font = 'italic 24px ' + FT;
     ctx.fillStyle = 'rgba(247,242,230,0.9)';
     ctx.textAlign = 'left';
     const qLines = wrapText(ctx, `「${quote}」`, W - 120, 2);
@@ -455,7 +456,7 @@ function drawDaily(ctx, t, quote, img, duo, same, qr, sig) {
   // 文案（居中）
   if (quote) {
     ctx.textAlign = 'center';
-    ctx.font = '26px serif';
+    ctx.font = '26px ' + FT;
     ctx.fillStyle = '#2B2420';
     const qLines = wrapText(ctx, quote, W - 160, 3);
     qLines.forEach((l, i) => ctx.fillText(l, W / 2, 630 + i * 44));
@@ -506,7 +507,7 @@ function drawJournal(ctx, t, quote, img, duo, same, qr) {
 
   // 标题 + 水彩笔触下划线
   ctx.textAlign = 'left';
-  ctx.font = '700 34px serif';
+  ctx.font = '700 34px ' + FT;
   ctx.fillStyle = '#4A3B2D';
   const titleLines = wrapText(ctx, t.title, W - 130, 2);
   titleLines.forEach((l, i) => ctx.fillText(l, 60, 165 + i * 46));
@@ -545,7 +546,7 @@ function drawJournal(ctx, t, quote, img, duo, same, qr) {
   // 文案
   if (quote) {
     const quoteY = by + 16;
-    ctx.font = 'italic 22px serif';
+    ctx.font = 'italic 22px ' + FT;
     ctx.fillStyle = '#6B5A45';
     const qLines = wrapText(ctx, `「${quote}」`, W - 140, 2);
     qLines.forEach((l, i) => ctx.fillText(l, 60, quoteY + i * 34));
@@ -821,7 +822,7 @@ function drawPostcard(ctx, t, quote, img, duo, same, qr, sig) {
   // ⑨ AI 文案（换一版文案在这里生效；放最下面一行，不挤正文）
   if (quote) {
     ctx.fillStyle = PC.soft;
-    ctx.font = 'italic 18px serif';
+    ctx.font = 'italic 18px ' + FT;
     ctx.textAlign = 'center';
     const qLines = wrapText(ctx, `「${quote}」`, iw - 60, 2);
     qLines.forEach((l, i) => ctx.fillText(l, W / 2, H - 84 + i * 26));
@@ -957,7 +958,7 @@ function drawXhsCover(ctx, t, quote, img, duo, same, sig) {
   // ⑧ AI 文案（「换一版文案」在这张图上同样生效）
   if (quote) {
     ctx.fillStyle = PC.soft;
-    ctx.font = 'italic 32px serif';
+    ctx.font = 'italic 32px ' + FT;
     wrapText(ctx, '「' + quote + '」', XW - XM, 2)
       .forEach((l, i) => ctx.fillText(l, XM, 1240 + i * 46));
   }

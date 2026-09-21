@@ -73,8 +73,8 @@ t('iconSrc：未知图标名仍回落票根（不给出空 src）', () => {
   ok(raw(iconSrc('不存在的图标名', '#2B2420')).length > 20, '未回落');
 });
 
-t('deco：头像与装饰元素都是 base64', () => {
-  for (const u of [deco.avatarSrc(META), deco.decoSrc('sprig', META), deco.decoSrc('postmark', META)]) {
+t('deco：装饰元素都是 base64', () => {
+  for (const u of [deco.decoSrc('sprig', META), deco.decoSrc('postmark', META)]) {
     ok(String(u).startsWith(PREFIX), 'deco 未走 base64：' + String(u).slice(0, 30));
     ok(raw(u).endsWith('</svg>'), 'deco 解出来不是完整 svg');
   }
@@ -105,7 +105,7 @@ t('解出来的 svg 都带 xmlns 命名空间（少了真机不认）', () => {
 });
 
 t('data-uri 里不出现裸尖括号与双引号（真机对未编码的 < > " 会静默失败）', () => {
-  for (const u of [iconSrc('user', '#2B2420'), deco.avatarSrc(META), map.landSrc(META)]) {
+  for (const u of [iconSrc('user', '#2B2420'), deco.decoSrc('postmark', META), map.landSrc(META)]) {
     const s = String(u);
     ok(!/[<>"']/.test(s.slice(PREFIX.length)), 'base64 段里混进了 XML 特殊字符');
   }

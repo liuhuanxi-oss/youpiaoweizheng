@@ -58,7 +58,6 @@ function buildGraphics(themeKey) {
     star: iconSrc('sparkle', m.accent),
     heart: iconSrc('heart', m.accent),
     chevron: iconSrc('chevron', m.text, 0.45),
-    avatar: deco.avatarSrc(m),
     // 统计卡三列
     bookmark: iconSrc('bookmark', m.text, 0.7),
     pin: iconSrc('pin', m.text, 0.7),

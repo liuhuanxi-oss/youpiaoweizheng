@@ -48,6 +48,22 @@ const FACES = [
 
 let _booted = false;
 
+// ============================================================
+// 画布用的字体串 —— 海报 / 卡片 / 年报 / 藏品图版这些**导出成图片**的东西，
+// 全靠这一个常量接到品牌字体上。
+//
+// 为什么必须单独来一份：`ctx.font` **不认 CSS 变量**，也**不走 app.wxss 的字体栈**，
+// 只能把族名当字符串拼进去。页面上 `var(--font-title-full)` 生效、导出图里却是系统字体，
+// 根子就在这儿 —— 图片是画布画的，跟 CSS 一点关系没有。
+//
+// 兜底不能省：真机要是没挂上（域名白名单没配 / 加载慢了一步），
+// 后面那个 serif 就是最后一道防线，至少不会整片字消失。
+//
+// 用法：`ctx.font = '700 46px ' + CANVAS_TITLE`
+//      `` ctx.font = `700 ${n}px ${CANVAS_TITLE}` ``
+// ============================================================
+const CANVAS_TITLE = '"YPWZTitle", serif';
+
 /**
  * 启动时调一次。App.onLaunch 里调最合适 —— 那时还没有页面，
  * 配上 global: true 就是全局生效，不用每个页面自己加载。
@@ -88,4 +104,4 @@ function _report(track, family, ok, msg) {
   } catch (e) { /* 忽略 */ }
 }
 
-module.exports = { boot, FONT_BASE, FACES };
+module.exports = { boot, FONT_BASE, FACES, CANVAS_TITLE };

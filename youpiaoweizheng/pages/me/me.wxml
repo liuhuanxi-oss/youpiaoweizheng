@@ -38,15 +38,18 @@
     <text class="me-net-t">{{netBar.text}}</text>
   </view>
 
-  <!-- ② Hero：左侧水彩头像（可授权更换），右侧手写标题 + slogan + 波浪下划线 -->
+  <!-- ② Hero：左侧头像（可授权更换），右侧手写标题 + slogan + 波浪下划线 -->
   <view class="me-hero">
     <view class="me-avatar-wrap">
-      <!-- 左右那几道放射短线不在这里了，画进头像 SVG 了 —— 稿上它们在**圆盘之内**，
-           做成外挂的 view 只会飘在头像外面，跟新头像不是一套东西 -->
+      <!-- 没授权头像时直接用品牌 LOGO（8.3.3）。之前那枚手绘「珊瑚圆盘 + 暖白剪影」
+           是照稿抠的，但 152rpx 下跟 LOGO 摆一起像两个牌子；LOGO 本来就在包里
+           （品牌行那行也在用），0 成本、跟全 app 一套脸。
+           注意 mode 是 aspectFill + 外圈 border-radius:50% —— LOGO 是圆角方块，
+           这里是被裁成正圆的，正好是稿上那个圆盘的样子。 -->
       <button class="me-avatar-btn pressable" hover-class="press-item-hover" open-type="chooseAvatar"
               bindchooseavatar="onChooseAvatar" aria-label="选择头像">
         <image wx:if="{{profile.avatar}}" class="me-avatar" src="{{profile.avatar}}" mode="aspectFill" />
-        <image wx:else class="me-avatar" src="{{ic.avatar}}" mode="aspectFill" />
+        <image wx:else class="me-avatar" src="/images/brand-logo.png" mode="aspectFill" />
       </button>
     </view>
 

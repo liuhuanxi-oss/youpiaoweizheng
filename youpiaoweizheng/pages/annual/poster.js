@@ -12,6 +12,7 @@
 // 【约定】本文件不 require 任何 wx.* 模块，照片由调用方加载好后以 Image 传入。
 // ============================================================
 const { wrapText, roundRect, pinkedRect, watercolorBlob, drawStar4, drawHeart, drawSprig, drawTape } = require('../../utils/canvas-deco.js');
+const { CANVAS_TITLE: FT } = require('../../utils/font.js'); // 画布字体：ctx.font 不认 CSS 变量，导出图里的手写体只能这么拼
 
 const RW = 1080, RH = 1920;
 // 海报调色（导出图固定「纸感浅色」视觉，不随主题变化——存进相册的图要质感统一）
@@ -84,7 +85,7 @@ function brand(ctx, year) {
 
   ctx.textAlign = 'left';
   ctx.fillStyle = C.ink;
-  ctx.font = '700 46px serif';
+  ctx.font = '700 46px ' + FT;
   ctx.fillText('有票为证', X + L + 26, Y + 66);
 
   // No. 年份 标签：奶油底 + 虚线内框，微微歪一点（手写标签的观感）
@@ -102,7 +103,7 @@ function brand(ctx, year) {
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.fillStyle = C.ink;
-  ctx.font = '600 34px serif';
+  ctx.font = '600 34px ' + FT;
   ctx.textAlign = 'center';
   ctx.fillText('No.' + year, 0, 12);
   ctx.restore();
@@ -125,7 +126,7 @@ function brand(ctx, year) {
 function title(ctx, year) {
   ctx.textAlign = 'center';
   ctx.fillStyle = C.ink;
-  ctx.font = '800 82px serif';
+  ctx.font = '800 82px ' + FT;
   ctx.fillText(`我的 ${year} 时光档案`, RW / 2, 330);
   ctx.fillStyle = 'rgba(217,160,166,0.55)';
   roundRect(ctx, RW / 2 - 230, 356, 460, 16, 8);
@@ -158,15 +159,15 @@ function statPanel(ctx, x, y, w, h, label, num, unit, tone, blotch, ink) {
   drawStar4(ctx, x + 48, y + 58, 15, C.gold);
   ctx.textAlign = 'left';
   ctx.fillStyle = tone;
-  ctx.font = '600 34px serif';
+  ctx.font = '600 34px ' + FT;
   ctx.fillText(label, x + 76, y + 70);
 
   // 数字：一个特别大的 + 一个小一号的单位（主次关系全在这两个字号上）
   ctx.fillStyle = tone;
-  ctx.font = '800 150px serif';
+  ctx.font = '800 150px ' + FT;
   ctx.fillText(num, x + 40, y + 236);
   const nw = ctx.measureText(num).width;
-  ctx.font = '600 46px serif';
+  ctx.font = '600 46px ' + FT;
   ctx.fillText(unit, x + 40 + nw + 12, y + 236);
 }
 
@@ -183,7 +184,7 @@ function collage(ctx, picks, pm, no) {
   ctx.fill();
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FFF8F2';
-  ctx.font = '700 38px serif';
+  ctx.font = '700 38px ' + FT;
   ctx.fillText('年度精选', 0, 14);
   drawStar4(ctx, -104, 0, 13, '#FFF8F2');
   drawStar4(ctx, 104, 0, 13, '#FFF8F2');
@@ -222,7 +223,7 @@ function collage(ctx, picks, pm, no) {
     ctx.stroke();
     ctx.textAlign = 'center';
     ctx.fillStyle = C.roseD;
-    ctx.font = '600 30px serif';
+    ctx.font = '600 30px ' + FT;
     ctx.fillText('No. ' + no, 0, 11);
     ctx.restore();
   }
@@ -342,7 +343,7 @@ function closing(ctx, ai) {
 
   ctx.textAlign = 'left';
   ctx.fillStyle = C.ink;
-  ctx.font = '700 38px serif';
+  ctx.font = '700 38px ' + FT;
   ctx.fillText('AI 年度结语', x + 92, y + 66);
   ctx.fillStyle = 'rgba(217,160,166,0.75)';
   roundRect(ctx, x + 92, y + 80, 172, 10, 5);
@@ -361,11 +362,11 @@ function closing(ctx, ai) {
 function foot(ctx, sig) {
   ctx.textAlign = 'center';
   ctx.fillStyle = C.ink;
-  ctx.font = '600 36px serif';
+  ctx.font = '600 36px ' + FT;
   ctx.fillText('让时光有票为证', RW / 2, 1798);
   if (sig) {
     ctx.fillStyle = C.faint;
-    ctx.font = 'italic 26px serif';
+    ctx.font = 'italic 26px ' + FT;
     ctx.fillText(`—— ${String(sig).slice(0, 10)} 的年度档案`, RW / 2, 1844);
   }
 }
