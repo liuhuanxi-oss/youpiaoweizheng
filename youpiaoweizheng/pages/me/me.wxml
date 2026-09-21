@@ -41,10 +41,8 @@
   <!-- ② Hero：左侧水彩头像（可授权更换），右侧手写标题 + slogan + 波浪下划线 -->
   <view class="me-hero">
     <view class="me-avatar-wrap">
-      <view class="me-ray me-ray-l1"></view>
-      <view class="me-ray me-ray-l2"></view>
-      <view class="me-ray me-ray-r1"></view>
-      <view class="me-ray me-ray-r2"></view>
+      <!-- 左右那几道放射短线不在这里了，画进头像 SVG 了 —— 稿上它们在**圆盘之内**，
+           做成外挂的 view 只会飘在头像外面，跟新头像不是一套东西 -->
       <button class="me-avatar-btn pressable" hover-class="press-item-hover" open-type="chooseAvatar"
               bindchooseavatar="onChooseAvatar" aria-label="选择头像">
         <image wx:if="{{profile.avatar}}" class="me-avatar" src="{{profile.avatar}}" mode="aspectFill" />

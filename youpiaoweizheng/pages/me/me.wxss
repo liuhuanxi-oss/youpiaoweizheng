@@ -42,7 +42,7 @@
   padding: 26rpx 44rpx 0;
 }
 
-/* 头像：水彩圆底 + 左右各两道放射短线 */
+/* 头像：珊瑚渐变圆盘 + 暖白剪影，连左右那几道放射短线一起画在 SVG 里（见 utils/deco.js） */
 .me-avatar-wrap { position: relative; flex: 0 0 152rpx; width: 152rpx; height: 152rpx; }
 .me-avatar-btn {
   width: 152rpx; height: 152rpx;
@@ -54,18 +54,6 @@
 }
 .me-avatar-btn::after { border: none; display: none; }
 .me-avatar { width: 152rpx; height: 152rpx; border-radius: 50%; display: block; }
-
-.me-ray {
-  position: absolute;
-  width: 18rpx; height: 4rpx;
-  border-radius: 2rpx;
-  background: var(--brown, #6B5B50);
-  opacity: 0.45;
-}
-.me-ray-l1 { left: -14rpx; top: 56rpx;  transform: rotate(-16deg); }
-.me-ray-l2 { left: -22rpx; top: 84rpx;  transform: rotate(14deg); width: 24rpx; }
-.me-ray-r1 { right: -14rpx; top: 56rpx; transform: rotate(16deg); }
-.me-ray-r2 { right: -22rpx; top: 84rpx; transform: rotate(-14deg); width: 24rpx; }
 
 /* 右侧：手写标题 + slogan + 手绘下划线 */
 .me-hero-body { position: relative; flex: 1; min-width: 0; }
