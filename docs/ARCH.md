@@ -118,7 +118,9 @@
 
 ### 4.2 `recognizeTicket`（OCR）
 
-`index.js`（入口 + 双通道 OCR：百度 / 微信兜底）→ `parser.js`（规则解析成草稿）→ `cities.js`（城市字典）。
+`index.js`（入口 + OCR：微信云调用 `openapi.ocr.printedText`）→ `parser.js`（规则解析成草稿）→ `cities.js`（城市字典）。
+
+> 2026-09-21：此前并存过一条百度智能云「通用文字识别」通道（4.9.0 加的，密钥始终为空、从未启用），已整条删除 —— 现在只有微信这一条。
 
 ---
 

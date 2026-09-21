@@ -215,9 +215,13 @@
         <text class="me-badges-c">已点亮 {{unlocked}} / {{badges.length}}</text>
       </view>
       <scroll-view class="me-badges-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <!-- 名字下面那行：锁着的显示「还差 N 场」这类进度，亮了的显示勋章本来那句话。
+             在此之前只画了图标和名字 —— badges.js 早把进度算好了，界面上一个字都没露，
+             用户看得到「点亮了几枚」，看不到「下一枚还差多少」，收集最关键的牵引力丢了。 -->
         <view class="me-badge {{item.unlocked ? 'on' : ''}}" wx:for="{{badges}}" wx:key="id">
           <image class="me-badge-ic" src="{{item.src}}" mode="aspectFit" aria-hidden="true" />
           <text class="me-badge-name">{{item.name}}</text>
+          <text class="me-badge-desc">{{item.desc}}</text>
         </view>
       </scroll-view>
     </view>

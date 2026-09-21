@@ -221,9 +221,12 @@ Page({
         { key: 'traffic', label: '交通' }
       ].map((f) => ({ ...f, label: `${f.label} ${count(f.key)}` }));
 
+      const tm = buildTimeMachine(all, store.USE_CLOUD === false);
       this.setData({
         filters,
-        timeMachine: buildTimeMachine(all, store.USE_CLOUD === false),
+        timeMachine: tm,
+        // 降级成时令短句那一档不是签到入口，模板据此收回按压反馈与箭头（见 album.wxml）
+        tmSign: !!tm && tm.kind === 'sign',
         netBar,
         hasTickets: all.length > 0
       });
@@ -316,20 +319,15 @@ Page({
     this.applyFilter(e.currentTarget.dataset.key);
   },
 
-  // 那年今日点击：命中票根直达详情；今日时光签弹签
+  // 那年今日点击：命中票根直达详情。
+  // 降级成时令短句那一档直接返回 —— 此前这里弹过一个标题写「今日时光签」、
+  // 确认键写「收下今日」的弹窗，点了只是关掉它：不签到、不给分、不连签。
+  // 真签到在「我的」页（服务端判定）。摘掉假按钮，与 8.1.3 摘「AI 修复」同一处置。
+  // （不写引入版本：CHANGELOG 查不到这个弹窗的记录，仓库的 git 历史只有一次基线提交，
+  //   考证不出来的版本号宁可不写。）
   goTimeMachine() {
     const tm = this.data.timeMachine;
-    if (!tm) return;
-    if (tm.kind === 'sign') {
-      wx.showModal({
-        title: '今日时光签',
-        content: tm.title,
-        showCancel: false,
-        confirmText: '收下今日',
-        confirmColor: '#E0532F'
-      });
-      return;
-    }
+    if (!tm || tm.kind === 'sign') return;
     wx.navigateTo({ url: `/pages/detail/detail?id=${tm.ticketId}` });
   },
 

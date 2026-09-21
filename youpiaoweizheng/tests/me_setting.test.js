@@ -21,6 +21,7 @@ const stWxss = read('pages/setting/setting.wxss');
 const stJs = read('pages/setting/setting.js');
 const icons = read('utils/icons.js');
 const mock = read('utils/mock.js');
+const { computeBadges } = require('../utils/badges.js'); // 勋章判定（真跑，不抠源码）
 
 // 取出 icons.js 里真实注册的图标名
 const ICONS = new Set([...icons.matchAll(/^\s{2}([a-zA-Z][\w]*):/gm)].map((m) => m[1]));
@@ -265,6 +266,38 @@ t('扫描全部 pages/ 的 iconSrc/icon: 调用', () => {
     names.forEach((n) => { if (!ICONS.has(n)) bad.push(path.relative(ROOT, f) + ':' + n); });
   });
   ok(bad.length === 0, '引用了不存在的图标：' + bad.join(', '));
+});
+
+console.log('\n【十、勋章进度要看得见（badges.js 算好的 desc 必须有出口）】');
+// utils/badges.js 一直在算「还差 N 场」并把未解锁的文案换成进度提示，但 me.wxml
+// 此前只画 icon + name —— 算出来的进度一个字都没露。用户看得到「点亮了几枚」，
+// 看不到「下一枚还差多少」，而「差一点点」正是收集感唯一的牵引力。
+t('每枚勋章都带 desc，且不是空串（字面断言：真跑 computeBadges）', () => {
+  const list = computeBadges([], null, 0, false, false, null);
+  ok(list.length === 16, '勋章数不是 16 枚，是 ' + list.length);
+  const bad = list.filter((b) => !b.desc || !String(b.desc).trim());
+  ok(bad.length === 0, '这些勋章没有 desc：' + bad.map((b) => b.id).join(', '));
+});
+t('拿不到服务端数据时不编进度数字（连签 / 积分只说门槛）', () => {
+  // badges.js 文件头写明：取不到就只说门槛，「还差 3 天」而用户其实签了 5 天是假的，
+  // 假的进度比没有进度更伤人。这里把这句原则钉住。
+  const list = computeBadges([], null, 0, false, false, null);
+  const sv = list.slice(13).map((b) => b.desc).join(' ');
+  ok(!/还差/.test(sv), '服务端数据取不到时仍写了「还差 N」：' + sv);
+  ok(list.slice(13).length === 3, '连签 / 积分那三枚数不对');
+});
+t('me.wxml 把 desc 渲染出来了', () => {
+  ok(/<text class="me-badge-desc">\{\{item\.desc\}\}<\/text>/.test(meWxml),
+    '勋章只画了图标和名字，算好的进度没渲染');
+});
+t('me.wxss 给 .me-badge-desc 定了样式', () => {
+  ok(/\.me-badge-desc\s*\{/.test(meWxss), '没有 .me-badge-desc 的样式，那一行会按默认字号挤在一起');
+});
+t('me.js 组装勋章时没把 desc 丢掉', () => {
+  // 用的是 Object.assign(b, { src }) —— 加字段而不是重建对象，desc 才活得下来。
+  // 哪天有人改成手写字面量 { id, src, name, unlocked }，这条会当场变红。
+  ok(/\.map\(\(b\) => Object\.assign\(b, \{ src: iconSrc\(b\.icon/.test(meJs),
+    '勋章的 map 改了写法，可能丢掉 desc 字段');
 });
 
 console.log('\n──────────────────────────────');

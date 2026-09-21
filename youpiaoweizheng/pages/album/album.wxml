@@ -83,9 +83,13 @@
   </block>
 
   <block wx:else>
-    <!-- 那年今日 / 今日时光签：钉在时间轴最前面的一张特别票根（稿外保留，本页的招牌功能） -->
-    <view class="tm-today pressable" wx:if="{{timeMachine}}" hover-class="press-item-hover"
-          bindtap="goTimeMachine" aria-role="button" aria-label="{{timeMachine.label}}">
+    <!-- 那年今日 / 今日时光签：钉在时间轴最前面的一张特别票根（稿外保留，本页的招牌功能）
+         只有真命中了往年今天才可点（进那张票的详情）。降级成时令短句那一档**不是签到入口**：
+         不挂按压反馈、不画箭头、不报成「按钮」—— 否则读屏会念「按钮」，点下去却什么都不发生。
+         签到全站只有「我的」页那一处。 -->
+    <view class="tm-today {{tmSign ? '' : 'pressable'}}" wx:if="{{timeMachine}}"
+          hover-class="{{tmSign ? 'none' : 'press-item-hover'}}"
+          bindtap="goTimeMachine" aria-role="{{tmSign ? '' : 'button'}}" aria-label="{{timeMachine.label}}">
       <view class="tm-today-ribbon">{{timeMachine.label}}</view>
       <view class="tm-today-body">
         <image class="tm-today-ic" src="{{ic.clock}}" mode="aspectFit" aria-hidden="true" />
@@ -93,7 +97,7 @@
           <view class="tm-today-title serif">{{timeMachine.title}}</view>
           <view class="tm-today-sub">{{timeMachine.sub}}</view>
         </view>
-        <image class="tm-today-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
+        <image wx:if="{{!tmSign}}" class="tm-today-go" src="{{ic.chevron}}" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
 

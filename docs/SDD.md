@@ -246,9 +246,9 @@
 
 - 入参 `{ fileID }`；返回 `{ ok, draft, lines }` 或 `{ ok:false, msg }`；
 - 三道门（按顺序）：**fileID 格式白名单**（必须匹配 `^cloud://{env}.{storage}/`；只校形态、不核对 env，跨环境读由下载接口拦；云函数是管理员权限，这一步防的是伪造 fileID 探测）→ **调用者闸门**（`getWXContext().OPENID` 为空一律拒，控制台 / HTTP 直调不认）→ **每人每天 30 次**（`OCR_DAILY_LIMIT`，写 `prefs.ocr_day`，`_id = ocr_{openid}_{ymd}`；正常用户一天用不到 5 次，30 是留给「反复拍不清楚」的余量）；
-- 链路：下载 → OCR 双通道（百度 → 微信 `openapi.ocr.printedText` 兜底）→ `parser.js` 规则解析成草稿；
+- 链路：下载 → OCR（微信 `openapi.ocr.printedText`）→ `parser.js` 规则解析成草稿；
 - 后续：端上 `ai.parseDraftByAI(lines, draft)` 再解析一遍，失败回落规则草稿；
-- 百度通道密钥留空则整体跳过该通道，链路不断。
+- 通道只有这一条。4.9.0 曾在它前面并过一条百度智能云通道，密钥始终为空、从未启用，2026-09-21 整条删除（`tests/ocr_channel.test.js` 钉住）。通道报错或图里确实没字是两种回话，不混为一谈。
 
 ---
 
@@ -407,7 +407,7 @@ eventKey = 'evt_' + md5(s).slice(0, 16)                      // 32 位 hex 只�
 | 票根超 `LIST_MAX` | `flags.truncated`（由真实 `count()` 比对得出；`flags.cap` 是上限值 500，不是标记） | 「只显示了最近 N 张」 |
 | 单张票不存在（分享落地 / 过期 id） | 页面空态 | 「不在册子」而非白屏 |
 | OCR 识别失败 | 云函数 `{ok:false,msg}` → 进**空表单**手动补填 | 「没认出来」+ 可编辑表单 |
-| 无百度密钥 | 跳过该通道，走微信 OCR | 无感 |
+| OCR 服务市场配额用尽 | 微信云调用报错 → `{ok:false,msg:'OCR 识别失败（…）'}` | 进空表单手工补填，原始报错只进 `console.error` |
 | AI 文案 / 结语失败 | 规则兜底文案（`ai.js` fallback） | 仍有内容，不空卡 |
 | 天气取不到 | `weather = null` | 天气印记整块不显示（不造假） |
 | 内容安全平台故障 | **先重试一次，两次都异常才拒绝**（旧口径「服务异常即通过」等于给违规文本留旁路：挑腾讯侧抖动的时刻提交就能把未审内容写进去，而它会跟着卡片/海报导出） | 「安全检查暂时不可用，请稍后再试」 |

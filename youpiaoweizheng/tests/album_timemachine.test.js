@@ -276,6 +276,37 @@ t('页内标题行还在（导航栏留空的前提是它自己把标题画出�
   ok(/class="tm-brush"/.test(wxmlClean), '标题下的玫瑰笔触没了');
 });
 
+console.log('\n【九、降级成时令短句那一档不是签到入口（假按钮已摘）】');
+// 都没命中时 buildTimeMachine 会退回「今日时光签 · 日期」的时令短句，这是有意保留的内容位。
+// 但它一直挂着一颗假按钮：弹窗标题「今日时光签」、确认键「收下今日」，
+// 点下去只是把弹窗关掉 —— 不签到、不给分、不连签。真签到在「我的」页，由服务端判定。
+t('goTimeMachine 里不再有那个假装签到的弹窗', () => {
+  const i = js.indexOf('goTimeMachine()');
+  const j = js.indexOf('goDetail(e)');
+  ok(i >= 0 && j > i, '取不到 goTimeMachine 的函数体');
+  const body = js.slice(i, j);
+  ok(!/showModal/.test(body), 'goTimeMachine 里还在弹窗');
+  ok(/tm\.kind === 'sign'\) return/.test(body), 'sign 那一档没有提前返回，会带着空 ticketId 跳详情');
+});
+t('代码里再没有「收下今日」这句承诺（注释里的来历说明不算）', () => {
+  // 注释留着是为了记住这颗按钮为什么被摘，代码里不许再有 —— 去掉注释再查一遍
+  const noComment = js.replace(/\/\/[^\n]*/g, '');
+  ok(!/收下今日/.test(noComment), '代码里还写着「收下今日」');
+});
+t('时令短句那一档不可点：不挂按压反馈、不画箭头、不报成按钮', () => {
+  ok(/class="tm-today \{\{tmSign \? '' : 'pressable'\}\}"/.test(wxml),
+    '按压反馈没有按 tmSign 收起来（用户会以为它能点）');
+  ok(/hover-class="\{\{tmSign \? 'none' : 'press-item-hover'\}\}"/.test(wxml),
+    'hover-class 没有按 tmSign 收起来');
+  ok(/<image wx:if="\{\{!tmSign\}\}" class="tm-today-go"/.test(wxml),
+    '降级那一档还画着「点我进去」的箭头');
+  ok(/aria-role="\{\{tmSign \? '' : 'button'\}\}"/.test(wxml),
+    '降级那一档仍报成「按钮」——读屏会念按钮，点下去却什么都不发生');
+});
+t('tmSign 与 timeMachine 一起下发（模板要靠它判断）', () => {
+  ok(/tmSign: !!tm && tm\.kind === 'sign'/.test(js), 'setData 里没有 tmSign');
+});
+
 console.log('\n──────────────────────────────');
 console.log('结果：' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
