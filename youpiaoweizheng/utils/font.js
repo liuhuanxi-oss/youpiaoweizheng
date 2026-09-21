@@ -19,7 +19,11 @@
 // ============================================================
 
 // ⚠️ 换服务器只改这一行（结尾必须有斜杠）
-const FONT_BASE = 'https://example.com/ypwz/fonts/';
+// 这里指向**云开发自带的静态网站托管**（腾讯云，跟云函数同一个环境 cloud1-d5gpnyzjw64a60ac7）。
+// 文件是 scripts/ci/upload-fonts.js 传上去的，重传/换域名都跑那个脚本，它会把这行该写什么打出来。
+// 这个域名还必须加进微信后台的「downloadFile 合法域名」，否则真机上加载会被拦掉
+//   —— 拦掉的表现就是**悄无声息地回落系统字体**，不报错、不白屏，很难发现。
+const FONT_BASE = 'https://cloud1-d5gpnyzjw64a60ac7-1481239884.tcloudbaseapp.com/ypwz/fonts/';
 
 // 正文体开关。默认关：
 //   正文体 807 KB，而它要替换的苹方（PingFang SC）本身就是人文风无衬线，

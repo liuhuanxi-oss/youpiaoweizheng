@@ -1,22 +1,36 @@
-这两个文件是小程序要用的字体，需要传到腾讯云开发。
-上传后把「默认域名」发我，我填进代码里。
+【已传完，别手动再传一遍】
 
-  ypwz-title.woff2   标题字体（霞鹜文楷）    1003 KB
-  ypwz-body.woff2    正文字体（思源黑体）     807 KB   ← 目前代码里没启用，先传着备用
+这两个文件在 2026-09-21（v8.3.2）已经传进**云开发自带的静态网站托管**，
+跟云函数同一个环境 cloud1-d5gpnyzjw64a60ac7。地址是：
 
-两款字体均为 SIL OFL 开源授权，可免费商用，允许子集化和自托管。
-子集化范围：GB2312 全部汉字 + 小程源码里出现的全部汉字 + 常用标点。
-版权声明已保留在字体文件内部（name 表），符合 OFL 要求。
+  https://cloud1-d5gpnyzjw64a60ac7-1481239884.tcloudbaseapp.com/ypwz/fonts/ypwz-title.woff2
+  https://cloud1-d5gpnyzjw64a60ac7-1481239884.tcloudbaseapp.com/ypwz/fonts/ypwz-body.woff2
 
-—— 怎么传 ——
-1. 浏览器打开 https://console.cloud.tencent.com/tcb
-2. 选环境：cloud1-d5gpnyzjw64a60ac7
-3. 左侧菜单找「静态网站托管」，第一次进去点「开通」（有免费额度，不花钱）
-4. 把这两个 .woff2 文件拖进上传区域
-5. 页面上会显示一个「默认域名」，形如 https://xxxx.tcloudbaseapp.com
-   把它发我（连 https:// 一起复制）
+代码里对应 youpiaoweizheng/utils/font.js 的 FONT_BASE，已经填好了。
 
-—— 还要配一步（很重要，不配字体加载不出来）——
+—— 要重新传（改了字体、换了环境）——
+在 youpiaoweizheng/ 目录下跑：
+
+    npm run fonts
+
+它会用项目已有的「代码上传密钥」直接传，并把 FONT_BASE 该写什么打出来。
+不需要腾讯云 API 密钥，也不用去控制台拖文件。
+
+—— 唯一要人工做的一步 ——
 微信公众平台 https://mp.weixin.qq.com
  → 开发 → 开发管理 → 开发设置 → 服务器域名
- → 「downloadFile 合法域名」里加上第 5 步那个域名
+ → 「downloadFile 合法域名」里加上：cloud1-d5gpnyzjw64a60ac7-1481239884.tcloudbaseapp.com
+
+不配的表现是**悄无声息地回落系统字体**（不报错、不白屏），最难发现。
+FONT_BASE 是运行期读的，所以配好之后不用重新发版，用户下次进来就是新字体。
+
+—— 文件说明 ——
+  ypwz-title.woff2   标题字体（霞鹜文楷）    1003 KB   ← 在用
+  ypwz-body.woff2    正文字体（思源黑体）     807 KB   ← utils/font.js 里 ENABLE_BODY = false，没启用
+
+两款字体均为 SIL OFL 开源授权，可免费商用，允许子集化和自托管。
+子集化范围：GB2312 全部汉字 + 小程序源码里出现的全部汉字 + 常用标点。
+版权声明已保留在字体文件内部（name 表），符合 OFL 要求。
+思源黑体那份授权全文（思源黑体-授权.txt）也一起传上去了 —— OFL 要求随字体分发。
+
+（这个目录在项目**上一级**，故意不放进小程序包：字体走网络加载，不占那 2MB。）
