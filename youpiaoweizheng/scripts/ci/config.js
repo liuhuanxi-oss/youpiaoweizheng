@@ -28,6 +28,26 @@ function readPkgVersion() {
   }
 }
 
+/**
+ * 取 CHANGELOG 里当前版本的标题，作为上传备注的「描述」部分
+ * `## 8.5.0 生日歌单扩到八位歌手（2026-09-22）` → 「生日歌单扩到八位歌手」
+ * CHANGELOG 每版必写，描述直接取自那里 —— 不用再单独维护一行 UPLOAD_REMARK
+ */
+function readChangelogTitle(version) {
+  try {
+    const md = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8')
+    const re = new RegExp('^##\\s+' + version.replace(/\./g, '\\.') + '\\s+(.+)$', 'm')
+    const m = md.match(re)
+    return m ? m[1].replace(/（[^）]*）\s*$/, '').trim() : ''
+  } catch (e) {
+    return ''
+  }
+}
+
+// 上传真正读的是 .env 的 UPLOAD_VERSION（package.json 的 version 只是兜底），两处要一起升
+const VERSION = process.env.UPLOAD_VERSION || readPkgVersion()
+const CHANGELOG_TITLE = readChangelogTitle(VERSION)
+
 const config = {
   root: ROOT,
   distDir: path.join(ROOT, 'dist'),
@@ -41,10 +61,13 @@ const config = {
     functions: (process.env.TCB_FUNCTIONS || '').split(',').map(s => s.trim()).filter(Boolean)
   },
   upload: {
-    version: process.env.UPLOAD_VERSION || readPkgVersion(),
-    // 备注默认跟着版本号走：原先靠 .env 里另写一行 UPLOAD_REMARK，
-    // 升版本时忘了改它，后台就会显示「版本 7.4.0 / 备注 v7.3.0」（已踩过一次）
-    remark: process.env.UPLOAD_REMARK || `有票为证 v${process.env.UPLOAD_VERSION || readPkgVersion()}`,
+    version: VERSION,
+    // 备注默认「有票为证 v<版本号> · <CHANGELOG 里这版的标题>」，描述自动取自 CHANGELOG。
+    // 走这条路是因为手填的 UPLOAD_REMARK 两次都不靠谱：一次是升版本忘了改，后台显示成
+    // 「版本 7.4.0 / 备注 v7.3.0」；一次是干脆不填，退化成光秃秃的版本号，等于没写。
+    // UPLOAD_REMARK 仍可填，用来临时改口覆盖（填了就得跟着版本改）。
+    remark: process.env.UPLOAD_REMARK
+      || `有票为证 v${VERSION}${CHANGELOG_TITLE ? ' · ' + CHANGELOG_TITLE : ''}`,
     robot: Number(process.env.CI_ROBOT || 1)
   },
   audit: {
