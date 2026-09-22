@@ -1,0 +1,99 @@
+/* pages/trip/trip.wxss —— 这一趟
+   全部走 app.wxss 的主题变量：六套主题下这一页不用改一个字。
+   深色下唯一会「漏出来」的是画布出图，所以那张图固定纸感浅色（见 pages/trip/poster.js 顶部）。 */
+
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 40rpx 32rpx 96rpx;
+  background: var(--paper);
+}
+
+/* ── 标题区 ── */
+.hero { margin-bottom: 40rpx; }
+.hero-t {
+  display: block;
+  font-family: var(--font-title-full);
+  font-size: 58rpx;
+  letter-spacing: 4rpx;
+  color: var(--ink);
+}
+.hero-s {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.tip {
+  margin: 0 0 24rpx;
+  padding: 20rpx 24rpx;
+  border-radius: var(--r-item);
+  background: rgba(var(--accent-rgb), 0.08);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--accent);
+}
+
+/* ── 图上那几张 ── */
+.list {
+  border-radius: var(--r-card);
+  background: var(--card);
+  overflow: hidden;
+}
+.row {
+  display: flex;
+  align-items: center;
+  padding: 26rpx 28rpx;
+  border-bottom: 2rpx solid var(--line);
+}
+.row:last-child { border-bottom: none; }
+.row-d {
+  width: 176rpx;
+  flex: none;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.row-m { flex: 1; min-width: 0; }
+.row-t {
+  display: block;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-s {
+  display: block;
+  margin-top: 8rpx;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+/* ── 存成图 ── */
+.gen {
+  margin-top: 48rpx;
+  height: 96rpx;
+  border-radius: 999rpx;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  line-height: 96rpx;
+  text-align: center;
+  box-shadow: 0 10rpx 28rpx rgba(0, 0, 0, 0.08);
+}
+.gen.off { opacity: 0.6; }
+
+/* 出图画布：挪到屏幕外，用户看不到，只用来导出（同生日歌单） */
+.canvas-off {
+  position: fixed;
+  left: -3000rpx;
+  top: 0;
+  width: 750rpx;
+  height: 1000rpx;
+}

@@ -83,7 +83,9 @@ const CANVAS_FILES = [
   'pages/card/card.js',       // 纪念卡片（四套风格 + 小红书三件套）
   'pages/annual/poster.js',   // 年度报告海报
   'pages/discover/film.js',   // 回忆地图一键成片
-  'pages/art/art.js'          // AI 图版藏品签
+  'pages/art/art.js',         // AI 图版藏品签
+  'pages/song/poster.js',     // 生日歌单（8.4.0 补录：它一直在名单外）
+  'pages/trip/poster.js'      // 这一趟（8.4.0）
 ];
 
 t('画布里不许再有裸 serif —— 那就是「页面换了字体、导出图没换」', () => {

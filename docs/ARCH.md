@@ -1,6 +1,6 @@
 # 有票为证 · 架构与数据流（ARCH）
 
-> **版本对齐**：小程序 `8.0.5` ｜ **日期**：2026-09-17
+> **版本对齐**：小程序 `8.4.0` ｜ **日期**：2026-09-22
 > **本文件管什么**：这套小程序由哪几块组成、数据从哪来到哪去、改东西该动哪个文件。
 > **不管什么**：要做什么（见 [PRD.md](./PRD.md)）、怎么改不能碰（见 [`youpiaoweizheng/CODEBUDDY.md`](../youpiaoweizheng/CODEBUDDY.md) 项目宪法）。
 > **怎么用**：接手先看本文件的第 1、2 节；要动手改某条链路，直接跳到对应小节，路径都是现成的。
@@ -10,7 +10,7 @@
 ## 一、全局：三层 + 两个后端
 
 ```
-页面层  pages/            18 个页面（4 个自定义 tab 页 + 14 个功能页）
+页面层  pages/            22 个页面（4 个自定义 tab 页 + 18 个功能页）
           │  ↓ 票根数据只走下面这一层；页面另有 3 类云直连（上传照片 / 取临时链接 / 单次动作），见 SDD 第一节
 数据层  utils/            数据（store）、双人（couple/duoData）、AI（ai）、主题（theme）、
           │               图形（icons/deco/mapArt）、支付（pay）、授权（auth）、埋点（track）…
@@ -28,7 +28,7 @@
 
 ---
 
-## 二、页面清单（18 页，`app.json` 注册）
+## 二、页面清单（22 页，`app.json` 注册）
 
 | 分组 | 页面 | 干什么 | 主要依赖的 utils |
 |---|---|---|---|
@@ -40,13 +40,17 @@
 | 详情 | `pages/detail` | 票面信息、AI 时光手记、天气印记 | store, mock, ai, skeleton, theme, weather, date, track, ads, icons |
 | 深加工 | `pages/art` | AI 艺术重绘（原票 ↔ 重绘对照） | store, theme, track, env, pay, ads, icons, deco |
 | 深加工 | `pages/card` | 纪念卡片：五种卡面，存相册 / 分享 | store, date, ai, theme, couple, env, track, pay, icons, deco, canvas-deco |
+| 深加工 | `pages/song` | 生日歌单（**8.4.0**，「我的」页进）：选月+日 → 翻出这一天的那首歌 → 出 1080×1920 竖图 | birthdaySong, poster, saveimg, share, track, haptics, canvas-deco |
 | 回忆 | `pages/annual` | 年度报告（统计 + 精选 + AI 结语 + 竖版长图） | store, theme, pay, track, deco, icons, ai, poster |
+| 回忆 | `pages/trip` | 「这一趟」（**8.4.0**，详情页「···」进）：这张票**前后各 3 天**内的其他票拼成一张图 | store, trip, poster, mock, saveimg, track, canvas-deco |
+| 回忆 | `pages/citybook` | 城市集章册（**8.1.6**，回忆地图顶部进）：票根按城市盖成章，按**第一次去的时间**排 | store, theme, icons, deco, citybook, mapArt, share |
 | 双人 | `pages/duo` | 双人空间：邀请码绑定、共同票根 / 场次 / 城市 | store, couple, duoData, theme, skeleton, track, deco, icons |
 | 双人 | `pages/bind` | 邀请中转页（分享卡片带 code 进入） | theme, couple, track |
 | 双人 | `pages/timeline` / `pages/report` | 双人时间线（按月分组、同场标记）/ 我们的时光报告（分布、里程、一起场次） | duoData, couple, date, theme, skeleton（report 另有 geo, pay） |
 | 设置 | `pages/setting` / `pages/theme` / `pages/protocol` | 设置（含勋章墙）/ 主题选择 / 协议 | store, couple, env, pay, badges, theme, deco |
 | 拉新 | `pages/wall` | 同场票根墙：某一场上**别人自愿公开**的票根（全项目唯一陌生人可读的出口） | store, theme, track, share |
 | 拉新 | `pages/legacy` | 老票根专场：请用户翻出抽屉里的老票来拍（**静态页**，分享落点） | theme, track, share, icons, deco |
+| 拉新 | `pages/sign` | 线下扫码立牌落地页（8.1.0）：扫门口的码直达取景框 | theme, track, signBoard, saveimg, board, haptics |
 
 > `tests/page_refs.test.js` 会拦「注册了但没人能进」的孤立页；下线页面时记得看它身上挂的勋章标记、埋点有没有别人依赖。
 
@@ -177,7 +181,7 @@ scan 拍照/选图 → 压缩 → wx.cloud.uploadFile（云存储 tickets/）
 
 | 类别 | 在哪 | 说明 |
 |---|---|---|
-| 回归测试 | `tests/*.test.js`（48 套 / 1134 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
+| 回归测试 | `tests/*.test.js`（55 套 / 1263 条） | `npm test`；可带过滤词只跑一套（`npm test detail`）。改哪屏跑哪套 |
 | 单屏预览 | `scripts/dev/preview-*.js` | 本机把卡面 / 年报 / 装饰图形渲成图或 HTML 先看一眼 |
 | 云函数部署 | `scripts/ci/deploy-fns.js` | `npm run deploy:fn`（CloudBase CLI 非交互） |
 | 上传提审 | `scripts/ci/` | `npm run upload` / `audit` / `audit:status` / `release`；`pipeline:dev` 串起「体积粗检 → 部署 → 上传」 |

@@ -15,6 +15,7 @@ const { iconSrc } = require('../../utils/icons.js');       // 7.0.0：线性图�
 const haptics = require('../../utils/haptics.js'); // 7.4.0：触觉三档，别再直接写 vibrateShort
 const anniv = require('../../utils/anniv.js');     // 8.1.2 拉新 6/6：下一个周年日是哪天
 const subscribe = require('../../utils/subscribe.js'); // 8.1.2：周年提醒的授权（订阅接口只此一处出口）
+const trip = require('../../utils/trip.js');           // 8.4.0：这一趟（判断「···」里要不要摆这一项）
 
 const LS_CAP_STYLE = 'sp_cap_style'; // 4.11.0：文案风格本地记忆（detail/card 共用）
 
@@ -227,6 +228,7 @@ Page({
       this.maybeAnnivEgg();               // 4.15.0：恰逢周年 → 打开彩蛋
       this.setupAnniv(raw);               // 8.1.2：周年日快到了 → 多一行「到那天提醒我」
       this.loadSameCount(raw);
+      this.loadTripOk(raw.id);            // 8.4.0：要不要在「···」里摆「这一趟的票」
       this._typeCaption(raw.aiCaption);   // v5.1 D2：已有文案也走打字机逐字显示
     } finally {
       sk.end(this);
@@ -396,15 +398,42 @@ Page({
    *  而隐私协议仍写着「左滑删除」，用户实际删不掉（详见 docs/FEATURE.md §十-3） */
   onMore() {
     const hasCap = !!(this.data.t && this.data.t.aiCaption);
+    // 8.4.0「这一趟」：前后三天里有别的票才摆这一项 —— 只有一张票时摆出来，
+    // 点进去只会看到一句「就这一张」，那就是个点了空欢喜的入口（红线④）
+    const items = ['AI 艺术重绘', '生成纪念卡片'];
+    if (this._tripOk) items.push('这一趟的票');
+    items.push(hasCap ? 'AI 换一句文案' : 'AI 写一句文案', '删除这张票根');
     wx.showActionSheet({
-      itemList: ['AI 艺术重绘', '生成纪念卡片', hasCap ? 'AI 换一句文案' : 'AI 写一句文案', '删除这张票根'],
+      itemList: items,
+      // 按**标签**分发，不按下标 —— 上面这一项是条件插入的，写死 tapIndex === 3
+      // 就会在「这一趟的票」出现的那天，把删除接到「写文案」上去（且不报错）
       success: (res) => {
-        if (res.tapIndex === 0) this.goArt();
-        if (res.tapIndex === 1) this.goCard();
-        if (res.tapIndex === 2) this.genCaption();
-        if (res.tapIndex === 3) this.removeTicket();
+        const pick = items[res.tapIndex];
+        if (pick === 'AI 艺术重绘') return this.goArt();
+        if (pick === '生成纪念卡片') return this.goCard();
+        if (pick === '这一趟的票') return this.goTrip();
+        if (pick === '删除这张票根') return this.removeTicket();
+        this.genCaption();
       }
     });
+  },
+
+  /** 8.4.0：前后三天内有别的票 → 「···」里才给「这一趟的票」这一项。
+   *  store.listTickets 有 30 秒缓存，而进这一页多半是从册子点进来的（列表刚拉过），
+   *  所以这里通常不产生额外的云往返。读不到就当没有，不摆一个点了会落空的入口。 */
+  async loadTripOk(id) {
+    try {
+      const list = await store.listTickets();
+      this._tripOk = trip.tripOf(list, id, undefined, store.listFlags()).ok;
+    } catch (e) {
+      this._tripOk = false;
+    }
+  },
+
+  /** 8.4.0：这一趟 —— 把这张票前后三天里的几张拼成一张图（pages/trip） */
+  goTrip() {
+    haptics.confirm();
+    wx.navigateTo({ url: '/pages/trip/trip?id=' + encodeURIComponent(this.data.t.id) });
   },
 
   /** 删除这张票根：二次确认 → store.removeTicket（云/演示双模式）→ 退回上一页。

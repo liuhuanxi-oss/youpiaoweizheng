@@ -371,4 +371,7 @@ function foot(ctx, sig) {
   }
 }
 
-module.exports = { render, RW, RH, C };
+// photoFrame / postmark 是这套纸感意象的两块积木，8.4.0「这一趟」的海报（pages/trip/poster.js）
+// 直接拿去用了 —— 同一种白框照片、同一枚邮戳，两个页面的图才像一个人做的。
+// 是纯添加，年度报告自己的 render 一行没动。
+module.exports = { render, RW, RH, C, photoFrame, postmark };

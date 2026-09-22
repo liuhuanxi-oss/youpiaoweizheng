@@ -140,9 +140,12 @@ t('onShow 里重新 buildIcons 并 setData', () => {
 console.log('\n【九、删除入口（7.1.1 加回：v7.0 重做时随旧票根卡丢了，隐私协议却还写着能删）】');
 t('「···」更多菜单里带「删除这张票根」，且点得到 removeTicket', () => {
   const more = js.slice(js.indexOf('onMore()'), js.indexOf('removeTicket() {'));
-  ok(/itemList:\s*\[/.test(more), '找不到更多菜单的 itemList');
-  ok(/'删除这张票根'\]/.test(more), '菜单里没有「删除这张票根」，或它不在最后一项');
-  ok(/tapIndex === 3\)\s*this\.removeTicket\(\)/.test(more), '菜单第 4 项没有接到 removeTicket');
+  ok(/itemList:\s*(items|\[)/.test(more), '找不到更多菜单的 itemList');
+  ok(/items\.push\([\s\S]{0,140}?'删除这张票根'\)/.test(more), '菜单里没有「删除这张票根」，或它不在最后一项');
+  // 8.4.0：「这一趟的票」是条件插入的，分发从「第几项」改成了「哪一项」。
+  // 原来那条 `tapIndex === 3 → removeTicket` 在下标会漂的菜单里守不住任何东西：
+  // 多插一项，它要么当场变红（只是运气好），要么在别处悄悄接错（那才是灾难）。
+  ok(/pick === '删除这张票根'\)\s*return this\.removeTicket\(\)/.test(more), '菜单里的「删除这张票根」没有接到 removeTicket');
 });
 t('删除必须二次确认、走数据层（云/演示双模式）、失败有提示', () => {
   const fn = js.slice(js.indexOf('removeTicket() {'), js.indexOf('goBack() {'));

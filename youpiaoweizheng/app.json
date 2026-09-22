@@ -20,7 +20,8 @@
     "pages/legacy/legacy",
     "pages/sign/sign",
     "pages/citybook/citybook",
-    "pages/song/song"
+    "pages/song/song",
+    "pages/trip/trip"
   ],
   "__usePrivacyCheck__": true,
   "permission": {

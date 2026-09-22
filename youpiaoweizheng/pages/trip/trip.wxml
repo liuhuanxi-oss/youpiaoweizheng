@@ -1,0 +1,41 @@
+<!-- pages/trip/trip.wxml —— 这一趟：看看圈进了哪几张 → 存成一张图 -->
+<view class="page">
+
+  <view class="hero">
+    <text class="hero-t">这一趟</text>
+    <text class="hero-s" wx:if="{{head}}">{{head}} · {{stat}}</text>
+    <text class="hero-s" wx:else>正在翻你的票根…</text>
+  </view>
+
+  <!-- 成不了一趟：说清楚为什么，并给一条回去的路（不摆一个点了没反应的按钮） -->
+  <view class="tk-empty" wx:if="{{why}}">
+    <text class="tk-empty-title">{{why}}</text>
+    <view class="tk-empty-cta" hover-class="press-main-hover" bindtap="goBack"
+          aria-role="button" aria-label="回去看看别的票根">回去看看</view>
+  </view>
+
+  <!-- ready 之前不摆按钮：那会儿 _r 还没到，点了不会有反应（点了没反应比没有更糟） -->
+  <block wx:elif="{{ready}}">
+    <!-- 图上只有 6 张，这一句把差额交代清楚（图上印的也是它） -->
+    <view class="tip" wx:if="{{capped}}">这一趟一共 {{total}} 张，图上挑了 6 张</view>
+
+    <!-- 图上会有哪几张：让用户在出图前就看得见，不用等存进相册才知道 -->
+    <view class="list">
+      <view class="row" wx:for="{{items}}" wx:key="id">
+        <text class="row-d">{{item.date}}</text>
+        <view class="row-m">
+          <text class="row-t">{{item.title}}</text>
+          <text class="row-s">{{item.typeText}}{{item.city ? ' · ' + item.city : ''}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="gen {{saving ? 'off' : ''}}" hover-class="press-main-hover" bindtap="onSave"
+          aria-role="button" aria-label="把这一趟存成一张图">
+      <text>{{saving ? '正在出图…' : '存成图'}}</text>
+    </view>
+  </block>
+
+  <!-- 出图画布：留在屏幕外，用户看不到（保存用它导出 1080×1440 的图） -->
+  <canvas type="2d" id="tripCanvas" class="canvas-off" aria-hidden="true"></canvas>
+</view>
